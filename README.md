@@ -282,8 +282,6 @@ A: **你的 AI Agent 就是最好的帮手。** 把这份 README 和报错信息
 ---
 
 ## 📚 延伸阅读
-
-- **项目下载**：[YMOS 压缩包直链](https://media.yongmai.xyz/wp-content/uploads/2026/02/28161315/YMOS.zip)
     
 - **数据源配置指南**：[Yongmai 市场 API](https://yongmai.xyz/market-api/) | [免费 RSS 清单](https://yongmai.xyz/tib-rss-list/)
     
