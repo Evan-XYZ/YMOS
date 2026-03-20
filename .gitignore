@@ -2,6 +2,9 @@
 .env
 .env.local
 
+# Local-only directories
+wordpress-docs/
+
 # OS
 .DS_Store
 Thumbs.db
