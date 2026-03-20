@@ -1,0 +1,21 @@
+{
+  "version": "2026-03-20",
+  "description": "用户自定义补充 RSS 源。无论 Market Data API 是否启用，这些源都会被额外拉取。",
+  "usage": "复制本文件为 rss_sources_custom.json，填入你的自定义 RSS 源即可。格式与 rss_sources.json 一致。",
+  "sources": [
+    {
+      "name": "（示例）Stratechery",
+      "url": "https://stratechery.com/feed/",
+      "category": "深度洞察",
+      "priority": "high",
+      "note": "Ben Thompson 科技商业分析"
+    },
+    {
+      "name": "（示例）Hacker News Best",
+      "url": "https://hnrss.org/best",
+      "category": "科技",
+      "priority": "medium",
+      "note": "Hacker News 精选"
+    }
+  ]
+}

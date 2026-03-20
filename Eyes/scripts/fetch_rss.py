@@ -38,23 +38,42 @@ FALLBACK_SOURCES = [
 ]
 
 
-def load_sources(category_filter=None):
-    """加载 RSS 源配置。优先 JSON，回退内置。"""
+def load_sources(category_filter=None, config_path=None):
+    """加载 RSS 源配置。优先指定路径 → JSON → 内置。"""
     script_dir = Path(__file__).resolve().parent
-    json_path = script_dir / "rss_sources.json"
 
-    if json_path.exists():
-        try:
-            with open(json_path, "r", encoding="utf-8") as f:
-                config = json.load(f)
-            sources = config.get("sources", [])
-            print(f"📂 从 rss_sources.json 加载 {len(sources)} 个源")
-        except Exception as e:
-            print(f"⚠️ 读取 rss_sources.json 失败: {e}，使用内置源")
-            sources = FALLBACK_SOURCES
+    if config_path:
+        # 使用指定的配置文件
+        custom_path = Path(config_path)
+        if not custom_path.is_absolute():
+            custom_path = script_dir / config_path
+        if custom_path.exists():
+            try:
+                with open(custom_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                sources = config.get("sources", [])
+                print(f"📂 从 {custom_path.name} 加载 {len(sources)} 个源")
+            except Exception as e:
+                print(f"⚠️ 读取 {custom_path.name} 失败: {e}")
+                return []
+        else:
+            print(f"⚠️ 指定的配置文件不存在: {custom_path}")
+            return []
     else:
-        print("📂 rss_sources.json 不存在，使用内置源（6 个）")
-        sources = FALLBACK_SOURCES
+        # 默认：优先 rss_sources.json，回退内置
+        json_path = script_dir / "rss_sources.json"
+        if json_path.exists():
+            try:
+                with open(json_path, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                sources = config.get("sources", [])
+                print(f"📂 从 rss_sources.json 加载 {len(sources)} 个源")
+            except Exception as e:
+                print(f"⚠️ 读取 rss_sources.json 失败: {e}，使用内置源")
+                sources = FALLBACK_SOURCES
+        else:
+            print("📂 rss_sources.json 不存在，使用内置源（6 个）")
+            sources = FALLBACK_SOURCES
 
     if category_filter:
         sources = [s for s in sources if s.get("category") == category_filter]
@@ -248,6 +267,10 @@ def main():
         help="按分类过滤源（美股/宏观/科技/Crypto/深度洞察）",
     )
     parser.add_argument(
+        "--config", default=None,
+        help="自定义 RSS 配置文件路径（默认使用 rss_sources.json）",
+    )
+    parser.add_argument(
         "--output", default="financial_data.json",
         help="输出文件路径（默认: financial_data.json）",
     )
@@ -274,7 +297,7 @@ def main():
             result = None
     else:
         # 全源模式（支持分类过滤）
-        sources = load_sources(category_filter=args.category)
+        sources = load_sources(category_filter=args.category, config_path=args.config)
         if not sources:
             print("❌ 无可用源")
             sys.exit(1)

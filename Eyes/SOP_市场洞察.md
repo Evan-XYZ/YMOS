@@ -82,6 +82,24 @@ python3 Eyes/scripts/fetch_finnhub_news.py \
 - Watchlist 不拉个股新闻（节省 rate limit）
 - A股/港股 Ticker 不支持 Finnhub，自动过滤
 
+### Step 2.7：拉取补充 RSS 数据（可选）
+
+> **仅当 `Eyes/scripts/rss_sources_custom.json` 存在时执行。无此文件则静默跳过。**
+>
+> 补充 RSS 与主数据源（API 或默认 RSS）独立运行，不互斥。
+> 适用场景：用户已有 Market Data API，但还想订阅特定行业/深度分析的 RSS 源。
+
+```bash
+python3 Eyes/scripts/fetch_rss.py {天数} \
+  --config Eyes/scripts/rss_sources_custom.json \
+  --output "Eyes/市场洞察/Raw_Data/$(date +%Y-%m)/supplementary_rss_$(date +%Y%m%d).json"
+```
+
+**Agent 执行规则**：
+1. 检查 `Eyes/scripts/rss_sources_custom.json` 是否存在
+2. 存在 → 执行拉取，输出为 `supplementary_rss_YYYYMMDD.json`
+3. 不存在 → 静默跳过，不提示用户
+
 ### Step 3：调用 P13 分析
 
 > ⚠️ **无论数据来自 API 还是 RSS，都必须严格按照 P13 标准模板输出。**
@@ -92,6 +110,7 @@ python3 Eyes/scripts/fetch_finnhub_news.py \
 1. **主输入**：`financial_data_YYYYMMDD.json`（API 路径）或 `cio_processed_YYYYMMDD.md`（RSS 路径）
 2. **补充输入**（如存在）：`finnhub_news_YYYYMMDD.json`
    - `p15_trigger=true` 的条目 → P13 报告中标注「建议跑 P15」
+3. **补充输入**（如存在）：`supplementary_rss_YYYYMMDD.json`（用户自定义 RSS）
 
 调用：`Brain/references/p13-market-scanner.md`
 
