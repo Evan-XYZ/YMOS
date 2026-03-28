@@ -3,7 +3,7 @@
 **Yongmai Operating System** · 自然语言驱动的人机协作投资研究系统
 
 [![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/Evan-XYZ/YMOS/releases)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC%20BY--NC%204.0-lightgrey.svg)](LICENSE)
 
 > 以市场触发为起点、以提示词软路由为中枢、以状态机与个股知识库为记忆层、以 Human 最终决策为落点的人机协作投资操作系统。
 
@@ -433,7 +433,7 @@ YMOS 不帮你赚钱——它帮你**不犯低级错误**。
 
 ## 关于作者
 
-**勇麦（Yongmai）** — AI 时代投资系统架构师
+**勇麦（Yongmai）** — AI + 投资实践者 / 个人投资者
 
 用 AI 增强投资决策，用内容沉淀信任。YMOS 是我自用的投资操作系统，现在开源给所有愿意用系统思维做投资的人。
 
