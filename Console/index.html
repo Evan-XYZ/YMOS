@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>YMOS Console · Reader 与决策台</title>
+  <!-- 不引任何外部 CDN：完全离线可用 -->
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --card: #ffffff;
+      --line: #e6e3da;
+      --ink-1: #23211c;
+      --ink-2: #56524a;
+      --ink-3: #8a857a;
+      --accent: #b4633a;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #171613;
+        --card: #201e1a;
+        --line: #35322b;
+        --ink-1: #eceae4;
+        --ink-2: #b8b3a8;
+        --ink-3: #837e73;
+        --accent: #d98455;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 56px 24px 72px;
+      background: var(--bg);
+      color: var(--ink-1);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap { max-width: 1040px; margin: 0 auto; }
+
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--ink-3); margin-bottom: 18px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+
+    h1 {
+      font-family: "Source Serif 4", Georgia, "Songti SC", serif;
+      font-size: 34px; font-weight: 600; margin: 0 0 12px; letter-spacing: -.01em;
+    }
+
+    .lede {
+      font-size: 15.5px; line-height: 1.75; color: var(--ink-2);
+      margin: 0 0 8px; max-width: 62ch;
+    }
+    .lede b { color: var(--ink-1); }
+
+    .status {
+      display: inline-flex; align-items: center; gap: 7px;
+      margin: 22px 0 30px; padding: 8px 13px; border-radius: 999px;
+      border: 1px solid var(--line); background: var(--card);
+      font-size: 12.5px; color: var(--ink-2);
+    }
+    .status code {
+      background: rgba(128, 128, 128, .13); padding: 1px 6px;
+      border-radius: 4px; font-size: 11.5px;
+    }
+
+    .cards { display: grid; gap: 16px; grid-template-columns: repeat(3, 1fr); }
+    @media (max-width: 680px) { .cards { grid-template-columns: 1fr; } }
+
+    a.card {
+      display: block; padding: 24px; border-radius: 14px;
+      border: 1px solid var(--line); background: var(--card);
+      text-decoration: none; color: inherit; transition: border-color .15s, transform .15s;
+    }
+    a.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+    .card .ico { font-size: 26px; line-height: 1; }
+    .card h2 {
+      font-family: "Source Serif 4", Georgia, "Songti SC", serif;
+      font-size: 19px; font-weight: 600; margin: 14px 0 8px;
+    }
+    .card p { font-size: 13.5px; line-height: 1.65; color: var(--ink-2); margin: 0 0 14px; }
+    .card .tag {
+      display: inline-block; font-size: 11.5px; color: var(--ink-3);
+      border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px;
+    }
+
+    footer {
+      margin-top: 42px; padding-top: 22px; border-top: 1px solid var(--line);
+      font-size: 12.5px; line-height: 1.8; color: var(--ink-3);
+    }
+    footer code { background: rgba(128, 128, 128, .13); padding: 1px 6px; border-radius: 4px; }
+    footer a { color: var(--ink-2); }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <span class="dot"></span><span>YMOS Console</span>
+    </div>
+
+    <h1>Reader 与决策台</h1>
+    <p class="lede">
+      一个本地入口，做三件事：<b>翻报告、定计划、过门禁</b>。
+      Reader 负责把产出聚到眼前；两个决策台负责在最容易犯错的时刻，把流程摆在你面前。
+    </p>
+    <p class="lede">
+      填的东西都写回<b>你自己的 Obsidian</b>，是纯 Markdown。没有数据库，没有云端，没有账号。
+    </p>
+
+    <div class="status" id="status">
+      <span id="statusText">检查 vault 连接中…</span>
+    </div>
+
+    <div class="cards">
+      <a class="card" id="linkReader" href="/reader">
+        <div class="ico">📚</div>
+        <h2>Reader</h2>
+        <p>把散在目录里的市场洞察、投资雷达、策略分析和决策记录聚成一个可搜索的阅读页面。</p>
+        <span class="tag">日常 · 报告浏览</span>
+      </a>
+
+      <a class="card" id="linkPlan" href="/plan">
+        <div class="ico">🗓️</div>
+        <h2>交易计划台</h2>
+        <p>收盘后把明天想清楚：定调、审持仓、审观察、列明日动作。开盘只照着执行，不在盘中现想。</p>
+        <span class="tag">盘后 · 决策与执行解耦</span>
+      </a>
+
+      <a class="card" id="linkSop" href="/sop">
+        <div class="ico">🛑</div>
+        <h2>新高买卖决策台</h2>
+        <p>开新仓 / 加仓 / 止盈 / 止损，每种都有一组门。全绿才允许扣扳机，漏一条就拦下来。</p>
+        <span class="tag">盘中 · 勾选式门禁</span>
+      </a>
+    </div>
+
+    <footer>
+      <b>这三个页面都是可修改的样板，不是标准答案。</b>
+      你可以让自己的 Agent / 编程工具根据目录结构、投资周期、风险偏好和操作习惯继续改造。
+      Reader 的分组在 <code>config.json</code>；决策规则在 <code>rules.json</code>。<br>
+      要接自己的 vault：复制 <code>config.example.json</code> 为 <code>config.json</code>，填上路径，然后
+      <code>python3 server.py</code>。
+    </footer>
+  </div>
+
+  <script>
+    // file:// 直接打开时，路由要退回相对文件名
+    if (location.protocol === "file:") {
+      document.getElementById("linkReader").href = "reader.html";
+      document.getElementById("linkPlan").href = "交易计划台.html";
+      document.getElementById("linkSop").href = "新高买卖决策台.html";
+    }
+
+    (async function checkVault() {
+      const el = document.getElementById("statusText");
+      try {
+        const r = await fetch("/api/health");
+        if (!r.ok) throw new Error("bad");
+        const j = await r.json();
+        el.innerHTML = "🟢 已连接 vault · 计划与决策会写回 <code>" + (j.vaultRoot || "") + "</code>";
+      } catch (e) {
+        el.innerHTML = "⚪️ 未连接 vault · 仅本地暂存。跑 <code>python3 server.py</code> 后从 " +
+          "<code>http://localhost:5273</code> 打开即可写回 Obsidian。";
+      }
+    })();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,1823 @@
+<!doctype html>
+<html lang="zh">
+
+<head>
+  <meta charset="utf-8" />
+  <title>交易计划台 · 盘后动态管理</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#faf9f5" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="交易计划台" />
+  <!-- 不引任何外部 CDN：完全离线可用，字体走系统栈 -->
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --bg-sidebar: #f4f2ea;
+      --bg-elev: #ffffff;
+      --ink: #1f1e1c;
+      --ink-2: #4a4844;
+      --ink-3: #8a857c;
+      --line: #e7e3d8;
+      --line-strong: #d8d2c2;
+      --accent: #cc785c;
+      --accent-ink: #b56247;
+      --accent-soft: rgba(204, 120, 92, 0.10);
+      --green: #4f7a52;
+      --green-soft: rgba(79, 122, 82, 0.10);
+      --red: #b0483b;
+      --red-soft: rgba(176, 72, 59, 0.09);
+      --stance: #5f7d95;
+      --stance-soft: rgba(95, 125, 149, 0.12);
+      --gold: #a8802a;
+      --gold-soft: rgba(168, 128, 42, 0.12);
+      --main-w: 100%;
+    }
+
+    * { box-sizing: border-box; }
+
+    body.dragging-col { cursor: col-resize; user-select: none; }
+    body.dragging-col * { cursor: col-resize !important; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      display: grid;
+      grid-template-columns: 268px 1fr;
+      height: 100vh;
+      height: 100dvh;
+    }
+
+    /* ========== Sidebar ========== */
+    aside {
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .brand {
+      padding: 22px 22px 18px;
+      font-family: "Source Serif 4", Georgia, "Songti SC", serif;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent); flex: 0 0 8px;
+    }
+
+    .brand .sub {
+      margin-left: auto;
+      font-size: 10px; font-weight: 600;
+      color: var(--ink-3); letter-spacing: 0.06em; text-transform: uppercase;
+    }
+
+    .mode-nav { flex: 1; overflow-y: auto; padding: 10px 0 16px; }
+
+    .datepick {
+      margin: 12px 14px 4px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .datepick label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); padding-left: 4px; }
+    .datepick input {
+      font-family: inherit; font-size: 13px;
+      padding: 8px 10px; border-radius: 8px;
+      border: 1px solid var(--line-strong); background: var(--bg-elev); color: var(--ink);
+    }
+
+    .mode-btn {
+      margin: 3px 12px;
+      padding: 11px 13px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      cursor: pointer; user-select: none;
+      display: flex; align-items: center; gap: 11px;
+      color: var(--ink-2);
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .mode-btn:hover { background: rgba(204, 120, 92, 0.06); }
+    .mode-btn.on {
+      background: var(--bg-elev);
+      border-color: var(--line-strong);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+      color: var(--ink);
+    }
+    .mode-btn .m-icon {
+      width: 26px; height: 26px; flex: 0 0 26px;
+      border-radius: 7px; display: flex; align-items: center; justify-content: center;
+      font-size: 15px; background: rgba(0, 0, 0, 0.04);
+    }
+    .mode-btn.on .m-icon { background: var(--accent-soft); }
+    .mode-btn .m-txt { min-width: 0; }
+    .mode-btn .m-label { font-size: 14px; font-weight: 600; line-height: 1.25; }
+    .mode-btn .m-desc { font-size: 11px; color: var(--ink-3); line-height: 1.3; margin-top: 1px; }
+    .mode-btn .m-count {
+      margin-left: auto; font-size: 11px; font-weight: 700;
+      color: var(--ink-3); font-feature-settings: "tnum";
+      min-width: 18px; text-align: right;
+    }
+
+    .side-foot {
+      padding: 13px 18px 16px;
+      border-top: 1px solid var(--line);
+      font-size: 11px; color: var(--ink-3); line-height: 1.6;
+    }
+    .side-foot b { color: var(--ink-2); font-weight: 600; }
+    .side-link {
+      display: inline-block; margin-top: 8px;
+      color: var(--accent-ink); font-weight: 600; cursor: pointer;
+      text-decoration: none; border-bottom: 1px dashed var(--accent-ink);
+    }
+
+    /* ========== Main ========== */
+    main { position: relative; overflow: hidden; background: var(--bg); min-width: 0; }
+    .main-col {
+      position: relative; height: 100vh; height: 100dvh;
+      width: var(--main-w); max-width: 100%;
+      display: flex; flex-direction: column; background: var(--bg);
+      border-right: 1px solid var(--line);
+    }
+
+    .resize-handle {
+      position: absolute; top: 0; bottom: 0; right: -4px; width: 9px;
+      cursor: col-resize; z-index: 30; background: transparent; transition: background 0.15s;
+    }
+    .resize-handle:hover, .resize-handle.dragging { background: var(--accent-soft); }
+    .resize-handle::after {
+      content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px;
+      background: transparent; border-radius: 2px; transition: background 0.15s;
+    }
+    .resize-handle:hover::after, .resize-handle.dragging::after { background: var(--accent); }
+    .resize-grip {
+      position: absolute; right: -1px; top: 50%; transform: translateY(-50%);
+      width: 5px; height: 46px; border-radius: 4px; z-index: 31;
+      background: var(--line-strong); opacity: 0.55; pointer-events: none;
+      transition: opacity 0.15s, background 0.15s;
+    }
+    .resize-handle:hover ~ .resize-grip, .main-col:hover .resize-grip { opacity: 0.9; }
+    .resize-hint {
+      position: absolute; right: 12px; top: 72px; z-index: 40;
+      padding: 8px 11px; border-radius: 7px; background: var(--ink); color: #fff;
+      font-size: 12px; line-height: 1.45; box-shadow: 0 8px 24px rgba(0,0,0,.16);
+      opacity: 0; transform: translateX(8px); pointer-events: none;
+      transition: opacity .2s, transform .2s;
+    }
+    .resize-hint.show { opacity: 1; transform: translateX(0); }
+
+    .mobile-topbar {
+      display: none; flex-direction: column; gap: 9px; flex: 0 0 auto;
+      padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+      border-bottom: 1px solid var(--line); background: var(--bg-sidebar);
+    }
+    .mtb-brand {
+      font-family: "Source Serif 4", Georgia, "Songti SC", serif; font-size: 16px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px; color: var(--ink);
+    }
+    .mtb-brand .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: 0 0 7px; }
+    .mtb-brand .mtb-date { margin-left: auto; font-size: 11px; color: var(--ink-3); }
+    .mtb-tabs { display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; scrollbar-width: none; }
+    .mtb-tabs::-webkit-scrollbar { display: none; }
+    .mtb-chip {
+      flex: 0 0 auto; padding: 8px 14px; border-radius: 20px;
+      border: 1px solid var(--line-strong); background: var(--bg-elev);
+      font-size: 13px; font-weight: 600; color: var(--ink-2); white-space: nowrap;
+      cursor: pointer; user-select: none;
+    }
+    .mtb-chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    .head { padding: 24px 40px 18px; border-bottom: 1px solid var(--line); }
+    .head .kicker {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--accent-ink); margin-bottom: 8px;
+    }
+    .head h1 {
+      font-family: "Source Serif 4", Georgia, "Songti SC", serif; font-size: 25px; font-weight: 600;
+      letter-spacing: -0.01em; margin: 0 0 7px; color: var(--ink);
+    }
+    .head .tagline { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+
+    .body-scroll { flex: 1; overflow-y: auto; padding: 18px 40px 28px; }
+
+    /* ========== 定调条（在审计 tab 顶部显示今日定调） ========== */
+    .stance-ctx {
+      margin-bottom: 18px; padding: 11px 15px; border-radius: 10px;
+      display: flex; gap: 10px; align-items: flex-start;
+      font-size: 13px; line-height: 1.5;
+      border: 1px solid var(--line-strong); background: var(--bg-elev); color: var(--ink-2);
+      cursor: pointer;
+    }
+    .stance-ctx .sc-icon { flex: 0 0 auto; font-size: 15px; }
+    .stance-ctx b { color: var(--ink); font-weight: 600; }
+    .stance-ctx.none { border-style: dashed; }
+    .stance-ctx.expand { background: var(--accent-soft); border-color: rgba(204,120,92,0.28); }
+    .stance-ctx.contract { background: var(--green-soft); border-color: rgba(79,122,82,0.28); }
+    .stance-ctx.watch { background: var(--stance-soft); border-color: rgba(95,125,149,0.28); }
+
+    /* 今日执行偏差回顾（收盘定调顶部） */
+    .dash-dev { margin-bottom: 20px; padding: 12px 15px; border-radius: 10px; display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.55; border: 1px solid var(--line-strong); background: var(--bg-elev); color: var(--ink-2); }
+    .dash-dev .dd-icon { flex: 0 0 auto; font-size: 15px; }
+    .dash-dev b { color: var(--ink); font-weight: 600; }
+    .dash-dev a { color: var(--accent-ink); font-weight: 600; cursor: pointer; border-bottom: 1px dashed var(--accent-ink); }
+    .dash-dev.loading { color: var(--ink-3); border-style: dashed; }
+    .dash-dev.none { border-style: dashed; }
+    .dash-dev.ok { background: var(--green-soft); border-color: rgba(79, 122, 82, 0.3); }
+    .dash-dev.ok b { color: var(--green); }
+    .dash-dev.warn { background: var(--red-soft); border-color: rgba(176, 72, 59, 0.32); }
+    .dash-dev.warn b { color: var(--red); }
+
+    /* ========== Dashboard 定调表单 ========== */
+    .stance-q { margin-top: 22px; }
+    .stance-q:first-child { margin-top: 4px; }
+    .stance-q-title {
+      font-family: "Source Serif 4", Georgia, "Songti SC", serif; font-size: 16px; font-weight: 600;
+      color: var(--ink); margin-bottom: 11px;
+      display: flex; align-items: baseline; gap: 9px;
+    }
+    .stance-q-title .qh { font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; font-size: 11px; color: var(--ink-3); font-weight: 500; }
+    .stance-opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .stance-opt {
+      display: flex; flex-direction: column; gap: 3px; align-items: flex-start; text-align: left;
+      padding: 13px 14px; border: 1px solid var(--line-strong); border-radius: 11px;
+      background: var(--bg-elev); cursor: pointer; font-family: inherit; color: var(--ink-2);
+      transition: all 0.12s;
+    }
+    .stance-opt:hover { border-color: var(--stance); }
+    .stance-opt .so-main { font-size: 14px; font-weight: 600; color: var(--ink); }
+    .stance-opt .so-sub { font-size: 11px; color: var(--ink-3); line-height: 1.3; }
+    .stance-opt.on { border-color: var(--stance); background: var(--stance-soft); box-shadow: 0 0 0 1px var(--stance) inset; }
+    .stance-opt.on .so-sub { color: var(--stance); }
+    /* 语义色：上涨/risk-on/扩张=accent，下跌/off/收缩=green(卖)，震荡/chaos/观望=stance */
+    .stance-opt.on.pos { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent) inset; }
+    .stance-opt.on.pos .so-sub { color: var(--accent-ink); }
+    .stance-opt.on.neg { border-color: var(--green); background: var(--green-soft); box-shadow: 0 0 0 1px var(--green) inset; }
+    .stance-opt.on.neg .so-sub { color: var(--green); }
+
+    .stance-note {
+      margin-top: 26px; padding: 13px 16px; border-radius: 10px;
+      background: var(--stance-soft); border: 1px solid rgba(95, 125, 149, 0.25);
+      font-size: 13px; line-height: 1.6; color: var(--ink-2);
+    }
+    .stance-note em { color: var(--stance); font-style: normal; font-weight: 600; }
+
+    .field-note {
+      width: 100%; box-sizing: border-box; margin-top: 22px;
+      padding: 12px 14px; border-radius: 11px; border: 1px solid var(--line-strong);
+      background: var(--bg-elev); color: var(--ink); font-family: inherit;
+      font-size: 13.5px; line-height: 1.6; resize: vertical; outline: none; min-height: 70px;
+    }
+    .field-note:focus { border-color: var(--stance); box-shadow: 0 0 0 3px var(--stance-soft); }
+
+    /* ========== 审计卡片 ========== */
+    .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .toolbar .tb-title { font-family: "Source Serif 4", Georgia, "Songti SC", serif; font-size: 17px; font-weight: 600; }
+    .add-form { display: flex; gap: 8px; margin-left: auto; }
+    .add-form input {
+      font-family: inherit; font-size: 13px; padding: 8px 12px; width: 170px;
+      border-radius: 8px; border: 1px solid var(--line-strong); background: var(--bg-elev); color: var(--ink);
+    }
+    .add-form input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .btn {
+      font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+      padding: 8px 15px; border-radius: 8px; border: 1px solid var(--line-strong);
+      background: var(--bg-elev); color: var(--ink-2); white-space: nowrap;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent-ink); }
+    .btn.solid { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.solid:hover { background: var(--accent-ink); color: #fff; }
+    .btn.green { background: var(--green); border-color: var(--green); color: #fff; }
+    .btn.green:hover { background: #3f6543; color: #fff; }
+
+    .empty {
+      padding: 34px 20px; text-align: center; color: var(--ink-3); font-size: 13px;
+      border: 1px dashed var(--line-strong); border-radius: 12px; line-height: 1.6;
+    }
+
+    .card {
+      border: 1px solid var(--line); border-radius: 13px; background: var(--bg-elev);
+      margin-bottom: 14px; overflow: hidden;
+    }
+    .card.flag { border-color: rgba(176, 72, 59, 0.35); }
+    .card-head {
+      display: flex; align-items: center; gap: 10px; padding: 13px 16px;
+      border-bottom: 1px solid var(--line); background: rgba(0,0,0,0.012);
+    }
+    .card-name {
+      font-family: inherit; font-size: 15px; font-weight: 700; color: var(--ink);
+      border: none; background: transparent; outline: none; min-width: 0; flex: 0 1 auto; width: auto;
+      padding: 3px 5px; border-radius: 6px;
+    }
+    .card-name:focus { background: var(--accent-soft); }
+    .card-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge {
+      font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 20px; letter-spacing: 0.02em;
+    }
+    .badge.warn { background: var(--red-soft); color: var(--red); }
+    .badge.good { background: var(--green-soft); color: var(--green); }
+    .badge.plan { background: var(--stance-soft); color: var(--stance); }
+    .card-del {
+      margin-left: auto; flex: 0 0 auto; cursor: pointer; border: none; background: transparent;
+      color: var(--ink-3); font-size: 17px; line-height: 1; padding: 4px 6px; border-radius: 6px;
+    }
+    .card-del:hover { background: var(--red-soft); color: var(--red); }
+
+    .card-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* 质检勾选行 */
+    .quality { display: flex; gap: 9px; flex-wrap: wrap; }
+    .qchk {
+      display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none;
+      padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line-strong);
+      background: var(--bg); font-size: 12.5px; font-weight: 600; color: var(--ink-2);
+      transition: all 0.12s;
+    }
+    .qchk .box {
+      width: 17px; height: 17px; flex: 0 0 17px; border-radius: 5px;
+      border: 2px solid var(--line-strong); display: flex; align-items: center; justify-content: center;
+    }
+    .qchk .box svg { width: 10px; height: 10px; opacity: 0; }
+    .qchk.on { border-color: var(--green); background: var(--green-soft); color: var(--green); }
+    .qchk.on .box { background: var(--green); border-color: var(--green); }
+    .qchk.on .box svg { opacity: 1; }
+    .qchk.redline.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+    .qchk.redline.on .box { background: var(--accent); border-color: var(--accent); }
+
+    /* 下拉行 */
+    .selrow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .selcell { display: flex; flex-direction: column; gap: 4px; }
+    .selcell label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+    .selcell select {
+      font-family: inherit; font-size: 13px; padding: 8px 10px; border-radius: 8px;
+      border: 1px solid var(--line-strong); background: var(--bg-elev); color: var(--ink); cursor: pointer;
+    }
+    .selcell select:focus { outline: none; border-color: var(--accent); }
+
+    .action-row { display: flex; flex-direction: column; gap: 4px; }
+    .action-row label {
+      font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .action-row .suggest { color: var(--accent-ink); font-weight: 600; cursor: pointer; text-transform: none; letter-spacing: 0; }
+    .action-row input {
+      font-family: inherit; font-size: 13.5px; padding: 9px 12px; border-radius: 8px;
+      border: 1px solid var(--line-strong); background: var(--bg-elev); color: var(--ink);
+    }
+    .action-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+    /* 情景预案（高开/低走压力测试） */
+    .scenario { display: flex; flex-direction: column; gap: 7px; padding-top: 12px; border-top: 1px dashed var(--line); }
+    .scenario .sc-title { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: baseline; gap: 8px; }
+    .scenario .sc-title .sc-hint { font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--ink-3); }
+    .scenario .sc-row { display: flex; align-items: center; gap: 8px; }
+    .scenario .sc-tag { flex: 0 0 auto; font-size: 11.5px; font-weight: 700; padding: 6px 10px; border-radius: 8px; white-space: nowrap; }
+    .scenario .sc-tag.high { background: var(--accent-soft); color: var(--accent-ink); }
+    .scenario .sc-tag.low { background: var(--green-soft); color: var(--green); }
+    .scenario input { flex: 1; min-width: 0; font-family: inherit; font-size: 13px; padding: 8px 11px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--bg-elev); color: var(--ink); }
+    .scenario input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+    /* ========== 明日动作汇总 ========== */
+    .summary-stance {
+      padding: 16px 18px; border-radius: 12px; margin-bottom: 22px;
+      background: var(--bg-elev); border: 1px solid var(--line-strong);
+      display: flex; align-items: center; gap: 14px;
+    }
+    .summary-stance .ss-icon { font-size: 26px; }
+    .summary-stance .ss-main { font-family: "Source Serif 4", Georgia, "Songti SC", serif; font-size: 19px; font-weight: 600; color: var(--ink); }
+    .summary-stance .ss-sub { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
+    .summary-stance.expand { background: var(--accent-soft); border-color: rgba(204,120,92,0.3); }
+    .summary-stance.contract { background: var(--green-soft); border-color: rgba(79,122,82,0.3); }
+    .summary-stance.watch { background: var(--stance-soft); border-color: rgba(95,125,149,0.3); }
+
+    .micro-group { margin-bottom: 20px; }
+    .micro-group h3 {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink-3); margin: 0 0 10px;
+    }
+    .micro {
+      display: flex; align-items: flex-start; gap: 12px; padding: 12px 15px;
+      border: 1px solid var(--line); border-left: 3px solid var(--stance); border-radius: 10px;
+      background: var(--bg-elev); margin-bottom: 8px;
+    }
+    .micro.buy { border-left-color: var(--accent); }
+    .micro.sell { border-left-color: var(--green); }
+    .micro .mi-name { font-weight: 700; color: var(--ink); flex: 0 0 auto; min-width: 84px; }
+    .micro .mi-plan {
+      flex: 0 0 auto; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 20px;
+      background: var(--stance-soft); color: var(--stance); align-self: flex-start; margin-top: 1px;
+    }
+    .micro.buy .mi-plan { background: var(--accent-soft); color: var(--accent-ink); }
+    .micro.sell .mi-plan { background: var(--green-soft); color: var(--green); }
+    .micro .mi-action { color: var(--ink-2); line-height: 1.5; }
+    .micro .mi-flag { color: var(--red); font-size: 11.5px; margin-top: 3px; }
+
+    /* ========== 今日交易计划（执行台）========== */
+    .exec-src {
+      font-size: 12px; color: var(--ink-3); margin-top: 4px;
+    }
+    .exec-src b { color: var(--ink-2); font-weight: 600; }
+    .exec-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+    .exec-meta .chip {
+      font-size: 12px; font-weight: 600; padding: 4px 11px; border-radius: 20px;
+      background: var(--bg); border: 1px solid var(--line-strong); color: var(--ink-2);
+    }
+
+    .ritual {
+      margin-bottom: 22px; border: 1px solid rgba(204, 120, 92, 0.28); border-radius: 13px;
+      background: var(--accent-soft); overflow: hidden;
+    }
+    .ritual-head {
+      padding: 12px 16px; font-family: "Source Serif 4", Georgia, "Songti SC", serif; font-size: 15px; font-weight: 600;
+      color: var(--accent-ink); border-bottom: 1px solid rgba(204, 120, 92, 0.2);
+      display: flex; align-items: center; gap: 9px;
+    }
+    .ritual-head .rh-hint { margin-left: auto; font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; font-size: 11px; font-weight: 500; color: var(--ink-3); }
+    .ritual-body { padding: 8px 10px 12px; }
+    .ritual-step {
+      display: flex; align-items: flex-start; gap: 12px; padding: 11px 12px; border-radius: 9px;
+      cursor: pointer; user-select: none; transition: background 0.12s;
+    }
+    .ritual-step:hover { background: rgba(204, 120, 92, 0.06); }
+    .ritual-step .rs-box {
+      flex: 0 0 22px; width: 22px; height: 22px; margin-top: 1px; border-radius: 7px;
+      border: 2px solid rgba(204, 120, 92, 0.5); background: var(--bg-elev);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ritual-step .rs-box svg { width: 13px; height: 13px; opacity: 0; transform: scale(0.6); transition: all 0.12s; }
+    .ritual-step.on .rs-box { background: var(--accent); border-color: var(--accent); }
+    .ritual-step.on .rs-box svg { opacity: 1; transform: scale(1); }
+    .ritual-step .rs-txt { min-width: 0; }
+    .ritual-step .rs-main { font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.4; }
+    .ritual-step.on .rs-main { color: var(--ink-3); text-decoration: line-through; }
+    .ritual-step .rs-sub { font-size: 12px; color: var(--ink-3); line-height: 1.45; margin-top: 2px; }
+    .ritual-foot {
+      padding: 10px 16px; border-top: 1px dashed rgba(204, 120, 92, 0.25);
+      font-size: 12.5px; color: var(--accent-ink); line-height: 1.5; background: rgba(204, 120, 92, 0.04);
+    }
+
+    .exec-item {
+      display: flex; align-items: flex-start; gap: 12px; padding: 12px 15px;
+      border: 1px solid var(--line); border-left: 3px solid var(--stance); border-radius: 10px;
+      background: var(--bg-elev); margin-bottom: 8px; cursor: pointer; transition: opacity 0.15s;
+    }
+    .exec-item.buy { border-left-color: var(--accent); }
+    .exec-item.sell { border-left-color: var(--green); }
+    .exec-item .ex-box {
+      flex: 0 0 20px; width: 20px; height: 20px; margin-top: 1px; border-radius: 6px;
+      border: 2px solid var(--line-strong); background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .exec-item .ex-box svg { width: 11px; height: 11px; opacity: 0; }
+    .exec-item.done { opacity: 0.55; }
+    .exec-item.done .ex-box { background: var(--ink-3); border-color: var(--ink-3); }
+    .exec-item.done .ex-box svg { opacity: 1; }
+    .exec-item.done .ex-name, .exec-item.done .ex-action { text-decoration: line-through; }
+    .exec-item .ex-name { font-weight: 700; color: var(--ink); flex: 0 0 auto; min-width: 84px; }
+    .exec-item .ex-plan {
+      flex: 0 0 auto; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 20px;
+      background: var(--stance-soft); color: var(--stance); align-self: flex-start; margin-top: 1px;
+    }
+    .exec-item.buy .ex-plan { background: var(--accent-soft); color: var(--accent-ink); }
+    .exec-item.sell .ex-plan { background: var(--green-soft); color: var(--green); }
+    .exec-item .ex-body { min-width: 0; flex: 1; }
+    .exec-item .ex-action { color: var(--ink-2); line-height: 1.5; }
+    .exec-item .ex-flag { color: var(--red); font-size: 11.5px; margin-top: 3px; }
+
+    .reminders {
+      margin-top: 22px; border: 1px solid var(--line); border-radius: 12px;
+      background: var(--bg-elev); padding: 14px 18px;
+    }
+    .reminders h3 {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink-3); margin: 0 0 10px;
+    }
+    .reminders ul { margin: 0; padding: 0; list-style: none; }
+    .reminders li {
+      font-size: 13px; color: var(--ink-2); line-height: 1.5; padding: 6px 0 6px 20px; position: relative;
+    }
+    .reminders li::before { content: "▪"; position: absolute; left: 4px; top: 6px; color: var(--stance); }
+    .reminders li em { color: var(--accent-ink); font-style: normal; font-weight: 600; }
+
+    .exec-cta {
+      margin-top: 22px; text-align: center; font-size: 13px; color: var(--ink-3); line-height: 1.6;
+    }
+    .exec-cta a { color: var(--accent-ink); font-weight: 600; cursor: pointer; border-bottom: 1px dashed var(--accent-ink); }
+
+    /* 执行台数据源选择器 */
+    .exec-src-pick { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+    .exec-src-pick select {
+      font-family: inherit; font-size: 12.5px; padding: 7px 10px; border-radius: 8px;
+      border: 1px solid var(--line-strong); background: var(--bg-elev); color: var(--ink); cursor: pointer; max-width: 210px;
+    }
+    .exec-src-pick select:focus { outline: none; border-color: var(--accent); }
+
+    /* 实际盘面确认卡 */
+    .actual-card {
+      border: 1px solid var(--line-strong); border-radius: 12px; background: var(--bg-elev);
+      padding: 14px 16px; margin-bottom: 20px;
+    }
+    .actual-card > h3 {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--ink-2);
+      margin: 0 0 12px; display: flex; align-items: baseline; gap: 8px;
+    }
+    .actual-card > h3 .ah-hint { font-size: 11px; font-weight: 500; color: var(--ink-3); letter-spacing: 0; }
+    .actual-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .actual-grid .selcell label { display: flex; flex-direction: column; gap: 1px; }
+    .actual-grid .selcell .pred { font-size: 10px; font-weight: 500; color: var(--ink-3); text-transform: none; letter-spacing: 0; }
+    .actual-grid .selcell.diff select { border-color: var(--red); background: var(--red-soft); color: var(--red); font-weight: 600; }
+    .actual-note {
+      width: 100%; box-sizing: border-box; margin-top: 12px; padding: 10px 12px; border-radius: 9px;
+      border: 1px solid var(--line-strong); background: var(--bg); color: var(--ink);
+      font-family: inherit; font-size: 13px; line-height: 1.5; resize: vertical; outline: none; min-height: 54px;
+    }
+    .actual-note:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--bg-elev); }
+
+    /* 执行条目：勾执行 + 预期 + 实际输入 */
+    .exec-item .ex-box { cursor: pointer; }
+    .ex-main { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .ex-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ex-plan-line { font-size: 12.5px; color: var(--ink-3); line-height: 1.45; }
+    .ex-plan-line b { color: var(--ink-2); font-weight: 600; }
+    .ex-actual {
+      font-family: inherit; font-size: 13px; padding: 8px 11px; border-radius: 8px;
+      border: 1px solid var(--line-strong); background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box;
+    }
+    .ex-actual:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--bg-elev); }
+    .exec-item.done .ex-name { text-decoration: line-through; color: var(--ink-3); }
+    .exec-item.done .ex-actual { text-decoration: none; }
+    .ex-scenario { font-size: 12px; color: var(--ink-2); line-height: 1.7; padding: 6px 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); }
+    .ex-scenario .es-tag { font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 12px; margin-right: 6px; }
+    .ex-scenario .es-tag.high { background: var(--accent-soft); color: var(--accent-ink); }
+    .ex-scenario .es-tag.low { background: var(--green-soft); color: var(--green); }
+
+    /* 计划外动作 */
+    .extra-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+    .extra-row .extra-name, .extra-row .extra-note {
+      font-family: inherit; font-size: 13px; padding: 8px 11px; border-radius: 8px;
+      border: 1px solid var(--line-strong); background: var(--bg-elev); color: var(--ink);
+    }
+    .extra-row .extra-name { flex: 0 0 130px; }
+    .extra-row .extra-note { flex: 1; min-width: 0; }
+    .extra-row .extra-name:focus, .extra-row .extra-note:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .extra-row .extra-del {
+      flex: 0 0 auto; cursor: pointer; border: none; background: transparent; color: var(--ink-3);
+      font-size: 15px; line-height: 1; padding: 6px 8px; border-radius: 6px;
+    }
+    .extra-row .extra-del:hover { background: var(--red-soft); color: var(--red); }
+
+    /* 执行台两列布局：容器查询——按正文实际宽度(拖拽后)决定单列/两列 */
+    .today-wrap { container-type: inline-size; }
+    .today-grid { display: grid; grid-template-columns: 1fr; gap: 22px; }
+    .today-side { display: flex; flex-direction: column; gap: 0; }
+    .today-side .ritual, .today-side .reminders { margin-top: 0; }
+    .today-side .reminders { margin-top: 18px; }
+    @container (min-width: 820px) {
+      .today-grid { grid-template-columns: minmax(0, 1fr) 322px; gap: 26px; align-items: start; }
+      .today-side { position: sticky; top: 4px; }
+      /* 两列时右栏元素自身不再留顶距，靠 grid gap 对齐 */
+      .today-main > *:first-child { margin-top: 0; }
+    }
+
+    /* ========== Action bar ========== */
+    .action-bar {
+      flex: 0 0 auto; background: var(--bg); border-top: 1px solid var(--line);
+      padding: 14px 40px; display: flex; align-items: center; gap: 16px;
+    }
+    .action-bar .ab-info { flex: 1; min-width: 0; font-size: 12.5px; color: var(--ink-3); line-height: 1.5; }
+    .action-bar .ab-info b { color: var(--ink-2); }
+    .export-group { flex: 0 0 auto; display: flex; gap: 6px; }
+    .exp-btn {
+      padding: 9px 12px; border-radius: 8px; border: 1px solid var(--line);
+      background: var(--card, #fff); color: var(--ink-2); cursor: pointer;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      font-size: 12.5px; font-weight: 600; white-space: nowrap;
+    }
+    .exp-btn:hover { border-color: var(--ink-3); color: var(--ink-1); }
+    .exp-btn:active { transform: translateY(1px); }
+    /* vault 连接状态条：未连时提醒「只是本地暂存」 */
+    .vault-bar {
+      flex: 0 0 auto; display: none; align-items: center; gap: 8px;
+      padding: 8px 40px; font-size: 12.5px; line-height: 1.4;
+      background: #fdf6e3; color: #8a6d1f; border-top: 1px solid #efe2bd;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+    }
+    .vault-bar.show { display: flex; }
+    .vault-bar code { background: rgba(0, 0, 0, .06); padding: 1px 5px; border-radius: 4px; }
+    @media print {
+      aside, .action-bar, .mobile-topbar, .vault-bar, .resize-handle, .resize-grip { display: none !important; }
+      .body-scroll { overflow: visible !important; height: auto !important; }
+      main, .main-col { width: 100% !important; max-width: none !important; }
+    }
+    .save-btn {
+      flex: 0 0 auto; padding: 13px 26px; border-radius: 10px; border: none;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; font-size: 14.5px; font-weight: 700; cursor: pointer;
+      background: var(--accent); color: #fff; box-shadow: 0 4px 14px rgba(204, 120, 92, 0.3);
+      transition: all 0.14s; white-space: nowrap;
+    }
+    .save-btn:hover { transform: translateY(-1px); }
+    .save-btn:active { transform: translateY(1px); }
+    .save-btn.busy { opacity: 0.6; pointer-events: none; }
+
+    /* ========== Toast ========== */
+    .toast {
+      position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%);
+      background: var(--ink); color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18); z-index: 3000; opacity: 0;
+      transition: opacity 0.18s, transform 0.18s; pointer-events: none; max-width: 80vw; text-align: center;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+    .toast.warn { background: var(--red); }
+    .toast.ok { background: var(--green); }
+
+    @media (max-width: 860px) {
+      body { grid-template-columns: 1fr; }
+      aside { display: none; }
+      .main-col { width: 100% !important; border-right: none; }
+      .resize-handle, .resize-grip, .resize-hint { display: none; }
+      .mobile-topbar { display: flex; }
+      .head { padding: 14px 16px 12px; }
+      .head .kicker { display: none; }
+      .head h1 { font-size: 20px; }
+      .head .tagline { font-size: 12.5px; }
+      .body-scroll { padding: 14px 16px 20px; }
+      .stance-opts { gap: 8px; }
+      .stance-opt { padding: 11px; }
+      .selrow { grid-template-columns: 1fr; }
+      .add-form input { width: 130px; }
+      .action-bar { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
+      .summary-stance { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+
+<body>
+  <aside>
+    <div class="brand">
+      <span class="dot"></span>
+      <span>交易计划台</span>
+      <span class="sub">盘后</span>
+    </div>
+    <div class="datepick">
+      <label>复盘日期</label>
+      <input type="date" id="dateInput" />
+    </div>
+    <div class="mode-nav" id="modeNav"></div>
+    <div class="side-foot">
+      决策全在 <b>盘后冷静期</b> 做完；开盘只执行、不改逻辑。<br>
+      标的是 <b>常驻名单</b>，跨天保留；每天只更新趋势 / 计划 / 动作。<br>
+      <b>这是一份可修改样板</b>：可让你的 Agent / 编程工具按自己的周期、偏好和目录继续改。<br>
+      <a class="side-link" href="/reader" data-file-href="reader.html">Reader</a> ·
+      <a class="side-link" id="openSop" href="/sop" data-file-href="新高买卖决策台.html" target="_blank" rel="noopener">新高决策台</a> ·
+      <a class="side-link" href="/" data-file-href="index.html">Console 首页</a>
+    </div>
+  </aside>
+
+  <main>
+    <div class="main-col" id="mainCol">
+      <div class="mobile-topbar">
+        <div class="mtb-brand">
+          <span class="dot"></span>
+          <span>交易计划台</span>
+          <span class="mtb-date" id="mtbDate"></span>
+        </div>
+        <div class="mtb-tabs" id="mobileTabs"></div>
+      </div>
+      <div class="head">
+        <div class="kicker" id="kicker"></div>
+        <h1 id="title"></h1>
+        <div class="tagline" id="tagline"></div>
+      </div>
+      <div class="body-scroll" id="bodyScroll"></div>
+      <div class="vault-bar" id="vaultBar">
+        <span>⚪️ <b>未连接 vault</b> —— 当前只在浏览器本地暂存。想让计划写回你自己的 Obsidian：在 Console 目录跑
+          <code>python3 server.py</code>，然后从 <code>http://localhost:5273</code> 打开本页。</span>
+      </div>
+      <div class="action-bar">
+        <div class="ab-info" id="abInfo"></div>
+        <div class="export-group">
+          <button class="exp-btn" id="expMd" title="下载 .md 文件，可直接拖进任意 Obsidian vault">⬇️ .md</button>
+          <button class="exp-btn" id="expCopy" title="复制 Markdown 到剪贴板">📋 复制</button>
+          <button class="exp-btn" id="expJson" title="导出结构化 JSON，给其他工具或 Agent 消费">{ } JSON</button>
+          <button class="exp-btn" id="expPrint" title="打印 / 存为 PDF">🖨️</button>
+        </div>
+        <button class="save-btn" id="saveBtn">💾 保存今日收盘复盘</button>
+      </div>
+      <div class="resize-handle" id="resizeRight" title="拖动调整正文宽度 · 双击复位"></div>
+      <div class="resize-grip"></div>
+      <div class="resize-hint" id="resizeHint">↔ 这里可以拖动调宽<br>双击恢复 75% 默认宽度</div>
+    </div>
+  </main>
+
+  <script>
+    const CHECK_SVG = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    /* ============ 选项字典 ============ */
+    const TREND3 = { up: "🔺 上涨", down: "🔻 下跌", range: "◼ 震荡" };        // 大盘 / 板块大趋势
+    const SMALL = { up: "🔺 上涨", down: "🔻 下跌", chaos: "🌀 混沌" };         // 当前小趋势
+    const MOOD = { on: "🟢 Risk-on", chaos: "🟡 Chaos", off: "🔴 Risk-off" };  // 明日情绪预演
+    const STANCE = {
+      expand: { main: "扩张 · 盯买点", sub: "按计划买 / 加", icon: "🚀", cls: "pos" },
+      watch: { main: "观望 · 少动", sub: "只做预设的 T", icon: "🕊", cls: "" },
+      contract: { main: "收缩 · 盯卖点", sub: "止盈 / 止损", icon: "🛡", cls: "neg" },
+    };
+
+    const BIG_TREND = { newhigh: "新高", pullback: "回调", range: "震荡", down: "下跌" };       // 持仓/观察 大趋势
+    const SMALL_TREND = { newhigh: "新高上涨", rebound: "反弹", down: "下跌" };                 // 小趋势
+    const HOLD_PLAN = { hold: "持有", add: "开仓/加仓", tp: "止盈", sl: "止损", reduce: "减仓" };
+    const WATCH_PLAN = { watchbuy: "盯买点", watchonly: "只观察" };
+
+    // 自动建议动作
+    const HOLD_ACTION = {
+      hold: "持有不动，跌破止损位再说",
+      add: "留意低多机会，回踩企稳按计划加",
+      tp: "留意高开 / 冲高，触发区间止盈",
+      sl: "留意反抽 / 高开，果断止损离场",
+      reduce: "任何反抽 / 高开即减仓降敞口",
+    };
+    const WATCH_ACTION = { watchbuy: "盯预设买点，突破 / 企稳再进场", watchonly: "只观察，不动手，等右侧确认" };
+
+    /* ============ 状态 ============ */
+    const STORE_KEY = "ymos-plan-state";
+    let state = null;
+    let currentTab = "today";
+    let dateManual = false;     // 用户本次会话是否手动选过日期（选过就不自动跳到今天）
+    let dashDev = null;         // 收盘定调顶部「今日执行偏差」缓存 { fetched, planDate, mismatches[] }
+    // 执行台缓存：从服务端载入的「上一交易日计划」（只读）
+    let execPlan = null, execDate = null, execFetched = false;
+    let execMode = "auto";      // "auto"（上一交易日）| "YYYY-MM-DD"（手动选）
+    let execDates = null;       // 已存计划日期列表（缓存）
+    let execRec = null;         // 今日实际执行记录（写回被执行的那份计划文件）
+    const EXEC_SECTION_MARK_JS = "<!-- ymos-exec-section -->";
+    const EXEC_DATA_MARK_JS = "ymos-exec-data";
+
+    function todayStr() {
+      const d = new Date(); const p = n => String(n).padStart(2, "0");
+      return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+    }
+    function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+    function blankState(date) {
+      return {
+        version: 1, date: date || todayStr(),
+        dashboard: { marketBig: "", sectorBig: "", smallTrend: "", tomorrowMood: "", stance: "", note: "" },
+        holdings: [], watch: [],
+      };
+    }
+    function newHolding(name) {
+      return { id: uid(), name: name || "", funds: false, slot: false, perf: false, sizeOk: true, bigTrend: "newhigh", smallTrend: "newhigh", plan: "hold", action: "", scHigh: "", scLow: "" };
+    }
+    function newWatch(name) {
+      return { id: uid(), name: name || "", funds: false, slot: false, perf: false, bigTrend: "newhigh", smallTrend: "newhigh", plan: "watchbuy", action: "" };
+    }
+
+    function load() {
+      try { const raw = localStorage.getItem(STORE_KEY); if (raw) { const s = JSON.parse(raw); if (s && s.dashboard) return s; } } catch (e) { }
+      return blankState();
+    }
+    function persist() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { } scheduleDraft(); }
+
+    /* 本地草稿镜像：每次改动 debounce 1.5s 把当前状态写成 md，缓存被清也能恢复 */
+    let draftTimer = null;
+    function scheduleDraft() {
+      clearTimeout(draftTimer);
+      draftTimer = setTimeout(pushDraft, 1500);
+    }
+    function pushDraft(useBeacon) {
+      let md;
+      try { md = buildMarkdown(); } catch (e) { return; }
+      const body = JSON.stringify({ markdown: md });
+      try {
+        if (useBeacon && navigator.sendBeacon) {
+          navigator.sendBeacon("/api/plan/draft", new Blob([body], { type: "application/json" }));
+        } else {
+          fetch("/api/plan/draft", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => { });
+        }
+      } catch (e) { }
+    }
+
+    // 开盘三步（盘中执行台的默念/确认清单）
+    const OPEN_STEPS = [
+      { id: "s1", main: "不临时起意开新仓", sub: "今天的买入必须是昨晚计划里定好的，不看盘中涨跌临时冲。" },
+      { id: "s2", main: "盘中新机会只进观察名单，今晚再审", sub: "冒出来的新票不下手，先记下，收盘后走审计流程。" },
+      { id: "s3", main: "盘面与预期不符时，默认防守只卖不买", sub: "看不懂 / 走反了就降敞口，别加仓扛，别为扳回加本金。" },
+    ];
+
+    /* ============ Tab 定义 ============ */
+    const TABS = [
+      { key: "today", icon: "🌅", label: "今日交易计划", desc: "盘中执行 · 上一交易日定", kicker: "盘中 · 只执行不决策", title: "今日交易计划", tagline: "这是上一交易日收盘后定的计划，今天照着执行。盘中只勾执行进度、不改计划——要改，等收盘复盘。手只是执行昨晚计划的机器人。" },
+      { key: "dashboard", icon: "🧭", label: "收盘定调", desc: "大盘 / 板块 / 明日情绪", kicker: "收盘后 · 大势定调", title: "收盘定调 · 明日大势", tagline: "先给大盘、板块、小趋势定性，再定明日情绪与动作。方向在盘后想清楚，盘中只照着执行——上涨才加敞口，下跌加现金。" },
+      { key: "holdings", icon: "💼", label: "持仓审计", desc: "逐个体检 · 定明日动作", kicker: "持仓 · 逐个审计", title: "持仓审计", tagline: "每个持仓都要过「资金表达、卡位、业绩」三关；单一标的不重仓，持仓数量控制在自己能持续跟踪的范围内。缺关的考虑清理，别自欺。" },
+      { key: "watch", icon: "🔭", label: "观察审计", desc: "盯买点 · 潜在计划", kicker: "观察 · 潜在机会", title: "观察审计", tagline: "同样的三关标准审视候选。达标且趋势对，才升级为「盯买点」；否则只观察，等右侧确认，绝不盘中冲动。" },
+      { key: "tomorrow", icon: "📋", label: "明日动作", desc: "微观动作汇总 · 保存", kicker: "明日 · 微观动作", title: "明日动作清单", tagline: "把定调与逐个标的的计划汇总成一份可执行清单。明天盘中照着做，不临时决策。确认无误后保存到 Obsidian 归档。" },
+    ];
+
+    /* ============ 渲染导航 ============ */
+    function renderNav() {
+      const nav = document.getElementById("modeNav");
+      nav.innerHTML = "";
+      for (const t of TABS) {
+        const cnt = t.key === "holdings" ? state.holdings.length : t.key === "watch" ? state.watch.length : "";
+        const btn = document.createElement("div");
+        btn.className = "mode-btn" + (t.key === currentTab ? " on" : "");
+        btn.onclick = () => switchTab(t.key);
+        btn.innerHTML = '<div class="m-icon">' + t.icon + '</div>' +
+          '<div class="m-txt"><div class="m-label">' + t.label + '</div><div class="m-desc">' + t.desc + '</div></div>' +
+          (cnt !== "" ? '<div class="m-count">' + cnt + '</div>' : '');
+        nav.appendChild(btn);
+      }
+      const mt = document.getElementById("mobileTabs");
+      mt.innerHTML = "";
+      for (const t of TABS) {
+        const chip = document.createElement("div");
+        chip.className = "mtb-chip" + (t.key === currentTab ? " on" : "");
+        chip.textContent = t.label;
+        chip.onclick = () => switchTab(t.key);
+        mt.appendChild(chip);
+      }
+      document.getElementById("mtbDate").textContent = state.date;
+    }
+
+    // 切到计划页时：若计划日期是过去的（隔夜草稿留下的）且没手动选过，自动跳到今天，避免误存到昨天
+    function maybeAdvanceDate() {
+      if (dateManual) return;
+      const t = todayStr();
+      if (state.date < t) {
+        state.date = t;
+        const di = document.getElementById("dateInput"); if (di) di.value = t;
+        persist();
+        toast("已切到今天 " + t + "（常驻名单保留，做今天的收盘复盘）", "");
+      }
+    }
+    function switchTab(key) {
+      currentTab = key;
+      if (key !== "today") maybeAdvanceDate();
+      if (key === "dashboard") dashDev = null;   // 每次进收盘定调都刷新今日执行偏差
+      renderNav(); renderTab(); document.getElementById("bodyScroll").scrollTop = 0;
+    }
+
+    /* ============ 渲染主区 ============ */
+    function renderTab() {
+      const t = TABS.find(x => x.key === currentTab);
+      document.getElementById("kicker").textContent = t.kicker;
+      document.getElementById("title").textContent = t.title;
+      document.getElementById("tagline").textContent = t.tagline;
+      const scroll = document.getElementById("bodyScroll");
+      scroll.innerHTML = "";
+      if (currentTab === "today") renderToday(scroll);
+      else if (currentTab === "dashboard") renderDashboard(scroll);
+      else if (currentTab === "holdings") renderAudit(scroll, "holdings");
+      else if (currentTab === "watch") renderAudit(scroll, "watch");
+      else renderTomorrow(scroll);
+      renderAbInfo();
+    }
+
+    function renderAbInfo() {
+      const info = document.getElementById("abInfo");
+      const saveBtn = document.getElementById("saveBtn");
+      if (currentTab === "today") {
+        if (execFetched && execPlan) {
+          saveBtn.style.display = "";
+          saveBtn.textContent = "💾 保存今日执行记录";
+          const total = (execPlan.holdings || []).length + (execPlan.watch || []).length;
+          const done = countExecDone();
+          const extra = execRec && execRec.extras.length ? ' · 计划外 <b>' + execRec.extras.length + '</b>' : '';
+          info.innerHTML = '执行进度：<b>' + done + ' / ' + total + '</b> 已处理' + extra + '　·　存回 <b>' + (execDate || "—") + '</b>日交易计划.md（计划+实际一体）';
+        } else {
+          saveBtn.style.display = "none";
+          info.innerHTML = '盘中只执行、不改计划 —— 要改，切到「收盘定调」等收盘后再动。';
+        }
+        return;
+      }
+      saveBtn.style.display = "";
+      saveBtn.textContent = "💾 保存今日收盘复盘";
+      const d = state.dashboard;
+      const st = d.stance ? STANCE[d.stance].main : "未定调";
+      info.innerHTML =
+        '定调：<b>' + st + '</b>　持仓 <b>' + state.holdings.length + '</b> · 观察 <b>' + state.watch.length + '</b>　—— 保存到 ' + state.date + '日交易计划.md';
+    }
+
+    /* ---- Dashboard ---- */
+    function optBtn(group, val, main, sub, cur, cls) {
+      const on = cur === val;
+      const semantic = cls ? (" " + cls) : "";
+      return '<button class="stance-opt' + (on ? " on" + semantic : "") + '" data-g="' + group + '" data-v="' + val + '">' +
+        '<span class="so-main">' + main + '</span>' + (sub ? '<span class="so-sub">' + sub + '</span>' : '') + '</button>';
+    }
+    // 今日执行偏差：读「上一交易日计划」的执行块，对比预估 vs 实际
+    async function fetchDashDev() {
+      let result = { fetched: true, has: null };
+      try {
+        const res = await fetch("/api/plan/latest?before=" + encodeURIComponent(todayStr()));
+        const j = await res.json();
+        if (res.ok && j.found) {
+          if (j.exec) {
+            const pd = (j.state && j.state.dashboard) || {}, ac = j.exec.actual || {};
+            const checks = [["大盘", ac.marketBig, pd.marketBig, TREND3], ["板块", ac.sectorBig, pd.sectorBig, TREND3], ["小趋势", ac.smallTrend, pd.smallTrend, SMALL], ["情绪", ac.mood, pd.tomorrowMood, MOOD]];
+            const mismatches = checks.filter(c => c[1] && c[1] !== (c[2] || "")).map(c => ({ label: c[0], pred: c[3][c[2]] || "—", act: c[3][c[1]] || "—" }));
+            result = { fetched: true, has: true, planDate: j.date, mismatches };
+          } else { result = { fetched: true, has: false, planDate: j.date }; }
+        }
+      } catch (e) { }
+      dashDev = result;
+      if (currentTab === "dashboard") renderTab();
+    }
+    function buildDashDev() {
+      if (!dashDev) { dashDev = { fetched: false }; fetchDashDev(); }
+      const el = document.createElement("div");
+      if (!dashDev.fetched) { el.className = "dash-dev loading"; el.textContent = "读取今日执行回顾…"; return el; }
+      if (dashDev.has === null) return null;
+      if (dashDev.has === false) {
+        el.className = "dash-dev none";
+        el.innerHTML = '<span class="dd-icon">📊</span><div>' + dashDev.planDate + ' 的计划今天还没在执行台记实际。<a id="ddGo">去今日交易计划记一下 →</a></div>';
+        el.querySelector("#ddGo").onclick = () => switchTab("today");
+        return el;
+      }
+      if (!dashDev.mismatches.length) {
+        el.className = "dash-dev ok";
+        el.innerHTML = '<span class="dd-icon">✅</span><div>今日执行盘面与昨日预估<b>一致</b>。复盘时确认动作是否也如预期。</div>';
+        return el;
+      }
+      el.className = "dash-dev warn";
+      const items = dashDev.mismatches.map(m => m.label + '（预估 ' + m.pred + ' → 实际 ' + m.act + '）').join("、");
+      el.innerHTML = '<span class="dd-icon">📊</span><div>今日执行回顾：<b>' + dashDev.mismatches.length + ' 处</b>与昨日预估不符 —— ' + items +
+        '。<br>把这个偏差的教训写进今晚计划，尤其是相关持仓的<b>情景预案</b>（高开 / 低走两手准备）。</div>';
+      return el;
+    }
+
+    function renderDashboard(scroll) {
+      const dev = buildDashDev(); if (dev) scroll.appendChild(dev);
+      const d = state.dashboard;
+      const wrap = document.createElement("div");
+      const trendOpts = (g, dict, cur) => Object.keys(dict).map(k =>
+        optBtn(g, k, dict[k], "", cur, k === "up" || k === "on" || k === "newhigh" ? "pos" : (k === "down" || k === "off" ? "neg" : ""))).join("");
+      wrap.innerHTML =
+        '<div class="stance-q"><div class="stance-q-title">① 大盘大趋势 <span class="qh">大级别</span></div><div class="stance-opts">' + trendOpts("marketBig", TREND3, d.marketBig) + '</div></div>' +
+        '<div class="stance-q"><div class="stance-q-title">② 板块大趋势 <span class="qh">主线板块</span></div><div class="stance-opts">' + trendOpts("sectorBig", TREND3, d.sectorBig) + '</div></div>' +
+        '<div class="stance-q"><div class="stance-q-title">③ 当前小趋势 <span class="qh">小级别</span></div><div class="stance-opts">' + trendOpts("smallTrend", SMALL, d.smallTrend) + '</div></div>' +
+        '<div class="stance-q"><div class="stance-q-title">④ 明日情绪预演</div><div class="stance-opts">' + trendOpts("tomorrowMood", MOOD, d.tomorrowMood) + '</div></div>' +
+        '<div class="stance-q"><div class="stance-q-title">⑤ 明日动作定调 <span class="qh">总基调</span></div><div class="stance-opts">' +
+        Object.keys(STANCE).map(k => optBtn("stance", k, STANCE[k].main, STANCE[k].sub, d.stance, STANCE[k].cls)).join("") + '</div></div>' +
+        '<textarea class="field-note" id="dashNote" placeholder="今日复盘一句话 / 明日总纲（选填）：例，大盘缩量震荡，只守不攻，等主线放量再加敞口。">' + escapeHTML(d.note || "") + '</textarea>' +
+        '<div class="stance-note">开盘三不：<em>不临时起意开新仓</em>、盘中新机会<em>只进观察名单今晚再审</em>、盘面与预期不符时<em>默认防守只卖不买</em>。手只是执行昨晚计划的机器人。</div>';
+      wrap.querySelectorAll(".stance-opt").forEach(el => {
+        el.onclick = () => { const g = el.dataset.g, v = el.dataset.v; d[g] = (d[g] === v ? "" : v); persist(); renderDashboard(clearAndGet(scroll)); renderAbInfo(); };
+      });
+      const ta = wrap.querySelector("#dashNote");
+      ta.addEventListener("input", () => { d.note = ta.value; persist(); });
+      scroll.appendChild(wrap);
+    }
+    function clearAndGet(scroll) { scroll.innerHTML = ""; return scroll; }
+
+    /* ---- 定调条 ---- */
+    function stanceCtx() {
+      const d = state.dashboard;
+      const el = document.createElement("div");
+      el.onclick = () => switchTab("dashboard");
+      if (!d.stance) { el.className = "stance-ctx none"; el.innerHTML = '<span class="sc-icon">📋</span><div>还没定调 —— 先去「收盘定调」定好大势与明日动作，审计才有方向。</div>'; return el; }
+      const s = STANCE[d.stance];
+      const parts = [];
+      if (d.marketBig) parts.push("大盘 " + TREND3[d.marketBig]);
+      if (d.sectorBig) parts.push("板块 " + TREND3[d.sectorBig]);
+      if (d.tomorrowMood) parts.push(MOOD[d.tomorrowMood]);
+      el.className = "stance-ctx " + d.stance;
+      el.innerHTML = '<span class="sc-icon">' + s.icon + '</span><div>今日定调：<b>' + s.main + '</b>（' + s.sub + '）' + (parts.length ? '　·　' + parts.join(" / ") : '') + '</div>';
+      return el;
+    }
+
+    /* ---- 审计（持仓 / 观察通用）---- */
+    function renderAudit(scroll, kind) {
+      scroll.appendChild(stanceCtx());
+      const list = state[kind];
+      const isHold = kind === "holdings";
+
+      const toolbar = document.createElement("div");
+      toolbar.className = "toolbar";
+      toolbar.innerHTML = '<span class="tb-title">' + (isHold ? "当前持仓" : "观察名单") + '（' + list.length + '）</span>' +
+        '<div class="add-form"><input id="addName" placeholder="标的名称，回车添加" /><button class="btn solid" id="addBtn">➕ 添加</button></div>';
+      scroll.appendChild(toolbar);
+      const addName = toolbar.querySelector("#addName");
+      const doAdd = () => {
+        const nm = addName.value.trim();
+        list.push(isHold ? newHolding(nm) : newWatch(nm));
+        persist(); renderNav(); renderAudit(clearAndGet(scroll), kind); renderAbInfo();
+        setTimeout(() => { const el = document.querySelector('#addName'); if (el) el.focus(); }, 0);
+      };
+      toolbar.querySelector("#addBtn").onclick = doAdd;
+      addName.addEventListener("keydown", e => { if (e.key === "Enter") doAdd(); });
+
+      if (isHold && list.length > 3) {
+        const w = document.createElement("div");
+        w.className = "empty"; w.style.borderColor = "var(--red)"; w.style.color = "var(--red)"; w.style.marginBottom = "14px";
+        w.textContent = "⚠️ 当前持仓 " + list.length + " 个 —— 请确认仍在自己能持续跟踪的范围内；太分散时优先收口。";
+        scroll.appendChild(w);
+      }
+
+      if (!list.length) {
+        const e = document.createElement("div"); e.className = "empty";
+        e.innerHTML = isHold ? "还没有持仓。上方输入标的名添加。<br>持仓是常驻名单，加一次后每天只更新趋势与计划。" : "还没有观察标的。上方输入名称添加。<br>盘中冒出的新机会先进这里，收盘再审，不盘中下手。";
+        scroll.appendChild(e); return;
+      }
+
+      list.forEach(item => scroll.appendChild(auditCard(item, kind, scroll)));
+    }
+
+    function auditCard(item, kind, scroll) {
+      const isHold = kind === "holdings";
+      const qualityOk = item.funds && item.slot && item.perf;
+      const sizeBad = isHold && !item.sizeOk;
+      const card = document.createElement("div");
+      card.className = "card" + ((!qualityOk || sizeBad) ? " flag" : "");
+
+      // 徽章
+      const badges = [];
+      if (!qualityOk) badges.push('<span class="badge warn">用人存疑</span>');
+      if (sizeBad) badges.push('<span class="badge warn">单一标的过重</span>');
+      if (qualityOk && !sizeBad) badges.push('<span class="badge good">达标</span>');
+      const planDict = isHold ? HOLD_PLAN : WATCH_PLAN;
+      badges.push('<span class="badge plan">' + planDict[item.plan] + '</span>');
+
+      const head = document.createElement("div");
+      head.className = "card-head";
+      head.innerHTML = '<input class="card-name" value="' + escapeHTML(item.name) + '" placeholder="标的名" />' +
+        '<div class="card-badges">' + badges.join("") + '</div>' +
+        '<button class="card-del" title="删除">✕</button>';
+      card.appendChild(head);
+      head.querySelector(".card-name").addEventListener("input", e => { item.name = e.target.value; persist(); });
+      head.querySelector(".card-del").onclick = () => {
+        const arr = state[kind]; const i = arr.indexOf(item); if (i >= 0) arr.splice(i, 1);
+        persist(); renderNav(); renderAudit(clearAndGet(scroll), kind); renderAbInfo();
+      };
+
+      const body = document.createElement("div");
+      body.className = "card-body";
+
+      // 质检
+      const qWrap = document.createElement("div");
+      qWrap.className = "quality";
+      const qchk = (field, label, redline) => {
+        const on = item[field];
+        return '<div class="qchk' + (redline ? " redline" : "") + (on ? " on" : "") + '" data-f="' + field + '"><div class="box">' + CHECK_SVG + '</div>' + label + '</div>';
+      };
+      let qHtml = qchk("funds", "资金表达强 · 新高附近") + qchk("slot", "卡位") + qchk("perf", "业绩");
+      if (isHold) qHtml += qchk("sizeOk", "单一标的未超过我的上限", true);
+      qWrap.innerHTML = qHtml;
+      qWrap.querySelectorAll(".qchk").forEach(el => {
+        el.onclick = () => { const f = el.dataset.f; item[f] = !item[f]; persist(); renderAudit(clearAndGet(scroll), kind); };
+      });
+      body.appendChild(qWrap);
+
+      // 下拉：大趋势 / 小趋势 / 计划
+      const selWrap = document.createElement("div");
+      selWrap.className = "selrow";
+      const selCell = (field, label, dict) => {
+        const opts = Object.keys(dict).map(k => '<option value="' + k + '"' + (item[field] === k ? " selected" : "") + '>' + dict[k] + '</option>').join("");
+        return '<div class="selcell"><label>' + label + '</label><select data-f="' + field + '">' + opts + '</select></div>';
+      };
+      selWrap.innerHTML = selCell("bigTrend", "大趋势", BIG_TREND) + selCell("smallTrend", "小趋势", SMALL_TREND) + selCell("plan", isHold ? "最新计划" : "潜在计划", planDict);
+      selWrap.querySelectorAll("select").forEach(sel => {
+        sel.onchange = () => {
+          const f = sel.dataset.f; item[f] = sel.value;
+          if (f === "plan") item.action = "";  // 换计划时清掉手填，回到自动建议
+          persist(); renderAudit(clearAndGet(scroll), kind);
+        };
+      });
+      body.appendChild(selWrap);
+
+      // 明日具体动作
+      const suggest = (isHold ? HOLD_ACTION : WATCH_ACTION)[item.plan] || "";
+      const aRow = document.createElement("div");
+      aRow.className = "action-row";
+      aRow.innerHTML = '<label>明日具体动作 <span class="suggest" title="填入建议">↩ 用建议</span></label>' +
+        '<input value="' + escapeHTML(item.action || "") + '" placeholder="' + escapeHTML(suggest) + '" />';
+      const aInput = aRow.querySelector("input");
+      aInput.addEventListener("input", () => { item.action = aInput.value; persist(); });
+      aRow.querySelector(".suggest").onclick = () => { item.action = suggest; aInput.value = suggest; persist(); };
+      body.appendChild(aRow);
+
+      // 情景预案（仅持仓）：把「高开 vs 低走」的压力测试前移到计划环节
+      if (isHold) {
+        const sc = document.createElement("div");
+        sc.className = "scenario";
+        sc.innerHTML = '<div class="sc-title">情景预案 <span class="sc-hint">明天不管怎么开都有预设动作，不被动</span></div>' +
+          '<div class="sc-row"><span class="sc-tag high">↗ 若高开</span><input class="sc-high" placeholder="例：冲高到 XX 先止盈一半，回不来就清" value="' + escapeHTML(item.scHigh || "") + '" /></div>' +
+          '<div class="sc-row"><span class="sc-tag low">↘ 若低走</span><input class="sc-low" placeholder="例：开盘就跌破 XX 直接减，反抽不上就清" value="' + escapeHTML(item.scLow || "") + '" /></div>';
+        sc.querySelector(".sc-high").addEventListener("input", e => { item.scHigh = e.target.value; persist(); });
+        sc.querySelector(".sc-low").addEventListener("input", e => { item.scLow = e.target.value; persist(); });
+        body.appendChild(sc);
+      }
+
+      card.appendChild(body);
+      return card;
+    }
+
+    /* ---- 明日动作汇总 ---- */
+    function renderTomorrow(scroll) {
+      const d = state.dashboard;
+      const ss = document.createElement("div");
+      if (d.stance) {
+        const s = STANCE[d.stance];
+        ss.className = "summary-stance " + d.stance;
+        ss.innerHTML = '<span class="ss-icon">' + s.icon + '</span><div><div class="ss-main">' + s.main + '</div><div class="ss-sub">' + s.sub +
+          (d.marketBig ? '　·　大盘 ' + TREND3[d.marketBig] : '') + (d.tomorrowMood ? '　·　' + MOOD[d.tomorrowMood] : '') + '</div></div>';
+      } else {
+        ss.className = "summary-stance"; ss.style.cursor = "pointer"; ss.onclick = () => switchTab("dashboard");
+        ss.innerHTML = '<span class="ss-icon">📋</span><div><div class="ss-main">还没定调</div><div class="ss-sub">点我去「收盘定调」先定明日总基调</div></div>';
+      }
+      scroll.appendChild(ss);
+
+      const renderGroup = (title, list, kind) => {
+        const g = document.createElement("div"); g.className = "micro-group";
+        g.innerHTML = '<h3>' + title + '（' + list.length + '）</h3>';
+        if (!list.length) { const e = document.createElement("div"); e.className = "empty"; e.textContent = "无"; g.appendChild(e); scroll.appendChild(g); return; }
+        const isHold = kind === "holdings";
+        const planDict = isHold ? HOLD_PLAN : WATCH_PLAN;
+        list.forEach(item => {
+          const suggest = (isHold ? HOLD_ACTION : WATCH_ACTION)[item.plan] || "";
+          const act = item.action && item.action.trim() ? item.action : suggest;
+          let cls = "";
+          if (isHold) cls = (item.plan === "add") ? "buy" : (item.plan === "tp" || item.plan === "sl" || item.plan === "reduce") ? "sell" : "";
+          else cls = item.plan === "watchbuy" ? "buy" : "";
+          const qualityOk = item.funds && item.slot && item.perf;
+          const sizeBad = isHold && !item.sizeOk;
+          const flags = [];
+          if (!qualityOk) flags.push("用人存疑");
+          if (sizeBad) flags.push("单一标的过重");
+          const mi = document.createElement("div");
+          mi.className = "micro" + (cls ? " " + cls : "");
+          mi.innerHTML = '<span class="mi-name">' + escapeHTML(item.name || "（未命名）") + '</span>' +
+            '<span class="mi-plan">' + planDict[item.plan] + '</span>' +
+            '<div><div class="mi-action">' + escapeHTML(act || "—") + '</div>' +
+            (flags.length ? '<div class="mi-flag">⚠️ ' + flags.join(" · ") + '</div>' : '') + '</div>';
+          g.appendChild(mi);
+        });
+        scroll.appendChild(g);
+      };
+      renderGroup("持仓 · 明日微观动作", state.holdings, "holdings");
+      renderGroup("观察 · 明日微观动作", state.watch, "watch");
+    }
+
+    /* ============ 今日交易计划（执行台：读上一交易日计划 + 记今日实际）============ */
+    function ritualKey() { return "ymos-open-ritual-" + todayStr(); }
+    function getMap(key) { try { return JSON.parse(localStorage.getItem(key) || "{}") || {}; } catch (e) { return {}; } }
+    function setMap(key, m) { try { localStorage.setItem(key, JSON.stringify(m)); } catch (e) { } }
+    function countExecDone() {
+      if (!execPlan || !execRec) return 0;
+      let n = 0;
+      (execPlan.holdings || []).forEach(it => { if ((execRec.items["h_" + it.id] || {}).executed) n++; });
+      (execPlan.watch || []).forEach(it => { if ((execRec.items["w_" + it.id] || {}).executed) n++; });
+      return n;
+    }
+    function daysAgo(dateStr) {
+      const diff = Math.round((new Date(todayStr()) - new Date(dateStr)) / 86400000);
+      return diff;
+    }
+    async function loadExec() {
+      // 数据源日期列表（供手动选）
+      if (execDates === null) {
+        try { const r = await fetch("/api/plan/dates"); const jj = await r.json(); execDates = jj.dates || []; }
+        catch (e) { execDates = []; }
+      }
+      // 按 execMode 载入计划：auto=上一交易日；否则=指定日期
+      try {
+        let url;
+        if (execMode === "auto") url = "/api/plan/latest?before=" + encodeURIComponent(todayStr());
+        else url = "/api/plan/load?date=" + encodeURIComponent(execMode);
+        const res = await fetch(url);
+        const j = await res.json();
+        if (res.ok && j.found && j.state && j.state.dashboard) {
+          execPlan = normalize(j.state);
+          execDate = (execMode === "auto") ? j.date : execMode;
+          // 执行记录：本地草稿（最新编辑）> 服务端已存执行块 > 空白（沿用预估）
+          let draft = null;
+          try { draft = JSON.parse(localStorage.getItem(execDraftKey(execDate)) || "null"); } catch (e) { }
+          execRec = normalizeExec(draft || j.exec, execPlan, execDate);
+        } else { execPlan = null; execDate = (execMode === "auto") ? null : execMode; execRec = null; }
+      } catch (e) { execPlan = null; execDate = null; execRec = null; }
+      execFetched = true;
+      if (currentTab === "today") renderTab();
+    }
+
+    function renderToday(scroll) {
+      if (!execFetched) {
+        const l = document.createElement("div"); l.className = "empty"; l.textContent = "载入收盘计划…";
+        scroll.appendChild(l);
+        loadExec();
+        return;
+      }
+
+      // 工具栏：标题 + 数据源选择 + 刷新
+      const bar = document.createElement("div");
+      bar.className = "toolbar";
+      const srcOpts = ['<option value="auto"' + (execMode === "auto" ? " selected" : "") + '>自动 · 上一交易日</option>']
+        .concat((execDates || []).map(dt =>
+          '<option value="' + dt + '"' + (execMode === dt ? " selected" : "") + '>' + dt + ' 收盘</option>')).join("");
+      bar.innerHTML = '<span class="tb-title">' + (execDate ? execDate + " → 今日执行" : "今日执行") + '</span>' +
+        '<div class="exec-src-pick"><span style="font-size:11px;color:var(--ink-3);font-weight:700;letter-spacing:.06em">数据源</span>' +
+        '<select id="execSrc">' + srcOpts + '</select>' +
+        '<button class="btn" id="execRefresh">↻</button></div>';
+      scroll.appendChild(bar);
+      bar.querySelector("#execSrc").onchange = (e) => { execMode = e.target.value; execFetched = false; renderTab(); };
+      bar.querySelector("#execRefresh").onclick = () => { execFetched = false; execDates = null; renderTab(); };
+
+      if (!execPlan) {
+        const e = document.createElement("div"); e.className = "empty";
+        e.innerHTML = execMode === "auto"
+          ? "还没有上一交易日的收盘计划。<br>先去「收盘定调 → 持仓/观察审计 → 明日动作」把今晚的计划做完并保存，明天这里就会显示今日要执行的动作。"
+          : execMode + " 没有可读取的计划文件。换个数据源，或先去做那天的收盘复盘。";
+        scroll.appendChild(e);
+        const cta = document.createElement("div"); cta.className = "exec-cta";
+        cta.innerHTML = '<a id="gotoPlan">去做收盘复盘 →</a>';
+        cta.querySelector("#gotoPlan").onclick = () => switchTab("dashboard");
+        scroll.appendChild(cta);
+        return;
+      }
+
+      // 两列容器：today-main（定调 + 持仓 + 观察）| today-side（开盘三步 + 盘中纪律）
+      const wrap = document.createElement("div"); wrap.className = "today-wrap";
+      const grid = document.createElement("div"); grid.className = "today-grid";
+      const main = document.createElement("div"); main.className = "today-main";
+      const side = document.createElement("div"); side.className = "today-side";
+      grid.appendChild(main); grid.appendChild(side); wrap.appendChild(grid); scroll.appendChild(wrap);
+
+      const d = execPlan.dashboard;
+
+      // ① 动作定调 hero
+      const hero = document.createElement("div");
+      const ago = daysAgo(execDate);
+      const agoTxt = ago <= 0 ? "今日收盘定" : ago === 1 ? "上一交易日" : ago + " 天前";
+      if (d.stance) {
+        const s = STANCE[d.stance];
+        hero.className = "summary-stance " + d.stance;
+        hero.innerHTML = '<span class="ss-icon">' + s.icon + '</span><div><div class="ss-main">' + s.main + '</div>' +
+          '<div class="ss-sub">' + s.sub + '</div>' +
+          '<div class="exec-src">📋 基于 <b>' + execDate + '</b>（' + agoTxt + '）收盘定的计划' + (d.note ? '　·　' + escapeHTML(d.note) : '') + '</div></div>';
+      } else {
+        hero.className = "summary-stance";
+        hero.innerHTML = '<span class="ss-icon">📋</span><div><div class="ss-main">未定调</div><div class="exec-src">来自 ' + execDate + ' 收盘计划</div></div>';
+      }
+      const metas = [];
+      if (d.marketBig) metas.push("大盘 " + TREND3[d.marketBig]);
+      if (d.sectorBig) metas.push("板块 " + TREND3[d.sectorBig]);
+      if (d.smallTrend) metas.push("小趋势 " + SMALL[d.smallTrend]);
+      if (d.tomorrowMood) metas.push(MOOD[d.tomorrowMood]);
+      if (metas.length) {
+        const mwrap = document.createElement("div"); mwrap.className = "exec-meta";
+        mwrap.innerHTML = metas.map(x => '<span class="chip">' + x + '</span>').join("");
+        hero.querySelector("div:last-child").appendChild(mwrap);
+      }
+      main.appendChild(hero);
+
+      // ①.5 今日实际盘面（对昨日预估的确认 / 修正）
+      const ac = document.createElement("div");
+      ac.className = "actual-card";
+      const actCell = (field, label, dict, planKey) => {
+        const cur = execRec.actual[field] || "", planVal = d[planKey] || "";
+        const diff = cur && cur !== planVal;
+        const opts = '<option value="">—</option>' + Object.keys(dict).map(k => '<option value="' + k + '"' + (cur === k ? " selected" : "") + '>' + dict[k] + '</option>').join("");
+        return '<div class="selcell' + (diff ? " diff" : "") + '"><label>' + label +
+          (planVal ? '<span class="pred">预估 ' + dict[planVal] + '</span>' : '<span class="pred">预估 —</span>') + '</label>' +
+          '<select data-af="' + field + '" data-pv="' + planVal + '">' + opts + '</select></div>';
+      };
+      ac.innerHTML = '<h3>今日实际盘面 <span class="ah-hint">昨日是收盘预估，盘中按实况确认；与预估不符会标红——这就是「高开 vs 低走」压力测试的证据</span></h3>' +
+        '<div class="actual-grid">' +
+        actCell("marketBig", "大盘", TREND3, "marketBig") +
+        actCell("sectorBig", "板块", TREND3, "sectorBig") +
+        actCell("smallTrend", "小趋势", SMALL, "smallTrend") +
+        actCell("mood", "盘面情绪", MOOD, "tomorrowMood") +
+        '</div>' +
+        '<textarea class="actual-note" id="actualNote" placeholder="盘面实况一句话：例，早盘冲高回落、主线分歧、情绪转弱，防守为主。">' + escapeHTML(execRec.actual.note || "") + '</textarea>';
+      ac.querySelectorAll("select").forEach(sel => {
+        sel.onchange = () => {
+          const f = sel.dataset.af; execRec.actual[f] = sel.value; saveExecDraft();
+          sel.closest(".selcell").classList.toggle("diff", sel.value && sel.value !== sel.dataset.pv);
+        };
+      });
+      ac.querySelector("#actualNote").addEventListener("input", e => { execRec.actual.note = e.target.value; saveExecDraft(); });
+      main.appendChild(ac);
+
+      // ② 持仓今日执行 / ③ 观察今日盯盘（勾执行 + 记实际）
+      const renderGroup = (parent, title, hint, list, kind) => {
+        const g = document.createElement("div"); g.className = "micro-group";
+        g.innerHTML = '<h3>' + title + '（' + list.length + '）' + (hint ? '<span style="font-weight:500;color:var(--ink-3);text-transform:none;letter-spacing:0"> · ' + hint + '</span>' : '') + '</h3>';
+        if (!list.length) { const e = document.createElement("div"); e.className = "empty"; e.textContent = "无"; g.appendChild(e); parent.appendChild(g); return; }
+        const isHold = kind === "holdings";
+        const planDict = isHold ? HOLD_PLAN : WATCH_PLAN;
+        list.forEach(item => {
+          const key = (isHold ? "h_" : "w_") + item.id;
+          const ei = execItem(key);
+          const suggest = (isHold ? HOLD_ACTION : WATCH_ACTION)[item.plan] || "";
+          const act = item.action && item.action.trim() ? item.action : suggest;
+          let cls = "";
+          if (isHold) cls = (item.plan === "add") ? "buy" : (item.plan === "tp" || item.plan === "sl" || item.plan === "reduce") ? "sell" : "";
+          else cls = item.plan === "watchbuy" ? "buy" : "";
+          const qualityOk = item.funds && item.slot && item.perf;
+          const sizeBad = isHold && !item.sizeOk;
+          const flags = [];
+          if (!qualityOk) flags.push("用人存疑");
+          if (sizeBad) flags.push("单一标的过重");
+          const row = document.createElement("div");
+          row.className = "exec-item" + (cls ? " " + cls : "") + (ei.executed ? " done" : "");
+          const ph = isHold
+            ? "实际：例，开盘弱于预期，按计划减仓 @成交价"
+            : "实际：例，冲高回落没到买点，继续观察";
+          row.innerHTML = '<div class="ex-box" title="点一下=已执行">' + CHECK_SVG + '</div>' +
+            '<div class="ex-main">' +
+            '<div class="ex-top"><span class="ex-name">' + escapeHTML(item.name || "（未命名）") + '</span>' +
+            '<span class="ex-plan">' + planDict[item.plan] + '</span>' +
+            (flags.length ? '<span class="ex-flag">⚠️ ' + flags.join(" · ") + '</span>' : '') + '</div>' +
+            '<div class="ex-plan-line">预期：<b>' + escapeHTML(act || "—") + '</b></div>' +
+            (isHold && (item.scHigh || item.scLow) ? '<div class="ex-scenario">' +
+              (item.scHigh ? '<span class="es-tag high">↗ 高开</span>' + escapeHTML(item.scHigh) : '') +
+              (item.scHigh && item.scLow ? '<br>' : '') +
+              (item.scLow ? '<span class="es-tag low">↘ 低走</span>' + escapeHTML(item.scLow) : '') + '</div>' : '') +
+            '<input class="ex-actual" placeholder="' + ph + '" value="' + escapeHTML(ei.note || "") + '" /></div>';
+          row.querySelector(".ex-box").onclick = () => {
+            ei.executed = !ei.executed; saveExecDraft();
+            row.classList.toggle("done", ei.executed); renderAbInfo();
+          };
+          row.querySelector(".ex-actual").addEventListener("input", e => { ei.note = e.target.value; saveExecDraft(); });
+          g.appendChild(row);
+        });
+        parent.appendChild(g);
+      };
+      renderGroup(main, "持仓 · 今日执行", "勾已执行 · 记实际卖价/数量与偏差", execPlan.holdings, "holdings");
+      renderGroup(main, "观察 · 今日盯盘", "到买点才动，否则继续观察", execPlan.watch, "watch");
+
+      // ③.5 计划外动作（板块走弱临时卖了可卖可不卖的仓位等）
+      const extraG = document.createElement("div"); extraG.className = "micro-group";
+      extraG.innerHTML = '<h3>计划外动作（' + execRec.extras.length + '）<span style="font-weight:500;color:var(--ink-3);text-transform:none;letter-spacing:0"> · 计划外的买卖都记这，收盘复盘时反思</span></h3>';
+      const extraList = document.createElement("div");
+      const renderExtras = () => {
+        extraList.innerHTML = "";
+        execRec.extras.forEach((ex, i) => {
+          const r = document.createElement("div"); r.className = "extra-row";
+          r.innerHTML = '<input class="extra-name" placeholder="标的/动作" value="' + escapeHTML(ex.name || "") + '" />' +
+            '<input class="extra-note" placeholder="说明：例，板块确认走弱，把可卖可不卖的 XX 也减了" value="' + escapeHTML(ex.note || "") + '" />' +
+            '<button class="extra-del" title="删除">✕</button>';
+          r.querySelector(".extra-name").addEventListener("input", e => { ex.name = e.target.value; saveExecDraft(); });
+          r.querySelector(".extra-note").addEventListener("input", e => { ex.note = e.target.value; saveExecDraft(); });
+          r.querySelector(".extra-del").onclick = () => { execRec.extras.splice(i, 1); saveExecDraft(); renderExtras(); extraG.querySelector("h3").firstChild.textContent = "计划外动作（" + execRec.extras.length + "）"; };
+          extraList.appendChild(r);
+        });
+      };
+      renderExtras();
+      const addExtra = document.createElement("button");
+      addExtra.className = "btn"; addExtra.style.marginTop = "2px"; addExtra.textContent = "➕ 添加计划外动作";
+      addExtra.onclick = () => { execRec.extras.push({ id: uid(), name: "", note: "" }); saveExecDraft(); renderExtras(); extraG.querySelector("h3").firstChild.textContent = "计划外动作（" + execRec.extras.length + "）"; };
+      extraG.appendChild(extraList); extraG.appendChild(addExtra);
+      main.appendChild(extraG);
+
+      // ④ 开盘三步（右栏 / 窄屏在下）
+      const rmap = getMap(ritualKey());
+      const ritual = document.createElement("div");
+      ritual.className = "ritual";
+      ritual.innerHTML =
+        '<div class="ritual-head">🌅 开盘三步 · 先默念再看盘<span class="rh-hint">点一下确认</span></div>' +
+        '<div class="ritual-body">' +
+        OPEN_STEPS.map((st, i) => '<div class="ritual-step' + (rmap[st.id] ? " on" : "") + '" data-id="' + st.id + '">' +
+          '<div class="rs-box">' + CHECK_SVG + '</div>' +
+          '<div class="rs-txt"><div class="rs-main">' + (i + 1) + '. ' + st.main + '</div><div class="rs-sub">' + st.sub + '</div></div></div>').join("") +
+        '</div>' +
+        '<div class="ritual-foot">手只是执行昨晚计划的机器人。今天的决策昨晚已经做完了——盘中只<b>应对</b>，不<b>新做</b>交易逻辑。</div>';
+      ritual.querySelectorAll(".ritual-step").forEach(el => {
+        el.onclick = () => {
+          const id = el.dataset.id; const m = getMap(ritualKey());
+          m[id] = !m[id]; setMap(ritualKey(), m);
+          el.classList.toggle("on", m[id]);
+        };
+      });
+      side.appendChild(ritual);
+
+      // ⑤ 盘中纪律常驻提醒（右栏 / 窄屏在下）
+      const rem = document.createElement("div");
+      rem.className = "reminders";
+      rem.innerHTML = '<h3>盘中纪律 · 常驻提醒</h3><ul>' +
+        '<li>单一标的不重仓；持仓数量不超过自己能持续跟踪的范围。</li>' +
+        '<li><em>上涨才加敞口，下跌加现金</em>；抄底也要等右侧确认、梯度进入。</li>' +
+        '<li>只做<em>计划内</em>的动作，非计划标的一律不碰——想买先进观察名单。</li>' +
+        '<li>止盈 / 止损按昨晚定的执行，触发就走，<em>不盘中改数</em>。</li>' +
+        '<li>A 股 <em>T+1</em>：今天开的仓当天撤不出，动作要留提前量。</li>' +
+        '</ul>';
+      side.appendChild(rem);
+
+      // 收盘后回到计划（整幅底部）
+      const cta = document.createElement("div"); cta.className = "exec-cta";
+      cta.innerHTML = '收盘了？<a id="gotoPlan">去做今日收盘复盘，定明天 →</a>';
+      cta.querySelector("#gotoPlan").onclick = () => switchTab("dashboard");
+      scroll.appendChild(cta);
+    }
+
+    /* ============ 生成 Markdown ============ */
+    function planLabel(item, isHold) { return (isHold ? HOLD_PLAN : WATCH_PLAN)[item.plan]; }
+    function actOf(item, isHold) {
+      const suggest = (isHold ? HOLD_ACTION : WATCH_ACTION)[item.plan] || "";
+      return (item.action && item.action.trim()) ? item.action.trim() : suggest;
+    }
+    function buildMarkdown(st) {
+      st = st || state;
+      const d = st.dashboard;
+      const L = [];
+      L.push("# " + st.date + " 日交易计划");
+      L.push("");
+      L.push("> 盘后复盘定调 · 明日只执行不决策。");
+      L.push("");
+      L.push("## 🧭 大势定调");
+      L.push("");
+      L.push("| 项目 | 判断 |");
+      L.push("| --- | --- |");
+      L.push("| 大盘大趋势 | " + (TREND3[d.marketBig] || "—") + " |");
+      L.push("| 板块大趋势 | " + (TREND3[d.sectorBig] || "—") + " |");
+      L.push("| 当前小趋势 | " + (SMALL[d.smallTrend] || "—") + " |");
+      L.push("| 明日情绪预演 | " + (MOOD[d.tomorrowMood] || "—") + " |");
+      L.push("| **明日动作定调** | **" + (d.stance ? STANCE[d.stance].main + "（" + STANCE[d.stance].sub + "）" : "—") + "** |");
+      L.push("");
+      if (d.note && d.note.trim()) { L.push("**复盘纲要：** " + d.note.trim()); L.push(""); }
+
+      const auditTable = (list, isHold) => {
+        if (!list.length) { L.push("_（空）_"); L.push(""); return; }
+        L.push("| 标的 | 资金 | 卡位 | 业绩 |" + (isHold ? " 仓位合规 |" : "") + " 大趋势 | 小趋势 | 计划 | 明日动作 |");
+        L.push("| --- | :-: | :-: | :-: |" + (isHold ? " :-: |" : "") + " --- | --- | --- | --- |");
+        const yn = b => b ? "✅" : "❌";
+        list.forEach(it => {
+          const cells = ["**" + (it.name || "（未命名）") + "**", yn(it.funds), yn(it.slot), yn(it.perf)];
+          if (isHold) cells.push(yn(it.sizeOk));
+          cells.push(BIG_TREND[it.bigTrend], SMALL_TREND[it.smallTrend], planLabel(it, isHold), actOf(it, isHold) || "—");
+          L.push("| " + cells.join(" | ") + " |");
+        });
+        L.push("");
+      };
+      L.push("## 💼 持仓审计（" + st.holdings.length + "）");
+      L.push("");
+      auditTable(st.holdings, true);
+      L.push("## 🔭 观察审计（" + st.watch.length + "）");
+      L.push("");
+      auditTable(st.watch, false);
+
+      L.push("## 📋 明日微观动作");
+      L.push("");
+      const microList = (list, isHold, head) => {
+        L.push("**" + head + "**");
+        L.push("");
+        if (!list.length) { L.push("- （无）"); L.push(""); return; }
+        list.forEach(it => {
+          L.push("- **" + (it.name || "（未命名）") + "** · " + planLabel(it, isHold) + " → " + (actOf(it, isHold) || "—"));
+          if (isHold && (it.scHigh || it.scLow)) {
+            const parts = [];
+            if (it.scHigh) parts.push("↗ 高开：" + it.scHigh.trim());
+            if (it.scLow) parts.push("↘ 低走：" + it.scLow.trim());
+            L.push("    - 情景预案｜" + parts.join("　｜　"));
+          }
+        });
+        L.push("");
+      };
+      microList(st.holdings, true, "持仓");
+      microList(st.watch, false, "观察");
+
+      // 结构化数据（供交易计划台精确回填，请勿手改）
+      L.push("---");
+      L.push("");
+      L.push("<!-- ymos-plan-data：交易计划台结构化数据，请勿手动修改 -->");
+      L.push("```json");
+      L.push(JSON.stringify(st, null, 2));
+      L.push("```");
+      L.push("");
+      return L.join("\n");
+    }
+
+    /* ============ 执行记录：数据结构 / 生成 / 保存 ============
+     * 一份计划 md = 计划块（收盘定的预期）+ 执行块（次日盘中记的实际）。
+     * execRec 存进「被执行的那份计划文件」，形成「计划 + 实际」一体的可回顾单元。
+     */
+    function execDraftKey(planDate) { return "ymos-exec-" + planDate; }
+    function blankExec(plan, planDate) {
+      const dd = plan.dashboard || {};
+      return {
+        version: 1, planDate: planDate, execDate: todayStr(),
+        // 实际盘面：默认沿用昨日预估，用户只改与实际不符的
+        actual: { marketBig: dd.marketBig || "", sectorBig: dd.sectorBig || "", smallTrend: dd.smallTrend || "", mood: dd.tomorrowMood || "", note: "" },
+        items: {},          // { "h_<id>" / "w_<id>": { executed:bool, note:string } }
+        extras: [],         // 计划外动作 [{ id, name, note }]
+      };
+    }
+    function normalizeExec(raw, plan, planDate) {
+      const b = blankExec(plan, planDate);
+      if (!raw) return b;
+      b.actual = Object.assign(b.actual, raw.actual || {});
+      b.items = raw.items || {};
+      b.extras = (raw.extras || []).map(e => ({ id: e.id || uid(), name: e.name || "", note: e.note || "" }));
+      if (raw.execDate) b.execDate = raw.execDate;
+      return b;
+    }
+    function saveExecDraft() { if (execRec) { try { localStorage.setItem(execDraftKey(execRec.planDate), JSON.stringify(execRec)); } catch (e) { } } }
+    function execItem(key) { if (!execRec.items[key]) execRec.items[key] = { executed: false, note: "" }; return execRec.items[key]; }
+
+    // 实际 vs 预估：不同则返回 true（用于高亮）
+    function actualDiffers(field, planVal) { return execRec && execRec.actual[field] && execRec.actual[field] !== (planVal || ""); }
+
+    function buildExecSection(plan) {
+      const r = execRec, L = [];
+      L.push("");                       // 与计划块留空行
+      L.push(EXEC_SECTION_MARK_JS);     // 执行区起点标记（供服务端保护）
+      L.push("## 📊 实际执行（" + r.execDate + " 盘中）");
+      L.push("");
+      const a = r.actual, dd = plan.dashboard || {};
+      const cell = (label, actKey, dict, planKey) => {
+        const av = dict[a[actKey]] || "—", pv = dict[dd[planKey]] || "—";
+        const diff = a[actKey] && a[actKey] !== (dd[planKey] || "");
+        return "| " + label + " | " + pv + " | " + av + (diff ? " ⚠️与预估不符" : "") + " |";
+      };
+      L.push("| 项目 | 昨日预估 | 今日实际 |");
+      L.push("| --- | --- | --- |");
+      L.push(cell("大盘大趋势", "marketBig", TREND3, "marketBig"));
+      L.push(cell("板块大趋势", "sectorBig", TREND3, "sectorBig"));
+      L.push(cell("当前小趋势", "smallTrend", SMALL, "smallTrend"));
+      L.push(cell("盘面情绪", "mood", MOOD, "tomorrowMood"));
+      L.push("");
+      if (a.note && a.note.trim()) { L.push("**盘面实况：** " + a.note.trim()); L.push(""); }
+
+      const execTable = (list, isHold, head) => {
+        L.push("### " + head);
+        L.push("");
+        if (!list.length) { L.push("_（空）_"); L.push(""); return; }
+        L.push("| 标的 | 计划 | 预期动作 | 已执行 | 实际情况 |");
+        L.push("| --- | --- | --- | :-: | --- |");
+        list.forEach(it => {
+          const key = (isHold ? "h_" : "w_") + it.id;
+          const ei = r.items[key] || { executed: false, note: "" };
+          L.push("| **" + (it.name || "（未命名）") + "** | " + planLabel(it, isHold) + " | " + (actOf(it, isHold) || "—") +
+            " | " + (ei.executed ? "✅" : "⬜") + " | " + (ei.note && ei.note.trim() ? ei.note.trim() : "—") + " |");
+        });
+        L.push("");
+      };
+      execTable(plan.holdings, true, "持仓执行");
+      execTable(plan.watch, false, "观察执行");
+
+      L.push("### 计划外动作");
+      L.push("");
+      if (!r.extras.length) { L.push("_（无）_"); }
+      else { r.extras.forEach(e => { L.push("- **" + (e.name || "（未命名）") + "**：" + (e.note && e.note.trim() ? e.note.trim() : "—")); }); }
+      L.push("");
+
+      L.push("<!-- " + EXEC_DATA_MARK_JS + "：执行结构化数据，请勿手动修改 -->");
+      L.push("```json");
+      L.push(JSON.stringify(r, null, 2));
+      L.push("```");
+      L.push("");
+      return L.join("\n");
+    }
+
+    async function saveExec() {
+      if (!execPlan || !execRec) { toast("没有可保存的执行计划", "warn"); return; }
+      const btn = document.getElementById("saveBtn");
+      const md = buildMarkdown(execPlan).replace(/\s+$/, "") + "\n" + buildExecSection(execPlan);
+      btn.classList.add("busy"); btn.textContent = "保存中…";
+      try {
+        const res = await fetch("/api/plan/save", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: execRec.planDate, markdown: md }),
+        });
+        const j = await res.json();
+        if (res.ok && j.ok) { saveExecDraft(); toast("执行记录已存入 " + (j.rel || (execRec.planDate + "日交易计划.md")), "ok"); }
+        else { toast("保存失败：" + (j.error || res.status), "warn"); }
+      } catch (e) { toast("保存失败：服务未启动？", "warn"); }
+      finally { btn.classList.remove("busy"); btn.textContent = "💾 保存今日执行记录"; }
+    }
+
+    /* ============ 保存 / 载入 ============ */
+    async function save() {
+      const btn = document.getElementById("saveBtn");
+      const md = buildMarkdown();
+      btn.classList.add("busy"); btn.textContent = "保存中…";
+      try {
+        const res = await fetch("/api/plan/save", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: state.date, markdown: md }),
+        });
+        const j = await res.json();
+        if (res.ok && j.ok) { toast("已保存 · " + (j.rel || (state.date + "日交易计划.md")), "ok"); }
+        else { toast("保存失败：" + (j.error || res.status), "warn"); }
+      } catch (e) {
+        toast("保存失败：服务未启动？请先跑 server.py", "warn");
+      } finally {
+        btn.classList.remove("busy"); btn.textContent = "💾 保存今日收盘复盘";
+      }
+    }
+
+    async function loadDate(date) {
+      // 切日期：先看 localStorage 里是不是同一天；否则尝试从服务端载入历史
+      if (date === state.date) return;
+      if (state.date === todayStr()) persist(); // 存住今天的草稿
+      try {
+        const res = await fetch("/api/plan/load?date=" + encodeURIComponent(date));
+        const j = await res.json();
+        if (res.ok && j.found && j.state && j.state.dashboard) {
+          state = normalize(j.state); state.date = date;
+          toast("已载入 " + date + " 的计划", "ok");
+        } else {
+          // 没有历史文件：以当前名单为底，换个日期（常驻名单跨天保留）
+          state = normalize(state); state.date = date;
+          toast(date + " 无归档，沿用当前名单新建", "");
+        }
+      } catch (e) {
+        state = normalize(state); state.date = date;
+        toast("服务未启动，仅切换日期（未载历史）", "warn");
+      }
+      if (date === todayStr()) persist();
+      renderNav(); renderTab();
+    }
+
+    function normalize(s) {
+      const b = blankState(s.date);
+      b.dashboard = Object.assign(b.dashboard, s.dashboard || {});
+      b.holdings = (s.holdings || []).map(h => Object.assign(newHolding(), h));
+      b.watch = (s.watch || []).map(w => Object.assign(newWatch(), w));
+      return b;
+    }
+
+    /* ============ 工具 ============ */
+    function escapeHTML(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+    let toastTimer = null;
+    function toast(msg, kind) {
+      let t = document.querySelector(".toast");
+      if (!t) { t = document.createElement("div"); t.className = "toast"; document.body.appendChild(t); }
+      t.className = "toast " + (kind || "") + " show";
+      t.textContent = msg;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+    }
+
+    /* ============ init ============ */
+    const dateInput = document.getElementById("dateInput");
+    dateInput.addEventListener("change", () => { const v = dateInput.value; if (v) { dateManual = true; loadDate(v); } });
+    document.getElementById("saveBtn").onclick = () => { if (currentTab === "today") saveExec(); else save(); };
+    if (location.protocol === "file:") {
+      for (const link of document.querySelectorAll("[data-file-href]")) {
+        link.href = link.dataset.fileHref;
+      }
+    }
+    // 离开页面前把最新草稿刷到本地备份
+    window.addEventListener("pagehide", () => pushDraft(true));
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") pushDraft(true); });
+    // 键盘：1-4 切 tab，⌘S 保存，⌘←/→ 切日期
+    window.addEventListener("keydown", e => {
+      const typing = e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT";
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (currentTab === "today") saveExec(); else save();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+        e.preventDefault();
+        shiftDate(e.key === "ArrowLeft" ? -1 : 1);
+        return;
+      }
+      if (typing) return;
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= TABS.length) switchTab(TABS[n - 1].key);
+    });
+
+    function shiftDate(delta) {
+      const p = (state.date || todayStr()).split("-").map(Number);
+      const d = new Date(p[0], p[1] - 1, p[2] + delta);
+      const next = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+      dateManual = true;
+      loadDate(next);
+    }
+
+    /* ============ vault 连接状态 ============ */
+    /* 计划台的主路径是「写回你自己的 Obsidian」。后端没起时不崩，
+       退到本地暂存 + 导出，但要明确告诉用户当前是哪种状态。 */
+    let vaultOnline = false;
+    async function checkVault() {
+      try {
+        const r = await fetch("/api/health");
+        vaultOnline = r.ok;
+      } catch (e) { vaultOnline = false; }
+      const bar = document.getElementById("vaultBar");
+      if (bar) bar.classList.toggle("show", !vaultOnline);
+      const btn = document.getElementById("saveBtn");
+      if (btn && !vaultOnline) btn.title = "未连接 vault —— 请改用左侧「⬇️ .md」导出，或先启动 server.py";
+    }
+
+    /* ============ 导出 ============ */
+    function downloadBlob(filename, text, mime) {
+      const blob = new Blob([text], { type: mime + ";charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    document.getElementById("expMd").onclick = () => {
+      downloadBlob(state.date + "日交易计划.md", buildMarkdown(), "text/markdown");
+      toast("已下载 .md —— 可直接拖进任意 vault", "ok");
+    };
+    document.getElementById("expCopy").onclick = async () => {
+      const md = buildMarkdown();
+      try {
+        await navigator.clipboard.writeText(md);
+        toast("Markdown 已复制到剪贴板", "ok");
+      } catch (e) {
+        const ta = document.createElement("textarea");
+        ta.value = md; document.body.appendChild(ta); ta.select();
+        try { document.execCommand("copy"); toast("Markdown 已复制", "ok"); }
+        catch (e2) { toast("复制失败，请改用「⬇️ .md」", "warn"); }
+        ta.remove();
+      }
+    };
+    document.getElementById("expJson").onclick = () => {
+      downloadBlob(state.date + "-plan.json", JSON.stringify(state, null, 2), "application/json");
+      toast("已导出 JSON —— 可喂给你自己的 Agent", "ok");
+    };
+    document.getElementById("expPrint").onclick = () => window.print();
+
+    /* ============ 正文宽度拖拽（参考新高决策台）============ */
+    const SIDEBAR_W = 268, MIN_W = 560, DEFAULT_RATIO = 0.75, WIDTH_KEY = "ymos-plan-main-w";
+    let mainWPref = localStorage.getItem(WIDTH_KEY); // null | 数字字符串
+    function maxMainW() { return Math.max(MIN_W, window.innerWidth - SIDEBAR_W); }
+    function defaultMainW() { return Math.max(MIN_W, Math.round(maxMainW() * DEFAULT_RATIO)); }
+    function applyMainW() {
+      let w;
+      if (mainWPref === null || mainWPref === "full") w = defaultMainW();
+      else w = Math.max(MIN_W, Math.min(parseInt(mainWPref, 10) || defaultMainW(), maxMainW()));
+      document.documentElement.style.setProperty("--main-w", w + "px");
+    }
+    (function initResize() {
+      const handle = document.getElementById("resizeRight");
+      const col = document.getElementById("mainCol");
+      if (!handle || !col) return;
+      handle.addEventListener("mousedown", e => {
+        e.preventDefault();
+        const startX = e.clientX, startW = col.getBoundingClientRect().width;
+        handle.classList.add("dragging");
+        document.body.classList.add("dragging-col");
+        function move(ev) {
+          let w = Math.max(MIN_W, Math.min(maxMainW(), startW + (ev.clientX - startX)));
+          document.documentElement.style.setProperty("--main-w", w + "px");
+          mainWPref = String(Math.round(w));
+        }
+        function up() {
+          handle.classList.remove("dragging");
+          document.body.classList.remove("dragging-col");
+          localStorage.setItem(WIDTH_KEY, mainWPref);
+          window.removeEventListener("mousemove", move);
+          window.removeEventListener("mouseup", up);
+        }
+        window.addEventListener("mousemove", move);
+        window.addEventListener("mouseup", up);
+      });
+      handle.addEventListener("dblclick", () => {
+        mainWPref = null; localStorage.removeItem(WIDTH_KEY); applyMainW();
+        toast("正文宽度已恢复为 75%", "");
+      });
+      window.addEventListener("resize", applyMainW);
+      applyMainW();
+      const hintKey = "ymos-plan-resize-hint-seen";
+      if (!localStorage.getItem(hintKey) && window.innerWidth > 860) {
+        const hint = document.getElementById("resizeHint");
+        requestAnimationFrame(() => hint.classList.add("show"));
+        setTimeout(() => hint.classList.remove("show"), 5000);
+        localStorage.setItem(hintKey, "1");
+      }
+    })();
+
+    /* 启动：localStorage 优先；为空则从本地草稿镜像恢复常驻名单 */
+    (async function bootstrap() {
+      const hadLocal = !!localStorage.getItem(STORE_KEY);
+      state = load();
+      if (!hadLocal) {
+        try {
+          const res = await fetch("/api/plan/draft");
+          const j = await res.json();
+          if (res.ok && j.found && j.state && j.state.dashboard) {
+            state = normalize(j.state);
+            toast("浏览器无缓存 · 已从本地备份恢复上次名单", "ok");
+          }
+        } catch (e) { }
+      }
+      // 隔夜草稿留下的旧日期：开页即跳到今天（常驻名单保留），避免误存到昨天
+      if (state.date < todayStr()) { state.date = todayStr(); persist(); }
+      dateInput.value = state.date;
+      renderNav();
+      renderTab();
+      checkVault();
+    })();
+  </script>
+</body>
+
+</html>

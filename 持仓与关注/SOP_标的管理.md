@@ -181,4 +181,4 @@ mv "持仓与关注/持仓/名称_TICKER" "持仓与关注/动态Watchlist/名�
 
 ---
 
-*SOP 版本：2026-03-18 · YMOS V3 三模块制（Eyes / Brain / 持仓与关注）*
+*SOP 版本：2026-07-27 · YMOS V4 · 三模块 + 运行时 + 决策台（Eyes / Brain / 持仓与关注）*

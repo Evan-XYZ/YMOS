@@ -11,7 +11,7 @@ YMOS vNext Memory Module — 投资工作流动态上下文加载器
 
 设计原则：
   - 只服务当前 YMOS 投资工作流
-  - 默认不依赖 BrainStorm / 选题 / 内容创作目录
+  - 默认不依赖 YMOS 之外的任何目录
   - 路径由 runtime_paths.py 统一解析（持仓与关注/ / Eyes/市场洞察/ / Eyes/投资雷达/）
 
 【命令行调试】

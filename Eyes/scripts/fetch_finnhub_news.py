@@ -113,7 +113,7 @@ def fetch_company_news(ticker: str, api_key: str, from_date: str, to_date: str) 
         f"https://finnhub.io/api/v1/company-news"
         f"?symbol={ticker}&from={from_date}&to={to_date}&token={api_key}"
     )
-    req = urllib.request.Request(url, headers={"User-Agent": "YMOS/2.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "YMOS/4.0"})
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
             return json.loads(resp.read().decode())

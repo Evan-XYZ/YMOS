@@ -1,6 +1,6 @@
 {
   "version": "2026-03-17",
-  "description": "YMOS-V2 RSS 信息源配置。仅包含免费开放源（不含需 RSSHub 搭建的源）。用户可自行增减。",
+  "description": "YMOS RSS 信息源配置。仅包含免费开放源（不含需 RSSHub 搭建的源）。用户可自行增减。",
   "categories": ["美股", "宏观", "科技", "Crypto", "深度洞察"],
   "sources": [
     {

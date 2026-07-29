@@ -1,0 +1,2225 @@
+<!doctype html>
+<html lang="zh">
+
+<head>
+  <meta charset="utf-8" />
+  <title>新高买卖决策台 · TIB SOP</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#faf9f5" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="决策台" />
+  <!-- 不引任何外部 CDN：完全离线可用，字体走系统栈 -->
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --bg-sidebar: #f4f2ea;
+      --bg-elev: #ffffff;
+      --ink: #1f1e1c;
+      --ink-2: #4a4844;
+      --ink-3: #8a857c;
+      --line: #e7e3d8;
+      --line-strong: #d8d2c2;
+      --accent: #cc785c;
+      --accent-ink: #b56247;
+      --accent-soft: rgba(204, 120, 92, 0.10);
+      --green: #4f7a52;
+      --green-soft: rgba(79, 122, 82, 0.10);
+      --red: #b0483b;
+      --red-soft: rgba(176, 72, 59, 0.09);
+      --stance: #5f7d95;
+      --stance-soft: rgba(95, 125, 149, 0.12);
+      --main-w: 100%;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      height: 100vh;
+      height: 100dvh;
+    }
+
+    body.dragging-col {
+      cursor: col-resize;
+      user-select: none;
+    }
+
+    body.dragging-col * {
+      cursor: col-resize !important;
+    }
+
+    /* ========== Sidebar ========== */
+    aside {
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .brand {
+      padding: 22px 22px 18px;
+      font-family: "Source Serif 4", Georgia, "Songti SC", serif;
+      font-size: 21px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex: 0 0 8px;
+    }
+
+    .brand .sub {
+      margin-left: auto;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink-3);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .mode-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0 24px;
+    }
+
+    .group-head {
+      padding: 18px 22px 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+
+    .mode-btn {
+      margin: 3px 12px;
+      padding: 11px 14px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      color: var(--ink-2);
+      transition: background 0.12s, border-color 0.12s;
+    }
+
+    .mode-btn:hover {
+      background: rgba(204, 120, 92, 0.06);
+    }
+
+    .mode-btn.on {
+      background: var(--bg-elev);
+      border-color: var(--line-strong);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+      color: var(--ink);
+    }
+
+    .mode-btn .m-icon {
+      width: 26px;
+      height: 26px;
+      flex: 0 0 26px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .mode-btn.on.buy .m-icon {
+      background: var(--accent-soft);
+    }
+
+    .mode-btn.on.sell .m-icon {
+      background: var(--green-soft);
+    }
+
+    .mode-btn.on.stance .m-icon {
+      background: var(--stance-soft);
+    }
+
+    .mode-btn .m-txt {
+      min-width: 0;
+    }
+
+    .mode-btn .m-label {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+
+    .mode-btn .m-desc {
+      font-size: 11px;
+      color: var(--ink-3);
+      line-height: 1.3;
+      margin-top: 1px;
+    }
+
+    .mode-btn.on .m-mark {
+      margin-left: auto;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex: 0 0 6px;
+      background: var(--accent);
+    }
+
+    .mode-btn.on.sell .m-mark {
+      background: var(--green);
+    }
+
+    .mode-btn.on.stance .m-mark {
+      background: var(--stance);
+    }
+
+    .side-foot {
+      padding: 14px 20px 18px;
+      border-top: 1px solid var(--line);
+      font-size: 11px;
+      color: var(--ink-3);
+      line-height: 1.6;
+    }
+
+    .side-foot b {
+      color: var(--ink-2);
+      font-weight: 600;
+    }
+
+    /* ========== Main (可拖拽宽度) ========== */
+    main {
+      position: relative;
+      overflow: hidden;
+      background: var(--bg);
+      min-width: 0;
+    }
+
+    .main-col {
+      position: relative;
+      height: 100vh;
+      height: 100dvh;
+      width: var(--main-w);
+      max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      border-right: 1px solid var(--line);
+    }
+
+    /* 移动端 / 嵌入版顶栏（桌面独立版隐藏，靠 @media 或 .embedded 打开） */
+    .mobile-topbar {
+      display: none;
+      flex-direction: column;
+      gap: 9px;
+      flex: 0 0 auto;
+      padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+      border-bottom: 1px solid var(--line);
+      background: var(--bg-sidebar);
+    }
+
+    .mtb-brand {
+      font-family: "Source Serif 4", Georgia, "Songti SC", serif;
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--ink);
+    }
+
+    .mtb-brand .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex: 0 0 7px;
+    }
+
+    .mtb-brand .mtb-sub {
+      margin-left: auto;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+    }
+
+    .mtb-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+
+    .mtb-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .mtb-chip {
+      flex: 0 0 auto;
+      padding: 8px 15px;
+      border-radius: 20px;
+      border: 1px solid var(--line-strong);
+      background: var(--bg-elev);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-2);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .mtb-chip.on.buy {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .mtb-chip.on.sell {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+    }
+
+    .mtb-chip.on.stance {
+      background: var(--stance);
+      border-color: var(--stance);
+      color: #fff;
+    }
+
+    .resize-handle {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: -4px;
+      width: 9px;
+      cursor: col-resize;
+      z-index: 30;
+      background: transparent;
+      transition: background 0.15s;
+    }
+
+    .resize-handle:hover,
+    .resize-handle.dragging {
+      background: var(--accent-soft);
+    }
+
+    .resize-handle::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 3px;
+      width: 2px;
+      background: transparent;
+      border-radius: 2px;
+      transition: background 0.15s;
+    }
+
+    .resize-handle:hover::after,
+    .resize-handle.dragging::after {
+      background: var(--accent);
+    }
+
+    .resize-grip {
+      position: absolute;
+      right: -1px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 5px;
+      height: 46px;
+      border-radius: 4px;
+      z-index: 31;
+      background: var(--line-strong);
+      opacity: 0.55;
+      pointer-events: none;
+      transition: opacity 0.15s, background 0.15s;
+    }
+
+    .resize-handle:hover~.resize-grip,
+    .main-col:hover .resize-grip {
+      opacity: 0.9;
+    }
+    .resize-hint {
+      position: absolute; right: 12px; top: 72px; z-index: 40;
+      padding: 8px 11px; border-radius: 7px; background: var(--ink); color: #fff;
+      font-size: 12px; line-height: 1.45; box-shadow: 0 8px 24px rgba(0,0,0,.16);
+      opacity: 0; transform: translateX(8px); pointer-events: none;
+      transition: opacity .2s, transform .2s;
+    }
+    .resize-hint.show { opacity: 1; transform: translateX(0); }
+
+    .head {
+      padding: 26px 40px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .head .kicker {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent-ink);
+      margin-bottom: 8px;
+    }
+
+    .head h1 {
+      font-family: "Source Serif 4", Georgia, "Songti SC", serif;
+      font-size: 27px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin: 0 0 8px;
+      color: var(--ink);
+    }
+
+    .head .tagline {
+      font-size: 14px;
+      color: var(--ink-2);
+      line-height: 1.5;
+    }
+
+    .core-banner {
+      margin: 20px 40px 0;
+      padding: 13px 18px;
+      border-radius: 10px;
+      background: var(--accent-soft);
+      border: 1px solid rgba(204, 120, 92, 0.25);
+      font-size: 13.5px;
+      color: var(--ink);
+      line-height: 1.55;
+      display: flex;
+      gap: 11px;
+      align-items: flex-start;
+    }
+
+    .core-banner.sell {
+      background: var(--green-soft);
+      border-color: rgba(79, 122, 82, 0.25);
+    }
+
+    .core-banner .cb-icon {
+      flex: 0 0 auto;
+      font-size: 16px;
+    }
+
+    .core-banner b {
+      font-weight: 600;
+    }
+
+    .body-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 40px 28px;
+    }
+
+    .section {
+      margin-top: 26px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .section-title .s-name {
+      font-family: "Source Serif 4", Georgia, "Songti SC", serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .section-title .s-rule {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 9px;
+      border-radius: 20px;
+      letter-spacing: 0.02em;
+    }
+
+    .s-rule.all {
+      background: var(--accent-soft);
+      color: var(--accent-ink);
+    }
+
+    .s-rule.any {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .section-title .s-prog {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--ink-3);
+      font-feature-settings: "tnum";
+    }
+
+    .item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--bg-elev);
+      margin-bottom: 9px;
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s;
+      position: relative;
+    }
+
+    .item:hover {
+      border-color: var(--line-strong);
+    }
+
+    .item.checked {
+      border-color: rgba(204, 120, 92, 0.4);
+      background: rgba(204, 120, 92, 0.035);
+    }
+
+    .item.redline {
+      border-left: 3px solid var(--red);
+    }
+
+    .item.redline.checked {
+      border-left-color: var(--red);
+      background: var(--red-soft);
+      border-color: rgba(176, 72, 59, 0.3);
+    }
+
+    .cbox {
+      flex: 0 0 22px;
+      width: 22px;
+      height: 22px;
+      margin-top: 1px;
+      border-radius: 6px;
+      border: 2px solid var(--line-strong);
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.12s;
+    }
+
+    .item:hover .cbox {
+      border-color: var(--accent);
+    }
+
+    .item.checked .cbox {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .item.redline.checked .cbox {
+      background: var(--red);
+      border-color: var(--red);
+    }
+
+    .cbox svg {
+      width: 13px;
+      height: 13px;
+      opacity: 0;
+      transform: scale(0.6);
+      transition: all 0.12s;
+    }
+
+    .item.checked .cbox svg {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .i-body {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .i-label {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--ink);
+      line-height: 1.4;
+    }
+
+    .i-label .rl-tag {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--red);
+      border: 1px solid rgba(176, 72, 59, 0.4);
+      border-radius: 4px;
+      padding: 0 5px;
+      margin-left: 8px;
+      vertical-align: 1px;
+      letter-spacing: 0.03em;
+    }
+
+    .i-note {
+      font-size: 12.5px;
+      color: var(--ink-3);
+      line-height: 1.5;
+      margin-top: 4px;
+    }
+
+    .i-note em {
+      color: var(--accent-ink);
+      font-style: normal;
+      font-weight: 500;
+    }
+
+    /* 提示卡（实盘提醒，非勾选项） */
+    .tips {
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .tip {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      border: 1px solid rgba(176, 72, 59, 0.22);
+      border-left: 3px solid var(--red);
+      border-radius: 10px;
+      background: var(--red-soft);
+      padding: 12px 15px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--ink-2);
+    }
+
+    .tip .tip-icon {
+      flex: 0 0 auto;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .tip em {
+      color: var(--red);
+      font-style: normal;
+      font-weight: 600;
+    }
+
+    /* ========== 每日定调：选择表单 ========== */
+    .stance {
+      padding-top: 6px;
+    }
+
+    .stance-q {
+      margin-top: 22px;
+    }
+
+    .stance-q:first-child {
+      margin-top: 8px;
+    }
+
+    .stance-q-title {
+      font-family: "Source Serif 4", Georgia, "Songti SC", serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+
+    .stance-opts {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stance-opt {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      align-items: flex-start;
+      text-align: left;
+      padding: 14px 15px;
+      border: 1px solid var(--line-strong);
+      border-radius: 11px;
+      background: var(--bg-elev);
+      cursor: pointer;
+      font-family: inherit;
+      color: var(--ink-2);
+      transition: all 0.12s;
+    }
+
+    .stance-opt:hover {
+      border-color: var(--stance);
+    }
+
+    .stance-opt .so-main {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .stance-opt .so-sub {
+      font-size: 11.5px;
+      color: var(--ink-3);
+      line-height: 1.3;
+    }
+
+    .stance-opt.on {
+      border-color: var(--stance);
+      background: var(--stance-soft);
+      box-shadow: 0 0 0 1px var(--stance) inset;
+    }
+
+    .stance-opt.on .so-sub {
+      color: var(--stance);
+    }
+
+    .stance-note {
+      margin-top: 24px;
+      padding: 13px 16px;
+      border-radius: 10px;
+      background: var(--stance-soft);
+      border: 1px solid rgba(95, 125, 149, 0.25);
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--ink-2);
+    }
+
+    .stance-note em {
+      color: var(--stance);
+      font-style: normal;
+      font-weight: 600;
+    }
+
+    .stance-plan {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px 14px;
+      border-radius: 11px;
+      border: 1px solid var(--line-strong);
+      background: var(--bg-elev);
+      color: var(--ink);
+      font-family: inherit;
+      font-size: 13.5px;
+      line-height: 1.6;
+      resize: vertical;
+      outline: none;
+      min-height: 76px;
+    }
+
+    .stance-plan:focus {
+      border-color: var(--stance);
+      box-shadow: 0 0 0 3px var(--stance-soft);
+    }
+
+    .sc-plan {
+      display: inline-block;
+      margin-top: 5px;
+      font-weight: 400;
+      color: var(--ink-2);
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+
+    /* ========== 今日定调条：在其它 tab 顶部动态显示当天参数 ========== */
+    .stance-ctx {
+      margin: 6px 0 4px;
+      padding: 11px 15px;
+      border-radius: 10px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 13px;
+      line-height: 1.5;
+      border: 1px solid var(--line-strong);
+      background: var(--bg-elev);
+      color: var(--ink-2);
+      cursor: pointer;
+    }
+
+    .stance-ctx .sc-icon {
+      flex: 0 0 auto;
+      font-size: 15px;
+    }
+
+    .stance-ctx b {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .stance-ctx.none {
+      border-style: dashed;
+    }
+
+    .stance-ctx.good {
+      background: var(--green-soft);
+      border-color: rgba(79, 122, 82, 0.3);
+    }
+
+    .stance-ctx.good b,
+    .stance-ctx.good .sc-msg {
+      color: var(--green);
+    }
+
+    .stance-ctx.warn {
+      background: var(--red-soft);
+      border-color: rgba(176, 72, 59, 0.32);
+    }
+
+    .stance-ctx.warn b,
+    .stance-ctx.warn .sc-msg {
+      color: var(--red);
+    }
+
+    .stance-ctx .sc-msg {
+      font-weight: 600;
+    }
+
+    body.embedded .stance-ctx {
+      margin: 6px 0;
+    }
+
+    /* ========== Action bar（正常流式，固定在列底部） ========== */
+    .action-bar {
+      flex: 0 0 auto;
+      background: var(--bg);
+      border-top: 1px solid var(--line);
+      padding: 16px 40px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      z-index: 10;
+    }
+
+    .prog-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .prog-label {
+      font-size: 12px;
+      color: var(--ink-2);
+      margin-bottom: 7px;
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+    }
+
+    .prog-label b {
+      font-family: "Source Serif 4", Georgia, "Songti SC", serif;
+      font-size: 15px;
+      color: var(--ink);
+      font-feature-settings: "tnum";
+    }
+
+    .prog-label .hint {
+      color: var(--ink-3);
+      font-size: 11.5px;
+    }
+
+    .prog-track {
+      height: 7px;
+      border-radius: 7px;
+      background: var(--line);
+      overflow: hidden;
+    }
+
+    .prog-fill {
+      height: 100%;
+      border-radius: 7px;
+      background: var(--accent);
+      width: 0;
+      transition: width 0.25s ease;
+    }
+
+    .action-bar.sell .prog-fill {
+      background: var(--green);
+    }
+
+    .action-bar.stance .prog-fill {
+      background: var(--stance);
+    }
+
+    .fire-btn {
+      flex: 0 0 auto;
+      padding: 14px 30px;
+      border-radius: 10px;
+      border: none;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      transition: all 0.14s;
+      background: var(--line-strong);
+      color: var(--bg-elev);
+      white-space: nowrap;
+    }
+
+    .fire-btn.locked {
+      background: #cfc8b8;
+      color: #fff;
+      box-shadow: none;
+    }
+
+    .fire-btn.ready {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(204, 120, 92, 0.35);
+    }
+
+    .action-bar.sell .fire-btn.ready {
+      background: var(--green);
+      box-shadow: 0 4px 14px rgba(79, 122, 82, 0.32);
+    }
+
+    .action-bar.stance .fire-btn.ready {
+      background: var(--stance);
+      box-shadow: 0 4px 14px rgba(95, 125, 149, 0.32);
+    }
+
+    .fire-btn.ready:hover {
+      transform: translateY(-1px);
+    }
+
+    .fire-btn:active {
+      transform: translateY(1px);
+    }
+
+    /* ========== Modal ========== */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(31, 30, 28, 0.42);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      transition: opacity 0.16s;
+    }
+
+    .overlay.show {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 520px;
+      background: var(--bg-elev);
+      border: 1px solid var(--line-strong);
+      border-radius: 16px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+      overflow: hidden;
+      transform: translateY(8px) scale(0.99);
+      transition: transform 0.18s;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .overlay.show .modal {
+      transform: none;
+    }
+
+    .modal.shake {
+      animation: shake 0.45s cubic-bezier(.36, .07, .19, .97) both;
+    }
+
+    @keyframes shake {
+
+      10%,
+      90% {
+        transform: translateX(-1px);
+      }
+
+      20%,
+      80% {
+        transform: translateX(2px);
+      }
+
+      30%,
+      50%,
+      70% {
+        transform: translateX(-4px);
+      }
+
+      40%,
+      60% {
+        transform: translateX(4px);
+      }
+    }
+
+    .m-top {
+      padding: 26px 28px 20px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .m-badge {
+      flex: 0 0 auto;
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 23px;
+    }
+
+    .modal.warn .m-badge {
+      background: var(--red-soft);
+    }
+
+    .modal.pass .m-badge {
+      background: var(--green-soft);
+    }
+
+    .m-head {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .m-title {
+      font-family: "Source Serif 4", Georgia, "Songti SC", serif;
+      font-size: 21px;
+      font-weight: 600;
+      color: var(--ink);
+      line-height: 1.3;
+      margin-bottom: 6px;
+    }
+
+    .m-sub {
+      font-size: 13.5px;
+      color: var(--ink-2);
+      line-height: 1.55;
+    }
+
+    .m-quote {
+      margin: 0 28px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: var(--red-soft);
+      border-left: 3px solid var(--red);
+      font-size: 13.5px;
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    .modal.pass .m-quote {
+      background: var(--green-soft);
+      border-left-color: var(--green);
+    }
+
+    .m-list {
+      margin: 16px 28px 4px;
+    }
+
+    .m-list .ml-head {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      margin-bottom: 8px;
+    }
+
+    .m-list ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .m-list li {
+      font-size: 13.5px;
+      color: var(--ink);
+      padding: 7px 0 7px 24px;
+      position: relative;
+      border-bottom: 1px dashed var(--line);
+      line-height: 1.45;
+    }
+
+    .m-list li:last-child {
+      border-bottom: none;
+    }
+
+    .m-list li::before {
+      content: "✗";
+      position: absolute;
+      left: 4px;
+      top: 7px;
+      color: var(--red);
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .m-list li .li-sec {
+      color: var(--ink-3);
+      font-size: 11.5px;
+      margin-left: 6px;
+    }
+
+    .m-actions {
+      padding: 18px 28px 24px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .m-btn {
+      padding: 11px 20px;
+      border-radius: 9px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      border: 1px solid var(--line-strong);
+      background: var(--bg-elev);
+      color: var(--ink-2);
+    }
+
+    .m-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent-ink);
+    }
+
+    .m-btn.solid {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+
+    .m-btn.solid:hover {
+      background: var(--accent-ink);
+      border-color: var(--accent-ink);
+      color: #fff;
+    }
+
+    .m-btn.danger {
+      background: var(--red);
+      color: #fff;
+      border-color: var(--red);
+    }
+
+    .m-btn.danger:hover {
+      background: #97392e;
+      border-color: #97392e;
+      color: #fff;
+    }
+
+    .m-btn.go {
+      background: var(--green);
+      color: #fff;
+      border-color: var(--green);
+    }
+
+    .m-btn.go:hover {
+      background: #3f6543;
+      border-color: #3f6543;
+      color: #fff;
+    }
+
+    /* ========== Toast ========== */
+    .toast {
+      position: fixed;
+      bottom: 26px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--ink);
+      color: #fff;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+      z-index: 3000;
+      opacity: 0;
+      transition: opacity 0.18s, transform 0.18s;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    @media (max-width: 820px) {
+      body {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        display: none;
+      }
+
+      .main-col {
+        width: 100% !important;
+        border-right: none;
+      }
+
+      .resize-handle,
+      .resize-grip,
+      .resize-hint {
+        display: none;
+      }
+
+      .mobile-topbar {
+        display: flex;
+      }
+
+      /* 顶栏样式在基础层已定义，这里只负责显示 */
+
+      .head {
+        padding: 14px 16px 12px;
+      }
+
+      .head .kicker {
+        display: none;
+      }
+
+      .head h1 {
+        font-size: 21px;
+        margin-bottom: 6px;
+      }
+
+      .head .tagline {
+        font-size: 12.5px;
+        line-height: 1.45;
+      }
+
+      .core-banner {
+        margin: 12px 16px 0;
+        padding: 11px 14px;
+        font-size: 12.5px;
+      }
+
+      .body-scroll {
+        padding: 4px 16px 20px;
+      }
+
+      .section {
+        margin-top: 20px;
+      }
+
+      .item {
+        padding: 13px 14px;
+      }
+
+      .action-bar {
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+        gap: 12px;
+      }
+
+      .prog-label b {
+        font-size: 14px;
+      }
+
+      .fire-btn {
+        padding: 12px 18px;
+        font-size: 14px;
+      }
+
+      .overlay {
+        padding: 14px;
+        align-items: flex-end;
+      }
+
+      .modal {
+        max-height: 88vh;
+        border-radius: 16px 16px 0 0;
+      }
+
+      .m-top {
+        padding: 20px 20px 16px;
+      }
+
+      .m-quote {
+        margin: 0 20px;
+      }
+
+      .m-list {
+        margin: 14px 20px 4px;
+      }
+
+      .m-actions {
+        padding: 16px 20px calc(18px + env(safe-area-inset-bottom));
+      }
+
+      .m-btn {
+        flex: 1 1 auto;
+        text-align: center;
+      }
+    }
+
+    /* ========== 嵌入版（WordPress iframe）：随内容自适应高度，页面整体滚动 ========== */
+    body.embedded {
+      display: block;
+      height: auto;
+      min-height: 0;
+      position: relative;
+    }
+
+    body.embedded aside {
+      display: none;
+    }
+
+    body.embedded .mobile-topbar {
+      display: flex;
+    }
+
+    body.embedded .main-col {
+      width: 100% !important;
+      height: auto;
+      border-right: none;
+    }
+
+    body.embedded .body-scroll {
+      overflow: visible;
+      padding: 4px 16px 20px;
+    }
+
+    body.embedded .resize-handle,
+    body.embedded .resize-grip,
+    body.embedded .resize-hint {
+      display: none;
+    }
+
+    body.embedded .head {
+      padding: 14px 16px 12px;
+    }
+
+    body.embedded .head .kicker {
+      display: none;
+    }
+
+    body.embedded .head h1 {
+      font-size: 21px;
+      margin-bottom: 6px;
+    }
+
+    body.embedded .head .tagline {
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+
+    body.embedded .core-banner {
+      margin: 12px 16px 0;
+      padding: 11px 14px;
+      font-size: 12.5px;
+    }
+
+    body.embedded .section {
+      margin-top: 20px;
+    }
+
+    body.embedded .item {
+      padding: 13px 14px;
+    }
+
+    body.embedded .action-bar {
+      padding: 14px 16px;
+    }
+
+    /* 弹窗：定位到父页面当前可见区（由父页面通过 postMessage 告知），始终在视野内 */
+    body.embedded .overlay {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: auto;
+      top: var(--vis-top, 0px);
+      height: var(--vis-height, 100dvh);
+      align-items: center;
+      padding: 14px;
+    }
+
+    body.embedded .modal {
+      border-radius: 16px;
+      max-height: calc(var(--vis-height, 100dvh) - 28px);
+    }
+  </style>
+</head>
+
+<body>
+
+  <aside>
+    <div class="brand">
+      <span class="dot"></span>
+      <span>决策台</span>
+      <span class="sub">TIB SOP</span>
+    </div>
+    <div class="mode-nav" id="modeNav"></div>
+    <div class="side-foot">
+      每次切换模式 <b>清空重勾</b> · 不留旧勾避免自欺。<br>
+      勾选 = 我确认这条成立。全绿才允许扣扳机。<br>
+      <b>这是一份可修改样板</b>：可让你的 Agent / 编程工具按自己的周期、偏好和纪律继续改。<br>
+      <a class="side-link" href="/reader" data-file-href="reader.html">Reader</a> ·
+      <a class="side-link" href="/plan" data-file-href="交易计划台.html">交易计划台</a> ·
+      <a class="side-link" href="/" data-file-href="index.html">Console 首页</a>
+    </div>
+  </aside>
+
+  <main>
+    <div class="main-col" id="mainCol">
+      <div class="mobile-topbar">
+        <div class="mtb-brand">
+          <span class="dot"></span>
+          <span>决策台</span>
+          <span class="mtb-sub">TIB SOP</span>
+        </div>
+        <div class="mtb-tabs" id="mobileTabs"></div>
+      </div>
+      <div class="head">
+        <div class="kicker" id="kicker">买入 · 开新仓</div>
+        <h1 id="title">新高核心资产 · 建仓审计</h1>
+        <div class="tagline" id="tagline"></div>
+      </div>
+      <div class="core-banner" id="coreBanner" style="display:none"></div>
+      <div class="body-scroll" id="bodyScroll"></div>
+
+      <div class="action-bar" id="actionBar">
+        <div class="prog-wrap">
+          <div class="prog-label">
+            <b id="progText">0 / 0</b>
+            <span class="hint" id="progHint">条件已确认</span>
+          </div>
+          <div class="prog-track">
+            <div class="prog-fill" id="progFill"></div>
+          </div>
+        </div>
+        <button class="fire-btn locked" id="fireBtn"></button>
+      </div>
+
+      <div class="resize-handle" id="resizeRight" title="拖动调整正文宽度 · 双击复位"></div>
+      <div class="resize-grip"></div>
+      <div class="resize-hint" id="resizeHint">↔ 这里可以拖动调宽<br>双击恢复 75% 默认宽度</div>
+    </div>
+  </main>
+
+  <!-- Modal -->
+  <div class="overlay" id="overlay">
+    <div class="modal" id="modal">
+      <div class="m-top">
+        <div class="m-badge" id="mBadge"></div>
+        <div class="m-head">
+          <div class="m-title" id="mTitle"></div>
+          <div class="m-sub" id="mSub"></div>
+        </div>
+      </div>
+      <div class="m-quote" id="mQuote"></div>
+      <div class="m-list" id="mList"></div>
+      <div class="m-actions" id="mActions"></div>
+    </div>
+  </div>
+
+  <script>
+    const CHECK_SVG = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    /* ============ 配置：四个模式 ============ */
+    const MODES = {
+      daily: {
+        kind: "stance", group: "收盘后", navLabel: "收盘定调", navDesc: "收盘复盘 · 定明天", icon: "🧭",
+        kicker: "收盘后 · 明日定调",
+        title: "收盘复盘 · 明日计划",
+        tagline: "决策在收盘后的冷静期做完，开盘只执行、不决策。先给资金曲线定性，再定明日预期与动作——第二天要么盯买点、要么盯卖点，方向不在盘中现想。计划会自动带到各 tab：计划内变绿、计划外变红拦截。",
+        tips: [
+          "资金曲线<em>新高 / 连续盈利期</em>：不临时追加本金、不扩大总敞口；以<em>分批止盈、保护利润垫</em>为主。利润回吐达到你预先写下的阈值时，执行账户级降仓或退出，不在盘中临时改线。",
+          "出现回撤 / 连续止损：降低敞口、<em>暂停开新仓</em>、不为扳回损失追加本金。连续不盈利达到你设定的时间或亏损阈值时，触发风偏熔断，等条件恢复后再重启。",
+          "仓位跟曲线状态走：🟢 曲线顺 = 正常仓；🟡 震荡 = <em>仓位减半</em>；🔴 回撤中 = <em>禁开新仓</em>，如确需验证，只用自己定义的最小试探仓。",
+        ],
+      },
+      buy_new: {
+        kind: "buy", group: "买入", navLabel: "开新仓", navDesc: "新高核心资产 · 建仓", icon: "🎯",
+        kicker: "买入 · 开新仓",
+        title: "新高核心资产 · 建仓审计",
+        tagline: "只在核心环节 + 突破新高 + 同板块主升时开新仓。下面每一条都要成立，全绿才扣扳机——大回撤往往就是靠直觉跳过这一步买出来的。",
+        fireIdle: "扣扳机 · 建仓",
+        passTitle: "核心门全过 · 可按计划建仓",
+        passSub: "方向、位置、股性、提前量都确认了。最后一秒问自己：这笔是为了赚确定性，不是为了对冲怕踏空的焦虑。",
+        passQuote: "先想好仓位——看对了方向，仓位太轻也只是小赚；但别一上来就顶格，给自己留低多和试错的余地。",
+        warnQuote: "大回撤通常都是靠直觉、跳过审计冲进去换来的。核心新高资产的钱要赚，但不是这样赚。把没勾的补齐，或者干脆 pass。",
+        sections: [
+          {
+            name: "前置 · 开盘防冲动", rule: "all", items: [
+              { id: "bp", label: "在收盘计划内", redline: true, note: "这笔买入是<em>昨晚收盘计划里定好的</em>——标的、条件、买点都想过，不是盘中临时起意。盘中冒出的新机会：<em>只进 Watchlist，今晚收盘再审</em>，盘中不下手。开盘时，手只是执行昨晚计划的机器人。" },
+              { id: "b0", label: "不是冲动买回", redline: true, note: "这不是刚<em>止损 / 止盈后</em>的日内买回。若确实要买回：只有<em>上涨初期</em>才允许，且必须重走下面全部建仓条件——<em>这道门能排除约 90% 的买回错误</em>。" },
+              { id: "bs", label: "试仓规模合规", redline: true, note: "仓位跟着资金曲线走（以收盘定调为准）——🟢 曲线顺：正常仓，但<em>不临时加本金、不扩大总敞口</em>；🟡 震荡：<em>仓位减半</em>；🔴 回撤中：<em>禁开新仓</em>，如确需验证，只用你预先定义的最小试探仓。确认行情不对后继续层层加码，是深度回撤最常见的来源之一。" },
+            ]
+          },
+          {
+            name: "核心新高门", rule: "all", items: [
+              { id: "b1", label: "核心卡位", note: "它是这条主线里<em>卡位最强</em>的核心环节 / 核心资产，不是跟风弹性票。" },
+              { id: "b2", label: "突破新高", note: "股价在<em>新高附近</em>、资金已开始定价——不是半山腰、不是补涨。<br>⛔ <em>拒绝</em>在日线大阴线之后、贴着日线区间下沿抄底：贴着下沿运行本身就是走弱迹象，不是我要的强势票。除非均线黏连、已现上涨迹象，且<em>只在均线之上</em>建仓。<br>真要抄底，只能走周线级别低多、且同时满足卡位 / 业绩 / 板块条件——不是尴尬的日线下沿。（5 日线 / 日内那种回调波动机会，走「低多加仓」，不在这里建仓。）" },
+              { id: "b3", label: "市场环境", note: "今天是 <em>Risk-on</em>；不是 Risk-off，也不是 Chaos。" },
+              { id: "b4", label: "行业 Beta", note: "所属板块整体处于<em>上升势能</em>，不是在下跌趋势里逆势找 Alpha。" },
+              { id: "b5", label: "板块中军主升", note: "领涨核心<em>强势、情绪在</em>，主升还没走完。" },
+            ]
+          },
+          {
+            name: "股性门", rule: "all", items: [
+              { id: "b6", label: "K 线毛刺少", note: "没有频繁、无意义的长上下影。" },
+              { id: "b7", label: "大阴柱少", note: "没有反复大阴砸盘。" },
+              { id: "b8", label: "走势流畅", note: "不磨叽、不恶心，能产生有效利润。" },
+              { id: "b9", label: "摩擦成本低", note: "最近<em>没在这只票上反复被止损</em> / 来回摩擦。<br>社区 PVP 票股性一般不变；但若基本面剧变、走上 <em>PVE 主升</em>，股性可能转好——这时<em>是否愿意重新测试它的摩擦成本</em>？别被过去的摩擦经验一票否决。" },
+              { id: "b10", label: "体感过关", note: "盘感不别扭——<em>感觉不好，直接 pass</em>。" },
+            ]
+          },
+          {
+            name: "提前量门 · T+1", rule: "all", items: [
+              { id: "b11", label: "明日预演", note: "今天新开的这笔 <em>当天平不掉</em>（A 股 T+1，不像美股能日内进出）。所以必须先想清楚：这笔明天大概率怎么走？<em>预演不出来就不进</em>。" },
+              { id: "b12", label: "涨幅体检", note: "今天若涨停 / 涨太多，已评估明天高位回落风险，确认<em>现在是买点、不是该止盈的位置</em>。" },
+            ]
+          },
+        ],
+        tips: [
+          "最近如果新开仓<em>连续止损</em>，先复盘大盘和板块情绪：情况不对就<em>降低仓位、降低风险偏好</em>，更不能加仓。",
+        ],
+      },
+
+      buy_add: {
+        kind: "buy", group: "买入", navLabel: "低多加仓", navDesc: "熟悉仓 · 回调补一笔", icon: "➕",
+        kicker: "买入 · 低多加仓",
+        title: "低多加仓审计",
+        tagline: "低多 = 首轮已过门的熟悉仓，只在「不破趋势 + 回调」时补一笔，通常吃 5 日线 / 日内级别的回调波动。冲高不加、上轨不加——那种位置只考虑止盈。",
+        fireIdle: "确认 · 低多加仓",
+        passTitle: "低多资格全过 · 可以补一笔",
+        passSub: "趋势没破、位置是回调、机制是做 T、退出计划也定了。这是给已验证势能仓的加码，不是新赌注。",
+        passQuote: "记住机制：加仓规模按你的规则执行；若采用等量做 T，涨上来卖掉原有可卖部分，总仓位不变。不如预期强 / 破趋势，按计划退出。",
+        warnQuote: "典型教训：冲高、布林上轨上方给已有仓位加仓，遇上 T+1 当天又撤不出，只能被动扛。低多的意义是用底仓做 T，不是往上堆仓。没确认完，别加。",
+        sections: [
+          {
+            name: "低多资格门", rule: "all", items: [
+              { id: "a0", label: "在收盘计划内", redline: true, note: "这笔低多是<em>昨晚收盘计划里预设的</em>——回踩到哪、加多少都定过（例：回踩 XX 企稳则低多），不是盘中看着跌了临时想接。" },
+              { id: "a1", label: "首轮已验证", note: "第一轮买入时已过核心门 + 股性门，这是<em>熟悉的、已验证的仓</em>。" },
+              { id: "a2", label: "趋势未破", note: "当前仍在上涨趋势里，只是<em>回调</em>，不是趋势走坏。" },
+              { id: "a3", label: "位置正确", redline: true, note: "这是回调 / 低吸位——<em>不是冲高、不是快速拉升、不是布林上轨上方</em>。" },
+              { id: "a4", label: "做 T 规则明确 · 愿留底仓", redline: true, note: "A 股当天加的仓位无法卖出，所以<em>主动权不来自当天撤出</em>，而来自已有可卖底仓。若你的策略采用等量做 T，涨上来卖掉原有可卖部分、保持总仓位不变；也可以在自己的规则里换成其他比例。前提是趋势没破，并且我<em>愿意把新增仓位留成新底仓</em>。" },
+              { id: "a5", label: "退出计划已定", note: "分两种情况——<br>① <em>有底仓</em>：当日可等量做 T，卖出部分锁定确定性利润；次日不够强 / 破趋势，底仓直接清仓退出。<br>② <em>当日新开的低多</em>：次日强势则兑现止盈这部分加仓；买入前就想好——不够强 / 破趋势，接受<em>果断止损清仓</em>。" },
+            ]
+          },
+        ],
+        tips: [
+          "有底仓的低多如果<em>没吃到预期上涨</em>，要想是不是上涨势能不够了：用止盈条件复核、次日及时退出；同样复盘大盘 / 板块情绪，相应<em>降低风险偏好</em>。",
+        ],
+      },
+
+      sell_tp: {
+        kind: "sell", group: "卖出", navLabel: "止盈", navDesc: "判断明天不涨了", icon: "🟢",
+        kicker: "卖出 · 止盈",
+        title: "止盈决策",
+        banner: "止盈的内核只有一句：<b>我判断这只票明天大概率不会再涨了。</b>无论是涨太多，还是板块情绪不对。",
+        tagline: "先勾清核心判断，再至少命中一条触发条件。A 股当天撤不出，止盈要有提前量。",
+        fireIdle: "确认 · 止盈退出",
+        passTitle: "判断成立 · 执行止盈",
+        passSub: "明天不涨的判断清楚了，触发条件也命中。别恋战，把利润拿回来。",
+        passQuote: "止盈不是认输——是「明天大概率不涨」时主动兑现，把主动权攥在自己手里。",
+        warnQuote: "止盈的判断内核是「明天不涨了」。这条没勾清，或者一条触发都没命中，那你现在想卖的可能只是盘中情绪，不是纪律。",
+        sections: [
+          {
+            name: "核心判断", rule: "all", items: [
+              { id: "t1", label: "明天不涨", note: "我判断这只票<em>明天大概率不会再涨</em>——涨太多，或情绪不对。" },
+            ]
+          },
+          {
+            name: "触发条件", rule: "any", items: [
+              { id: "t2", label: "涨幅透支 / 涨不动了", note: "今天涨停 / 大涨 / 涨不动了，明天大概率<em>高位回落</em>。" },
+              { id: "t3", label: "板块熄火", note: "板块<em>中军不涨了</em> / 行业 Beta 已消失。" },
+              { id: "t4", label: "弹性票 + 中军熄火", note: "这是弹性票，且中军 / 行业 Beta 已不在 → <em>第一时间止盈</em>。" },
+              { id: "t5", label: "到止盈区", note: "已到预设的<em>估值 / 阻力止盈带</em>。" },
+              { id: "t6", label: "势头转弱 · 不等目标价", note: "分时 / 盘面势头不对了就<em>果断撤</em>，不必等预设目标价或前高锚定价——势头没了，锚定价没意义。" },
+              { id: "t7", label: "账户级止盈 · 利润回吐锁", note: "这不是单票判断：账户从本轮收益峰值回吐达到你<em>预先设定的阈值</em>时，执行账户级降仓或退出。具体阈值和保留哪些仓位由你自己的周期、回撤承受力与规则决定；关键是盘前写好、触发后执行。" },
+            ]
+          },
+        ],
+        tips: [
+          "会卖的是师傅——卖的不只是单票，是<em>整个账户的胜利果实</em>。确认 risk off / 加速下跌后：无抄底 option、无放大仓位 option，只有<em>账户级止盈</em>这一个 option。",
+          "卖出即代表<em>入场条件已不在 / 情绪已变差</em>——今天别再日内买回。真要买回，必须重走「开新仓」全部条件，且只有<em>上涨初期</em>才成立。",
+        ],
+      },
+
+      sell_sl: {
+        kind: "sell", group: "卖出", navLabel: "止损", navDesc: "逻辑失效 + 明天要跌", icon: "🔻",
+        kicker: "卖出 · 止损",
+        title: "止损决策",
+        banner: "止损的内核：<b>买入逻辑已失效，且明天大概率要跌。</b>止盈止损其实是同一件事——判断明天不会涨了。",
+        tagline: "逻辑证伪 + 明天要跌，两条都成立就走。下跌趋势票一旦决定止损，越早越好。",
+        fireIdle: "确认 · 止损离场",
+        passTitle: "逻辑已证伪 · 果断止损",
+        passSub: "上涨买入条件失败，明天大概率继续跌。别幻想修复，反抽就是退出窗口。",
+        passQuote: "止损不是惩罚自己，是给下一次同类交易写约束。越早离场，越省摩擦。",
+        warnQuote: "止损要满足两条：买入逻辑真的失效了，且明天大概率要跌。没确认清就砍，可能是被短期波动吓的错杀。",
+        sections: [
+          {
+            name: "核心判断", rule: "all", items: [
+              { id: "s1", label: "逻辑证伪", note: "当初的<em>上涨买入条件已经失败</em>——破位 / 趋势走坏 / 新高逻辑不成立。" },
+              { id: "s2", label: "明天要跌", note: "我判断明天<em>大概率继续跌</em>，不是错杀式回调。" },
+            ]
+          },
+          {
+            name: "执行纪律", rule: "all", items: [
+              { id: "s3", label: "越早越好", note: "下跌趋势票一旦决定止损，<em>开盘的小涨 / 反抽就是最佳退出窗口</em>，不等下午、不幻想修复。" },
+            ]
+          },
+        ],
+        tips: [
+          "止损卖出后<em>更不要日内买回</em>——入场条件已证伪。要重新进场，必须重走「开新仓」全部条件，且只有上涨初期才考虑。",
+        ],
+      },
+    };
+
+    const ORDER = ["daily", "buy_new", "buy_add", "sell_tp", "sell_sl"];
+
+    /* ============ 状态 ============ */
+    let currentMode = "daily";
+    const checks = {}; // modeKey -> { itemId: bool }
+    for (const k of ORDER) checks[k] = {};
+
+    /* ============ 收盘定调（跨 tab 共享的「收盘计划」：收盘后制定，次日开盘只执行） ============ */
+    const STANCE_KEY = "sop-daily-stance";
+    const CURVE_LABEL = { smooth: "曲线顺", chaos: "曲线震荡", drawdown: "回撤中" };
+    // 阶梯仓位（Size Penalty Gate）：仓位跟资金曲线状态走
+    const SIZE_CAP = { smooth: "正常仓位 · 不临时放大总敞口", chaos: "仓位减半 · 降低风险偏好", drawdown: "禁开新仓 · 仅允许最小试探仓" };
+    const REGIME_LABEL = { on: "Risk-on", chaos: "Chaos", off: "Risk-off" };
+    const LEAN_LABEL = { add: "扩张 · 盯买点", hold: "观望 · 少动", reduce: "收缩 · 盯卖点" };
+    const LEAN_ROUTE = { add: "buy_new", hold: "buy_add", reduce: "sell_tp" };
+    function todayStr() {
+      const d = new Date();
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
+    function daysSince(dateStr) {
+      const p = (dateStr || "").split("-").map(Number);
+      if (p.length !== 3 || p.some(isNaN)) return 999;
+      const now = new Date();
+      return Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(p[0], p[1] - 1, p[2])) / 86400000);
+    }
+    let dailyStance = null;
+    try { dailyStance = JSON.parse(localStorage.getItem(STANCE_KEY) || "null"); } catch (e) { dailyStance = null; }
+    // 计划有效期：收盘定的计划管到下一个交易日（≤3 个自然日，兜住周末）
+    function stanceHasAny() { const d = dailyStance ? daysSince(dailyStance.date) : 999; return d >= 0 && d <= 3; }
+    function stanceIsToday() { return !!(stanceHasAny() && dailyStance.curve && dailyStance.regime && dailyStance.lean); }
+    function saveStance() { try { localStorage.setItem(STANCE_KEY, JSON.stringify(dailyStance)); } catch (e) { } }
+    function setStance(k, v) {
+      if (!dailyStance || !stanceHasAny()) dailyStance = { date: todayStr(), curve: null, regime: null, lean: null, plan: "" };
+      dailyStance[k] = v;
+      dailyStance.date = todayStr();
+      saveStance();
+      if (k === "plan") { updateProgress(); return; }  // 文本输入不整页重渲染，避免丢焦点
+      renderMode();
+    }
+    function escapeHTML(s) {
+      return String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+    }
+
+    /* ============ 渲染侧栏 ============ */
+    function renderNav() {
+      const nav = document.getElementById("modeNav");
+      nav.innerHTML = "";
+      let lastGroup = null;
+      for (const key of ORDER) {
+        const m = MODES[key];
+        if (m.group !== lastGroup) {
+          const gh = document.createElement("div");
+          gh.className = "group-head";
+          gh.textContent = m.group;
+          nav.appendChild(gh);
+          lastGroup = m.group;
+        }
+        const btn = document.createElement("div");
+        btn.className = "mode-btn " + m.kind + (key === currentMode ? " on" : "");
+        btn.onclick = () => switchMode(key);
+        btn.innerHTML =
+          '<div class="m-icon">' + m.icon + '</div>' +
+          '<div class="m-txt"><div class="m-label">' + m.navLabel + '</div>' +
+          '<div class="m-desc">' + m.navDesc + '</div></div>' +
+          '<div class="m-mark"></div>';
+        nav.appendChild(btn);
+      }
+    }
+
+    /* ============ 渲染移动端 chip 切换 ============ */
+    function renderMobileTabs() {
+      const wrap = document.getElementById("mobileTabs");
+      if (!wrap) return;
+      wrap.innerHTML = "";
+      for (const key of ORDER) {
+        const m = MODES[key];
+        const chip = document.createElement("div");
+        chip.className = "mtb-chip " + m.kind + (key === currentMode ? " on" : "");
+        chip.textContent = m.navLabel;
+        chip.onclick = () => switchMode(key);
+        wrap.appendChild(chip);
+      }
+    }
+
+    /* ============ 渲染主区 ============ */
+    function renderMode() {
+      const m = MODES[currentMode];
+      document.getElementById("kicker").textContent = m.kicker;
+      document.getElementById("title").textContent = m.title;
+      document.getElementById("tagline").innerHTML = m.tagline;
+
+      const banner = document.getElementById("coreBanner");
+      if (m.banner) {
+        banner.style.display = "flex";
+        banner.className = "core-banner " + m.kind;
+        banner.innerHTML = '<span class="cb-icon">' + (m.kind === "sell" ? "⚖️" : "🧭") + '</span><div>' + m.banner + '</div>';
+      } else {
+        banner.style.display = "none";
+      }
+
+      const scroll = document.getElementById("bodyScroll");
+      scroll.innerHTML = "";
+
+      if (m.kind === "stance") {
+        renderStance(scroll);
+        appendTips(scroll, m);
+        updateProgress();
+        scroll.scrollTop = 0;
+        reportHeight();
+        return;
+      }
+
+      // 收盘计划条：把收盘定的参数动态带到本 tab 顶部（计划内绿 / 计划外红）
+      scroll.appendChild(buildStanceCtx());
+
+      for (const sec of m.sections) {
+        const secEl = document.createElement("div");
+        secEl.className = "section";
+        const ruleLabel = sec.rule === "any" ? "至少 1 条" : "全部必勾";
+        secEl.innerHTML =
+          '<div class="section-title">' +
+          '<span class="s-name">' + sec.name + '</span>' +
+          '<span class="s-rule ' + sec.rule + '">' + ruleLabel + '</span>' +
+          '<span class="s-prog" data-sec="' + sec.name + '"></span>' +
+          '</div>';
+        for (const it of sec.items) {
+          const row = document.createElement("div");
+          const isChecked = !!checks[currentMode][it.id];
+          row.className = "item" + (it.redline ? " redline" : "") + (isChecked ? " checked" : "");
+          row.dataset.itemId = it.id;
+          row.onclick = () => toggle(it.id);
+          row.innerHTML =
+            '<div class="cbox">' + CHECK_SVG + '</div>' +
+            '<div class="i-body">' +
+            '<div class="i-label">' + it.label + (it.redline ? '<span class="rl-tag">红线</span>' : '') + '</div>' +
+            '<div class="i-note">' + it.note + '</div>' +
+            '</div>';
+          secEl.appendChild(row);
+        }
+        scroll.appendChild(secEl);
+      }
+      appendTips(scroll, m);
+      updateProgress();
+      scroll.scrollTop = 0;
+      reportHeight();
+    }
+
+    /* ============ 收盘定调：表单 + 收盘计划条 ============ */
+    // 提示卡（非勾选项，只是实盘提醒）—— 勾选模式与定调模式共用
+    function appendTips(scroll, m) {
+      if (!m.tips || !m.tips.length) return;
+      const tipsEl = document.createElement("div");
+      tipsEl.className = "tips";
+      for (const t of m.tips) {
+        const tip = document.createElement("div");
+        tip.className = "tip";
+        tip.innerHTML = '<span class="tip-icon">⚠️</span><div>' + t + '</div>';
+        tipsEl.appendChild(tip);
+      }
+      scroll.appendChild(tipsEl);
+    }
+    function stanceOptHTML(k, v, main, sub, curVal) {
+      return '<button class="stance-opt' + (curVal === v ? " on" : "") + '" data-k="' + k + '" data-v="' + v + '">' +
+        '<span class="so-main">' + main + '</span><span class="so-sub">' + sub + '</span></button>';
+    }
+    function renderStance(scroll) {
+      const cur = stanceHasAny() ? dailyStance : {};
+      const wrap = document.createElement("div");
+      wrap.className = "stance";
+      wrap.innerHTML =
+        '<div class="stance-q">' +
+        '<div class="stance-q-title">① 最近的资金曲线？</div>' +
+        '<div class="stance-opts">' +
+        stanceOptHTML("curve", "smooth", "🟢 曲线顺", "连续盈利 · 禁加本金", cur.curve) +
+        stanceOptHTML("curve", "chaos", "🟡 震荡", "有赚有亏 ·仓位减半", cur.curve) +
+        stanceOptHTML("curve", "drawdown", "🔴 回撤中", "连损 · 禁开新仓", cur.curve) +
+        '</div></div>' +
+        '<div class="stance-q">' +
+        '<div class="stance-q-title">② 明日预期情绪？</div>' +
+        '<div class="stance-opts">' +
+        stanceOptHTML("regime", "on", "🟢 Risk-on", "进攻窗口", cur.regime) +
+        stanceOptHTML("regime", "chaos", "🟡 Chaos", "混沌 · 降场口", cur.regime) +
+        stanceOptHTML("regime", "off", "🔴 Risk-off", "防守 · 只减不增", cur.regime) +
+        '</div></div>' +
+        '<div class="stance-q">' +
+        '<div class="stance-q-title">③ 明日动作？</div>' +
+        '<div class="stance-opts">' +
+        stanceOptHTML("lean", "add", "扩张 · 盯买点", "按计划买 / 加", cur.lean) +
+        stanceOptHTML("lean", "hold", "观望 · 少动", "只做预设的 T", cur.lean) +
+        stanceOptHTML("lean", "reduce", "收缩 · 盯卖点", "止盈 / 止损", cur.lean) +
+        '</div></div>' +
+        '<div class="stance-q">' +
+        '<div class="stance-q-title">④ 明日具体计划（选填，会显示在各 tab 顶部）</div>' +
+        '<textarea class="stance-plan" id="stancePlan" rows="3" placeholder="例：XX 回踩 5 日线企稳则低多一笔；YY 到 XX 价位止盈半仓；其余不买。">' + escapeHTML(cur.plan || "") + '</textarea>' +
+        '</div>' +
+        '<div class="stance-note">开盘三不：<em>不临时起意开新仓</em>、盘中新机会<em>只进 Watchlist 今晚再审</em>、盘面与预期不符时<em>默认防守只卖不买</em>。开盘时，手只是执行昨晚计划的机器人；决策留给收盘后的这里。</div>';
+      wrap.querySelectorAll(".stance-opt").forEach(el => {
+        el.onclick = () => setStance(el.dataset.k, el.dataset.v);
+      });
+      const ta = wrap.querySelector("#stancePlan");
+      ta.addEventListener("input", () => setStance("plan", ta.value));
+      scroll.appendChild(wrap);
+    }
+    function buildStanceCtx() {
+      const el = document.createElement("div");
+      el.onclick = () => switchMode("daily");
+      if (!stanceIsToday()) {
+        el.className = "stance-ctx none";
+        el.innerHTML = '<span class="sc-icon">📋</span><div>没有有效的<b>收盘计划</b> —— 收盘后先去「收盘定调」定好；开盘只执行、不决策。</div>';
+        return el;
+      }
+      const s = dailyStance;
+      const made = s.date === todayStr() ? "今日定" : s.date.slice(5).replace("-", "/") + " 收盘定";
+      const m = MODES[currentMode];
+      let cls = "", msg = "";
+      if (m.kind === "buy") {
+        if (s.lean === "add") { cls = "good"; msg = "计划内 · 扩张日盯买点执行"; }
+        else if (s.lean === "reduce") { cls = "warn"; msg = "计划外！收盘定的是收缩只卖——盘中新机会只进 Watchlist，今晚再审"; }
+        else { cls = "warn"; msg = "计划 = 观望少动：只做预设动作，非计划标的不开仓"; }
+        msg += "｜敞口：" + SIZE_CAP[s.curve];
+        if (s.curve === "drawdown") cls = "warn";  // 回撤期做任何买入动作都亮红
+      } else {
+        if (s.lean === "reduce") { cls = "good"; msg = "计划内 · 收缩日盯卖点执行"; }
+        else { cls = ""; msg = "计划偏进攻——这笔卖出应是预设的止盈 / 失效条件触发"; }
+      }
+      const planLine = s.plan ? '<br><span class="sc-plan">📝 ' + escapeHTML(s.plan) + '</span>' : "";
+      el.className = "stance-ctx " + cls;
+      el.innerHTML = '<span class="sc-icon">📋</span><div>收盘计划（' + made + '）：<b>' + CURVE_LABEL[s.curve] + ' · ' + REGIME_LABEL[s.regime] + ' · ' + LEAN_LABEL[s.lean] + '</b>　<span class="sc-msg">' + msg + '</span>' + planLine + '</div>';
+      return el;
+    }
+
+    function switchMode(key) {
+      if (key === currentMode) return;
+      currentMode = key;
+      checks[key] = {}; // 每次切换清空重勾
+      renderNav();
+      renderMobileTabs();
+      renderMode();
+    }
+
+    function toggle(itemId) {
+      // 只更新被点的那一行 + 进度，不整表重渲染 —— 避免勾选后滚动位置跳回顶部
+      const on = !checks[currentMode][itemId];
+      checks[currentMode][itemId] = on;
+      const row = document.querySelector('#bodyScroll .item[data-item-id="' + itemId + '"]');
+      if (row) row.classList.toggle("checked", on);
+      updateProgress();
+    }
+
+    /* ============ 进度 / 校验 ============ */
+    function sectionSatisfied(sec) {
+      const checkedCount = sec.items.filter(it => checks[currentMode][it.id]).length;
+      if (sec.rule === "any") return checkedCount >= 1;
+      return checkedCount === sec.items.length;
+    }
+
+    function allSatisfied() {
+      return MODES[currentMode].sections.every(sectionSatisfied);
+    }
+
+    function updateProgress() {
+      const m = MODES[currentMode];
+      const bar = document.getElementById("actionBar");
+      const btn = document.getElementById("fireBtn");
+      const hint = document.getElementById("progHint");
+
+      if (m.kind === "stance") {
+        const set = stanceHasAny()
+          ? (dailyStance.curve ? 1 : 0) + (dailyStance.regime ? 1 : 0) + (dailyStance.lean ? 1 : 0)
+          : 0;
+        document.getElementById("progFill").style.width = (set / 3 * 100) + "%";
+        document.getElementById("progText").textContent = set + " / 3";
+        hint.textContent = "已定调";
+        bar.className = "action-bar stance";
+        const ready = set === 3;
+        btn.textContent = ready ? ("计划已定 · 去「" + MODES[LEAN_ROUTE[dailyStance.lean]].navLabel + "」预演 →") : "选完曲线 / 情绪 / 动作";
+        btn.className = "fire-btn " + (ready ? "ready" : "locked");
+        return;
+      }
+      hint.textContent = "条件已确认";
+      for (const sec of m.sections) {
+        const c = sec.items.filter(it => checks[currentMode][it.id]).length;
+        const label = document.querySelector('.s-prog[data-sec="' + sec.name + '"]');
+        if (label) label.textContent = c + " / " + sec.items.length + (sectionSatisfied(sec) ? " ✓" : "");
+      }
+      let done = 0, total = 0;
+      for (const sec of m.sections) {
+        if (sec.rule === "any") { total += 1; done += sectionSatisfied(sec) ? 1 : 0; }
+        else { total += sec.items.length; done += sec.items.filter(it => checks[currentMode][it.id]).length; }
+      }
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      document.getElementById("progFill").style.width = pct + "%";
+      document.getElementById("progText").textContent = done + " / " + total;
+
+      const ready = allSatisfied();
+      bar.className = "action-bar " + m.kind;
+      btn.textContent = ready ? m.fireIdle : "还差几步 · 点我检查";
+      btn.className = "fire-btn " + (ready ? "ready" : "locked");
+    }
+
+    /* ============ 复盘草稿 ============ */
+    function buildReviewDraft() {
+      const m = MODES[currentMode];
+      const today = new Date().toISOString().slice(0, 10);
+      const parts = [];
+      for (const sec of m.sections) {
+        const picked = sec.items.filter(it => checks[currentMode][it.id]).map(it => it.label);
+        if (picked.length) parts.push(sec.name + "：" + picked.join("、"));
+      }
+      const closing = currentMode === "sell_tp"
+        ? "→ 判断明天大概率不涨，按纪律止盈退出，不恋战。"
+        : "→ 买入逻辑已证伪，果断止损离场，反抽即退出窗口。";
+      return "【" + m.navLabel + " · " + today + "】" + parts.join("；") + "。" + closing;
+    }
+    async function copyReviewDraft() {
+      const text = buildReviewDraft();
+      let ok = false;
+      try { await navigator.clipboard.writeText(text); ok = true; } catch { }
+      if (!ok) {
+        const ta = document.createElement("textarea");
+        ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select();
+        try { ok = document.execCommand("copy"); } catch { }
+        ta.remove();
+      }
+      toast(ok ? "复盘草稿已复制到剪贴板" : "复制失败，请手动选择");
+    }
+
+    /* ============ Modal ============ */
+    function missingItems() {
+      const m = MODES[currentMode];
+      const miss = [];
+      for (const sec of m.sections) {
+        if (sectionSatisfied(sec)) continue;
+        if (sec.rule === "any") {
+          miss.push({ label: "至少命中一条触发条件", sec: sec.name });
+        } else {
+          for (const it of sec.items) {
+            if (!checks[currentMode][it.id]) miss.push({ label: it.label, sec: sec.name });
+          }
+        }
+      }
+      return miss;
+    }
+
+    function showWarn() {
+      const m = MODES[currentMode];
+      const modal = document.getElementById("modal");
+      modal.className = "modal warn shake";
+      document.getElementById("mBadge").textContent = "⚠️";
+      document.getElementById("mTitle").textContent = "先别动手——你忘了吃过的亏了吗？";
+      document.getElementById("mSub").textContent = "下面这些条件还没确认成立。跳过它们扣扳机，就是在重复上一次的错误。";
+      const q = document.getElementById("mQuote");
+      q.style.display = "block";
+      q.innerHTML = m.warnQuote;
+
+      const miss = missingItems();
+      const list = document.getElementById("mList");
+      list.style.display = "block";
+      list.innerHTML =
+        '<div class="ml-head">还没确认 · ' + miss.length + ' 项</div><ul>' +
+        miss.map(x => '<li>' + x.label + '<span class="li-sec">· ' + x.sec + '</span></li>').join("") +
+        '</ul>';
+
+      const acts = document.getElementById("mActions");
+      acts.innerHTML =
+        '<button class="m-btn danger" id="mPass">我确实不满足 · 放弃这笔</button>' +
+        '<button class="m-btn solid" id="mBack">回去补齐</button>';
+      document.getElementById("mBack").onclick = closeModal;
+      document.getElementById("mPass").onclick = closeModal;
+      openOverlay();
+    }
+
+    function showPass() {
+      const m = MODES[currentMode];
+      const modal = document.getElementById("modal");
+      modal.className = "modal pass";
+      document.getElementById("mBadge").textContent = m.kind === "sell" ? "✅" : "🚀";
+      document.getElementById("mTitle").textContent = m.passTitle;
+      document.getElementById("mSub").textContent = m.passSub;
+      const q = document.getElementById("mQuote");
+      q.style.display = "block";
+      q.innerHTML = "💡 " + m.passQuote;
+      document.getElementById("mList").style.display = "none";
+
+      const acts = document.getElementById("mActions");
+      const draftBtn = m.kind === "sell" ? '<button class="m-btn" id="mDraft">📋 复制复盘草稿</button>' : "";
+      acts.innerHTML =
+        draftBtn +
+        '<button class="m-btn" id="mReview">再看一眼</button>' +
+        '<button class="m-btn go" id="mReset">已执行 · 清空重来</button>';
+      if (m.kind === "sell") document.getElementById("mDraft").onclick = copyReviewDraft;
+      document.getElementById("mReview").onclick = closeModal;
+      document.getElementById("mReset").onclick = () => { closeModal(); checks[currentMode] = {}; renderMode(); };
+      openOverlay();
+    }
+
+    function openOverlay() {
+      document.getElementById("overlay").classList.add("show");
+      if (EMBEDDED) window.parent.postMessage({ type: "xgs-need-viewport" }, "*");  // 让父页面回传当前可见区，弹窗落在视野里
+    }
+    function closeModal() {
+      document.getElementById("overlay").classList.remove("show");
+      document.getElementById("modal").classList.remove("shake");
+    }
+
+    document.getElementById("fireBtn").onclick = () => {
+      if (MODES[currentMode].kind === "stance") {
+        if (stanceIsToday()) switchMode(LEAN_ROUTE[dailyStance.lean]);
+        return;
+      }
+      const passed = allSatisfied();
+      if (passed) showPass();
+      else showWarn();
+      saveAudit(passed);   // 留痕：放行和拦截都记
+    };
+    document.getElementById("overlay").addEventListener("click", e => {
+      if (e.target === document.getElementById("overlay")) closeModal();
+    });
+    window.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+    /* ============ Toast ============ */
+    let toastTimer = null;
+    function toast(msg) {
+      let t = document.querySelector(".toast");
+      if (!t) { t = document.createElement("div"); t.className = "toast"; document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
+    }
+
+    /* ============ 正文宽度拖拽（参考 reader） ============ */
+    const MIN_W = 620;
+    const DEFAULT_RATIO = 0.75;
+    const WIDTH_KEY = "sop-main-w";
+    let mainWPref = localStorage.getItem(WIDTH_KEY); // null | "full" | 数字字符串
+    function maxMainW() { return Math.max(MIN_W, window.innerWidth - 300); }
+    function defaultMainW() { return Math.max(MIN_W, Math.round(maxMainW() * DEFAULT_RATIO)); }
+    function applyMainW() {
+      let w;
+      if (mainWPref === null || mainWPref === "full") w = defaultMainW();
+      else w = Math.max(MIN_W, Math.min(parseInt(mainWPref, 10) || defaultMainW(), maxMainW()));
+      document.documentElement.style.setProperty("--main-w", w + "px");
+    }
+    (function initResize() {
+      const handle = document.getElementById("resizeRight");
+      const col = document.getElementById("mainCol");
+      handle.addEventListener("mousedown", e => {
+        e.preventDefault();
+        const startX = e.clientX;
+        const startW = col.getBoundingClientRect().width;
+        handle.classList.add("dragging");
+        document.body.classList.add("dragging-col");
+        function move(ev) {
+          let w = startW + (ev.clientX - startX);
+          w = Math.max(MIN_W, Math.min(maxMainW(), w));
+          document.documentElement.style.setProperty("--main-w", w + "px");
+          mainWPref = String(Math.round(w));
+        }
+        function up() {
+          handle.classList.remove("dragging");
+          document.body.classList.remove("dragging-col");
+          localStorage.setItem(WIDTH_KEY, mainWPref);
+          window.removeEventListener("mousemove", move);
+          window.removeEventListener("mouseup", up);
+        }
+        window.addEventListener("mousemove", move);
+        window.addEventListener("mouseup", up);
+      });
+      handle.addEventListener("dblclick", () => {
+        mainWPref = null; localStorage.removeItem(WIDTH_KEY); applyMainW();
+        toast("正文宽度已恢复为 75%");
+      });
+      window.addEventListener("resize", applyMainW);
+      applyMainW();
+      const hintKey = "ymos-sop-resize-hint-seen";
+      if (!localStorage.getItem(hintKey) && window.innerWidth > 860) {
+        const hint = document.getElementById("resizeHint");
+        requestAnimationFrame(() => hint.classList.add("show"));
+        setTimeout(() => hint.classList.remove("show"), 5000);
+        localStorage.setItem(hintKey, "1");
+      }
+    })();
+
+    /* ============ 键盘：1-4 切模式 ============ */
+    if (location.protocol === "file:") {
+      for (const link of document.querySelectorAll("[data-file-href]")) {
+        link.href = link.dataset.fileHref;
+      }
+    }
+
+    window.addEventListener("keydown", e => {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= ORDER.length) switchMode(ORDER[n - 1]);
+    });
+
+    /* ============ 嵌入版（iframe）自适应高度协议 ============
+     * 独立打开时 window.self === window.top，一切照旧（满屏 App，内部滚动）。
+     * 被 iframe 嵌入（WordPress 短代码）时进入 embedded 流式布局：不设固定高度，
+     * 把真实内容高度报给父页面，父页面据此调整 iframe 高度 —— 整页只有一条滚动条。
+     */
+    var EMBEDDED = false;
+    try { EMBEDDED = window.self !== window.top; } catch (e) { EMBEDDED = true; }
+    if (EMBEDDED) document.body.classList.add("embedded");
+
+    function reportHeight() {
+      if (!EMBEDDED) return;
+      // 只量 body 的内容高度：documentElement.scrollHeight 会被 iframe 当前高度顶住，
+      // 放进 max 会变成「只涨不缩」的棘轮，切到选项少的模式时缩不回来。
+      const h = Math.max(document.body.scrollHeight, document.body.offsetHeight);
+      window.parent.postMessage({ type: "xgs-height", height: h }, "*");
+    }
+    window.addEventListener("message", (e) => {
+      const d = e.data || {};
+      if (d.type === "xgs-viewport") {   // 父页面告知：iframe 当前可见区的 top 偏移与高度
+        document.documentElement.style.setProperty("--vis-top", (d.top || 0) + "px");
+        document.documentElement.style.setProperty("--vis-height", (d.height || 0) + "px");
+      }
+    });
+    if (EMBEDDED) {
+      window.addEventListener("load", reportHeight);
+      window.addEventListener("resize", reportHeight);
+      // 字体加载完 / 稍后再补报几次，兜住 reflow 引起的高度变化
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(reportHeight);
+      setTimeout(reportHeight, 120);
+      setTimeout(reportHeight, 450);
+      window.parent.postMessage({ type: "xgs-ready" }, "*");  // 通知父页面：请回传可见区信息
+    }
+
+    /* ============ vault 连接状态 ============ */
+    /* 决策台可以完全脱机用（勾选状态存 localStorage）。
+       但只要 Console/server.py 在跑，每次扣扳机/被拦截就会留痕到你自己的 Obsidian。 */
+    let vaultOnline = false;
+
+    function renderVaultChip() {
+      if (EMBEDDED) return;                     // 嵌在别处时不显示，避免干扰宿主页面
+      let chip = document.getElementById("vaultChip");
+      if (!chip) {
+        chip = document.createElement("div");
+        chip.id = "vaultChip";
+        // 放右上角：右下角是「扣扳机」按钮的位置，不能挡
+        chip.style.cssText =
+          "position:fixed;right:14px;top:12px;z-index:60;font-size:11.5px;line-height:1;" +
+          "padding:6px 10px;border-radius:999px;border:1px solid var(--line,#e0ddd4);" +
+          "background:var(--card,#fff);color:var(--muted,#77736a);box-shadow:0 1px 4px rgba(0,0,0,.06);" +
+          "font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;cursor:default;" +
+          "opacity:.85;pointer-events:none;";
+        document.body.appendChild(chip);
+      }
+      chip.textContent = vaultOnline ? "🟢 已连 vault · 决策自动留痕" : "⚪️ 仅本地 · 未连 vault";
+      chip.title = vaultOnline
+        ? "每次扣扳机和每次被拦截，都会写进你 vault 的决策审计目录"
+        : "跑 python3 server.py 后，决策会自动留痕到你的 Obsidian";
+    }
+
+    async function checkVault() {
+      try {
+        const r = await fetch("/api/health");
+        vaultOnline = r.ok;
+      } catch (e) { vaultOnline = false; }
+      renderVaultChip();
+    }
+
+    /* ============ 决策留痕 ============ */
+    function saveAudit(passed) {
+      if (!vaultOnline) return;                     // 脱机时静默跳过，不打扰
+      const m = MODES[currentMode];
+      if (!m || m.kind === "stance") return;
+      const gates = (m.sections || []).map(sec => ({
+        label: sec.name,
+        items: (sec.items || []).map(it => ({
+          label: String(it.label || "").replace(/<[^>]+>/g, ""),
+          checked: !!checks[currentMode][it.id],
+          redline: !!it.redline,
+        })),
+      }));
+      const payload = {
+        date: todayStr(),
+        mode: currentMode,
+        modeLabel: (m.group ? m.group + " · " : "") + (m.navLabel || currentMode),
+        passed: !!passed,
+        stance: stanceIsToday() && dailyStance
+          ? (REGIME_LABEL[dailyStance.regime] || "") + " · " + (LEAN_LABEL[dailyStance.lean] || "")
+          : "",
+        gates,
+        missing: passed ? [] : missingItems().map(x => String(x.label).replace(/<[^>]+>/g, "")),
+      };
+      fetch("/api/audit/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).then(r => { if (r.ok) toast(passed ? "已留痕：放行" : "已留痕：拦截"); })
+        .catch(() => { });
+    }
+
+    /* ============ 规则外置 ============ */
+    /* 页面内置的是作者自己的一套参数，只是样例。
+       想换成你自己的：把 rules.example.json 复制成 rules.json 改掉即可，
+       启动时会自动覆盖；读不到就用内置默认，页面照常能跑。 */
+    async function loadRules() {
+      try {
+        const r = await fetch("/rules.json");
+        if (!r.ok) return;
+        const rules = await r.json();
+        if (rules && typeof rules === "object") {
+          if (rules.sizeCap) Object.assign(SIZE_CAP, rules.sizeCap);
+          if (rules.modes) {
+            for (const [key, patch] of Object.entries(rules.modes)) {
+              if (MODES[key] && patch && typeof patch === "object") Object.assign(MODES[key], patch);
+            }
+          }
+        }
+      } catch (e) { /* 没有后端 / 没有规则文件：用内置默认 */ }
+    }
+
+    /* init */
+    (async () => {
+      await loadRules();
+      renderNav();
+      renderMobileTabs();
+      renderMode();
+      checkVault();
+    })();
+  </script>
+</body>
+
+</html>

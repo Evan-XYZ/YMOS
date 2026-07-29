@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""YMOS V3 路径解析 — 三模块制（Eyes / Brain / 持仓与关注）"""
+"""YMOS V4 路径解析 — 三模块 + 运行时 + 决策台（Eyes / Brain / 持仓与关注）"""
 from __future__ import annotations
 
 from dataclasses import dataclass

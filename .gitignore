@@ -1,9 +1,13 @@
 # Environment & secrets
 .env
 .env.local
+# 可选：用户将官方外部 Skills 安装到 YMOS 根目录时，不纳入本仓库。
+skills/
 
-# Local-only directories
+# Local-only files & directories (not part of the open-source repo)
 wordpress-docs/
+# 内部开发交接文档：含商业渠道 / 定价、自用环境凭据状态、自用版与公开版对比
+PROJECT_STATE.md
 
 # OS
 .DS_Store
@@ -17,13 +21,22 @@ __pycache__/
 # Obsidian
 .obsidian/
 
-# Runtime data (reports are generated locally, not tracked in repo)
-Eyes/市场洞察/2026-*/
+# User-local config — only the .example files are tracked
+Console/config.json
+Console/rules.json
+Reader/config.json
+Eyes/scripts/rss_sources_custom.json
+
+# Runtime data (generated locally, never tracked)
+Eyes/市场洞察/20[0-9][0-9]-*/
 Eyes/市场洞察/Raw_Data/
-Eyes/投资雷达/2026-*/
+Eyes/投资雷达/20[0-9][0-9]-*/
 Eyes/投资雷达/Raw_Data/
-Brain/策略分析/2026-*/
+Brain/策略分析/20[0-9][0-9]-*/
 Brain/策略分析/Raw_Data/
+Brain/交易计划/
+Brain/决策审计/
+持仓与关注/dashboard/
 
 # Personal stock folders (created during onboarding)
 持仓与关注/持仓/*/
@@ -32,5 +45,9 @@ Brain/策略分析/Raw_Data/
 !持仓与关注/动态Watchlist/.gitkeep
 持仓与关注/投资复盘/
 
-# Local docs (not part of YMOS repo)
-wordpress-docs/
+# BrainStorm：思考内容是高度个人的，只跟踪骨架与模板
+BrainStorm/每日头脑风暴/Raw_Thoughts/20[0-9][0-9]-*/
+BrainStorm/Summarized_Insights/20[0-9][0-9]-*/
+BrainStorm/状态机/20[0-9][0-9]-*/
+BrainStorm/投资感悟归档/*/*.md
+!BrainStorm/投资感悟归档/*/_模板_*.md

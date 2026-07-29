@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>YMOS Reader</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<style>
+  :root {
+    --bg: #faf9f5;
+    --bg-sidebar: #f4f2ea;
+    --bg-elev: #ffffff;
+    --ink: #1f1e1c;
+    --ink-2: #4a4844;
+    --ink-3: #8a857c;
+    --line: #e7e3d8;
+    --line-strong: #d8d2c2;
+    --accent: #cc785c;
+    --accent-ink: #b56247;
+    --accent-soft: rgba(204, 120, 92, 0.10);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+               font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+               font-size: 14px; -webkit-font-smoothing: antialiased; }
+  body { display: grid; grid-template-columns: 320px 1fr; height: 100vh; }
+
+  /* ========== Sidebar ========== */
+  aside { background: var(--bg-sidebar); border-right: 1px solid var(--line);
+          display: flex; flex-direction: column; min-height: 0; position: relative; }
+  .brand { padding: 22px 22px 18px;
+           font-family: "Source Serif 4", Georgia, "Songti SC", serif;
+           font-size: 22px; font-weight: 600; letter-spacing: -0.01em;
+           color: var(--ink); display: flex; align-items: baseline; gap: 10px;
+           border-bottom: 1px solid var(--line); }
+  .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: 0 0 8px; }
+  .brand .sub { margin-left: auto; font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; font-size: 11px;
+                font-weight: 500; color: var(--ink-3); letter-spacing: 0.04em; text-transform: uppercase; }
+
+  .page-tabs { padding: 12px 14px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+               gap: 8px; border-bottom: 1px solid var(--line); }
+  .page-tabs button { min-width: 0; padding: 8px 10px; border: 1px solid var(--line-strong);
+                      background: var(--bg-elev); color: var(--ink-2); border-radius: 6px;
+                      font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+                      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .page-tabs button:hover { border-color: var(--accent); color: var(--accent-ink); }
+  .page-tabs button.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+  .top-actions { padding: 14px 18px; display: flex; gap: 8px; border-bottom: 1px solid var(--line); }
+  .btn-primary { flex: 1; padding: 8px 12px; background: var(--ink); color: #fff;
+                 border: none; border-radius: 6px; font-size: 13px; font-weight: 500;
+                 cursor: pointer; font-family: inherit; }
+  .btn-primary:hover { background: var(--accent-ink); }
+  .btn-ghost { padding: 7px 12px; background: var(--bg-elev); color: var(--ink-2);
+               border: 1px solid var(--line-strong); border-radius: 6px;
+               font-size: 12.5px; cursor: pointer; font-family: inherit;
+               white-space: nowrap; }
+  .btn-ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-ink); }
+  .btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .sop-launch { padding: 0 14px 12px; border-bottom: 1px solid var(--line);
+                display: flex; flex-direction: column; gap: 7px; }
+  .btn-sop { width: 100%; padding: 9px 12px; background: var(--accent); color: #fff;
+             border: none; border-radius: 6px; font-size: 13px; font-weight: 600;
+             cursor: pointer; font-family: inherit; display: flex; align-items: center;
+             justify-content: center; gap: 7px; }
+  .btn-sop:hover { background: var(--accent-ink); }
+  .btn-sop.alt { background: var(--bg-elev); color: var(--accent-ink);
+                 border: 1px solid var(--accent); }
+  .btn-sop.alt:hover { background: var(--accent-soft); color: var(--accent-ink); }
+  .custom-note { margin: 10px 14px 12px; padding: 10px 11px; border: 1px solid var(--line);
+                 border-radius: 7px; background: rgba(255,255,255,0.55); color: var(--ink-3);
+                 font-size: 11.5px; line-height: 1.55; }
+  .custom-note b { color: var(--ink-2); }
+
+  .search { padding: 10px 14px 6px; }
+  .search input { width: 100%; padding: 8px 12px; background: var(--bg-elev);
+                  color: var(--ink); border: 1px solid var(--line-strong);
+                  border-radius: 6px; font-size: 13px; outline: none; font-family: inherit; }
+  .search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .nav { flex: 1; overflow-y: auto; padding: 4px 0 24px; }
+  .group-head { padding: 18px 22px 4px; font-size: 10px; font-weight: 700;
+                letter-spacing: 0.12em; text-transform: uppercase;
+                color: var(--ink-3); border-top: 1px solid var(--line);
+                margin-top: 8px; }
+  .group-head.first { border-top: none; margin-top: 0; padding-top: 14px; }
+
+  .section-head { padding: 9px 16px 9px 18px; font-size: 13px; font-weight: 600;
+                  color: var(--ink); display: flex; justify-content: space-between;
+                  align-items: center; cursor: pointer; user-select: none;
+                  border-top: 1px solid var(--line); margin-top: 8px; }
+  .section-head.first { border-top: none; margin-top: 0; }
+  .section-head:hover { background: rgba(204,120,92,0.06); color: var(--accent-ink); }
+  .section-head .left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .section-head .chev { display: inline-block; width: 12px; font-size: 10px;
+                        color: var(--ink-3); transition: transform 0.15s ease; flex: 0 0 12px;
+                        text-align: center; }
+  .section-head.expanded .chev { transform: rotate(90deg); color: var(--accent); }
+  .section-head .icon { width: 18px; flex: 0 0 18px; text-align: center; }
+  .section-head .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .section-head .count { font-weight: 400; color: var(--ink-3); font-size: 11px;
+                         font-feature-settings: "tnum"; flex: 0 0 auto; margin-left: 8px; }
+
+  .cat-head { padding: 7px 16px 7px 22px; font-size: 13px; font-weight: 500;
+              color: var(--ink); display: flex; justify-content: space-between;
+              align-items: center; cursor: pointer; user-select: none;
+              border-radius: 0; }
+  .cat-head:hover { background: rgba(204,120,92,0.06); color: var(--accent-ink); }
+  .cat-head .left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .cat-head .chev { display: inline-block; width: 12px; font-size: 10px;
+                    color: var(--ink-3); transition: transform 0.15s ease; flex: 0 0 12px;
+                    text-align: center; }
+  .cat-head.expanded .chev { transform: rotate(90deg); color: var(--accent); }
+  .cat-head .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cat-head .count { font-weight: 400; color: var(--ink-3); font-size: 11px;
+                     font-feature-settings: "tnum"; flex: 0 0 auto; margin-left: 8px; }
+
+  .cat-list { padding: 2px 0 4px; max-height: 0; overflow: hidden;
+              transition: max-height 0.18s ease; }
+  .cat-list.open { max-height: 9999px; }
+
+  .item { padding: 6px 22px 6px 42px; cursor: pointer; font-size: 13px;
+          line-height: 1.4; border-left: 2px solid transparent;
+          color: var(--ink-2); }
+  .item:hover { background: rgba(204,120,92,0.06); color: var(--ink); }
+  .item.active { background: var(--accent-soft); border-left-color: var(--accent);
+                 color: var(--ink); font-weight: 500; }
+  .item .date { font-size: 10.5px; color: var(--ink-3); margin-bottom: 1px;
+                font-feature-settings: "tnum"; }
+  .item .name { word-break: break-all; }
+  .nav-empty { padding: 8px 22px 8px 42px; color: var(--ink-3); font-size: 12px; }
+
+  /* ========== Main ========== */
+  main { display: flex; flex-direction: column; min-width: 0; background: var(--bg); position: relative; }
+  .toolbar { padding: 12px 24px; border-bottom: 1px solid var(--line);
+             display: flex; align-items: center; gap: 8px; min-height: 56px;
+             background: var(--bg); }
+  .toolbar .actions-left { display: flex; gap: 6px; flex: 0 0 auto; }
+  .crumb { font-size: 12px; color: var(--ink-3); flex: 1; min-width: 0;
+           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+           font-feature-settings: "tnum"; padding: 0 12px; text-align: right; }
+  .crumb b { color: var(--ink); font-weight: 500; }
+  .toolbar .actions-right { display: flex; gap: 6px; flex: 0 0 auto; align-items: center; }
+  .seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 6px;
+         overflow: hidden; background: var(--bg-elev); }
+  .seg button { padding: 6px 10px; background: transparent; border: none;
+                font-size: 12px; color: var(--ink-2); cursor: pointer;
+                font-family: inherit; border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: none; }
+  .seg button:hover { color: var(--accent-ink); }
+  .seg button.on { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+  .zoom { display: inline-flex; align-items: center; gap: 0;
+          border: 1px solid var(--line-strong); border-radius: 6px;
+          background: var(--bg-elev); }
+  .zoom button { padding: 6px 9px; background: transparent; border: none;
+                 font-size: 13px; color: var(--ink-2); cursor: pointer;
+                 font-family: inherit; }
+  .zoom button:hover { color: var(--accent-ink); }
+  .zoom .zval { padding: 0 6px; font-size: 12px; color: var(--ink); min-width: 38px;
+                text-align: center; font-feature-settings: "tnum"; cursor: pointer;
+                user-select: none; }
+  .zoom .zval:hover { color: var(--accent-ink); }
+
+  .doc-wrap { flex: 1; overflow-y: auto; }
+  /* 对齐 / 缩放 / 宽度：用 CSS 变量驱动，避免重渲染 */
+  :root { --doc-zoom: 1.10; --doc-width: 1100px; }
+  .doc { width: var(--doc-width); max-width: 100%;
+         padding: 48px 48px 120px; position: relative;
+         font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+         font-size: calc(16px * var(--doc-zoom)); line-height: 1.72; color: var(--ink); }
+  body.align-left   .doc { margin: 0 auto 0 0; }
+  body.align-center .doc { margin: 0 auto; }
+  body.align-right  .doc { margin: 0 0 0 auto; }
+
+  /* 边界拖拽手柄：根据对齐模式显隐 */
+  .resize-handle { position: absolute; top: 0; bottom: 0; width: 8px;
+                   cursor: col-resize; z-index: 5;
+                   background: transparent; transition: background 0.15s; }
+  .resize-handle.left  { left: -4px; }
+  .resize-handle.right { right: -4px; }
+  .resize-handle:hover,
+  .resize-handle.dragging { background: var(--accent-soft); }
+  .resize-handle:hover::after,
+  .resize-handle.dragging::after {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px;
+    background: var(--accent); border-radius: 2px;
+  }
+  body.align-left  .resize-handle.left  { display: none; }
+  body.align-right .resize-handle.right { display: none; }
+  body.dragging-doc { cursor: col-resize; user-select: none; }
+  body.dragging-doc * { cursor: col-resize !important; }
+  .resize-hint { position: absolute; right: 12px; top: 76px; z-index: 20;
+                 padding: 8px 11px; border-radius: 7px; background: var(--ink); color: #fff;
+                 font: 12px/1.45 "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+                 box-shadow: 0 8px 24px rgba(0,0,0,.16); opacity: 0; transform: translateX(8px);
+                 pointer-events: none; transition: opacity .2s, transform .2s; }
+  .resize-hint.show { opacity: 1; transform: translateX(0); }
+  .doc h1, .doc h2, .doc h3, .doc h4 {
+    font-family: "Source Serif 4", Georgia, "Songti SC", serif;
+    color: var(--ink); letter-spacing: -0.01em;
+  }
+  .doc h1 { font-size: 30px; font-weight: 600; margin: 0 0 10px;
+            padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .doc h2 { font-size: 22px; font-weight: 600; margin: 36px 0 10px; }
+  .doc h3 { font-size: 18px; font-weight: 600; margin: 26px 0 8px; }
+  .doc h4 { font-size: 16px; font-weight: 600; margin: 20px 0 6px; color: var(--ink-2); }
+  .doc p { margin: 12px 0; }
+  .doc ul, .doc ol { padding-left: 24px; }
+  .doc li { margin: 4px 0; }
+  .doc strong { color: var(--ink); font-weight: 600; }
+  .doc em { font-style: italic; color: var(--ink-2); }
+  .doc a { color: var(--accent-ink); text-decoration: underline;
+           text-decoration-color: rgba(181,98,71,0.35); text-underline-offset: 2px; }
+  .doc a:hover { text-decoration-color: var(--accent-ink); }
+  .doc blockquote { border-left: 3px solid var(--accent); margin: 16px 0;
+                    padding: 4px 18px; color: var(--ink-2); font-style: italic;
+                    background: rgba(204,120,92,0.04); }
+  .doc code { background: rgba(0,0,0,0.04); padding: 1px 6px; border-radius: 3px;
+              font-size: 13px; font-family: "SF Mono", Menlo, Consolas, monospace; }
+  .doc pre { background: var(--bg-elev); border: 1px solid var(--line);
+             padding: 14px 16px; border-radius: 8px; overflow-x: auto;
+             font-size: 12.5px; line-height: 1.6;
+             font-family: "SF Mono", Menlo, Consolas, monospace; }
+  .doc pre.source { white-space: pre; }
+  .doc pre code { background: none; padding: 0; font-size: inherit; }
+  .doc table { border-collapse: collapse; margin: 14px 0; width: 100%;
+               font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; font-size: 13px; }
+  .doc th, .doc td { border: 1px solid var(--line); padding: 8px 12px;
+                     text-align: left; vertical-align: top; line-height: 1.5; }
+  .doc th { background: var(--bg-sidebar); font-weight: 600; color: var(--ink); }
+  .doc tr:nth-child(even) td { background: rgba(0,0,0,0.015); }
+  .doc hr { border: none; border-top: 1px solid var(--line); margin: 32px 0; }
+
+  .empty { padding: 120px 40px; text-align: center; color: var(--ink-3);
+           font-family: "Source Serif 4", Georgia, "Songti SC", serif; font-size: 16px; line-height: 1.6; }
+  .empty .big { font-size: 28px; color: var(--ink-2); margin-bottom: 14px; font-weight: 500; }
+  .empty kbd { font-family: "SF Mono", monospace; font-size: 12px;
+               background: var(--bg-elev); border: 1px solid var(--line-strong);
+               padding: 2px 6px; border-radius: 4px; }
+
+  .to-top { position: fixed; left: 268px; bottom: 22px; z-index: 2000;
+            width: 40px; height: 40px; border-radius: 20px;
+            border: 1px solid var(--line-strong); background: var(--bg-elev);
+            color: var(--ink-2); box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+            font-size: 18px; line-height: 1; cursor: pointer; font-family: inherit;
+            opacity: 0.95; pointer-events: auto; transform: translateY(0);
+            transition: opacity 0.18s ease, transform 0.18s ease, color 0.15s ease, border-color 0.15s ease; }
+  .to-top.at-top { opacity: 0.72; }
+  .to-top:hover { opacity: 1; color: var(--accent-ink); border-color: var(--accent); }
+
+  /* ========== Context menu ========== */
+  .ctx { position: fixed; min-width: 220px; background: var(--bg-elev);
+         border: 1px solid var(--line-strong); border-radius: 8px;
+         box-shadow: 0 8px 24px rgba(0,0,0,0.10); padding: 4px; z-index: 1000;
+         font-size: 13px; }
+  .ctx button { display: block; width: 100%; text-align: left;
+                padding: 7px 12px; background: transparent; border: none;
+                color: var(--ink); font-size: 13px; border-radius: 4px;
+                cursor: pointer; font-family: inherit; }
+  .ctx button:hover { background: var(--accent-soft); color: var(--accent-ink); }
+  .ctx hr { border: none; border-top: 1px solid var(--line); margin: 4px 0; }
+  .ctx .ctx-path { padding: 6px 12px 8px; font-size: 11px; color: var(--ink-3);
+                   font-family: "SF Mono", monospace; word-break: break-all;
+                   border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+
+  /* ========== Toast ========== */
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+           background: var(--ink); color: #fff; padding: 9px 18px; border-radius: 6px;
+           font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,0.18); z-index: 2000;
+           opacity: 0; transition: opacity 0.18s, transform 0.18s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+
+  /* ========== Scrollbar ========== */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 10px;
+                              border: 2px solid var(--bg); }
+  ::-webkit-scrollbar-thumb:hover { background: #c0b9a6; }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="brand">
+    <span class="dot"></span>
+    <span>YMOS Reader</span>
+    <span class="sub">V4</span>
+  </div>
+  <div class="page-tabs" id="pageTabs"></div>
+  <div class="top-actions">
+    <button class="btn-primary" id="todayBtn">📅 今日全家桶</button>
+    <button class="btn-ghost" id="reloadListBtn" title="重新扫描所有文件夹">↻</button>
+  </div>
+  <div class="sop-launch">
+    <button class="btn-sop alt" id="homeBtn" title="回到 YMOS Console 首页">⌂ Console 首页</button>
+    <button class="btn-sop" id="planBtn" title="打开交易计划台（盘后动态管理：定调 / 持仓审计 / 观察审计 / 明日动作）">📋 交易计划台</button>
+    <button class="btn-sop alt" id="sopBtn" title="打开新高买卖决策台（勾选式买卖 SOP）">🎯 新高买卖决策台</button>
+  </div>
+  <div class="custom-note"><b>这是一份可修改的样板。</b><br>目录分组、显示内容和阅读习惯都可以写进 <code>config.json</code>，也可以直接让你的 Agent / 编程工具按偏好调整页面。</div>
+  <div class="search"><input id="search" placeholder="过滤文件名 / 日期…  ⌘K" /></div>
+  <div class="nav" id="nav"></div>
+  <button class="to-top" id="toTopBtn" type="button" title="回到顶部" aria-label="回到顶部">↑</button>
+</aside>
+
+<main>
+  <div class="toolbar">
+    <div class="actions-left">
+      <button class="btn-ghost" id="copyBtn" disabled>📋 复制路径</button>
+      <button class="btn-ghost" id="revealBtn" disabled>📂 Finder</button>
+      <button class="btn-ghost" id="obsidianBtn" disabled>🔮 Obsidian</button>
+      <button class="btn-ghost" id="reloadDocBtn" disabled>↻</button>
+    </div>
+    <div class="crumb" id="crumb">未选择报告</div>
+    <div class="actions-right">
+      <div class="seg" id="alignSeg" title="正文对齐方式">
+        <button data-align="left"   title="靠左">⇤</button>
+        <button data-align="center" title="居中">≡</button>
+        <button data-align="right"  title="靠右">⇥</button>
+      </div>
+      <div class="zoom" title="正文字号缩放">
+        <button id="zoomOut" title="缩小">−</button>
+        <span class="zval" id="zoomVal" title="点击重置为 110%">110%</span>
+        <button id="zoomIn" title="放大">+</button>
+      </div>
+    </div>
+  </div>
+  <div class="doc-wrap">
+    <div class="doc" id="doc">
+      <div class="resize-handle left"  id="resizeLeft"  title="拖动调整正文宽度"></div>
+      <div class="resize-handle right" id="resizeRight" title="拖动调整正文宽度"></div>
+      <div class="resize-hint" id="resizeHint">↔ 正文边缘可以拖动<br>双击恢复 75% 默认宽度</div>
+      <div class="doc-content" id="docContent">
+        <div class="empty">
+          <div class="big">YMOS Reader</div>
+          <div>从左侧任一分类点开始 · 或按 <kbd>📅 今日全家桶</kbd> 一键载入当天日报。</div>
+          <div style="margin-top: 14px"><kbd>⌘K</kbd> 聚焦搜索框 &nbsp;·&nbsp; 文件项右键菜单可复制路径 / 在文件管理器中显示 / 在 Obsidian 中打开</div>
+          <div style="margin-top: 14px; font-size: 13px;">正文左右边缘可拖拽调整宽度（光标变成 ↔ 时按住拖动）</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const state = {
+  pages: [],
+  view: "ymos",
+  sections: [],
+  filter: "",
+  currentItem: null,
+  didInitSections: false,
+  // 顶层块独立折叠；后端 defaultOpen 控制首次加载时哪些块展开
+  expandedSections: new Set(),
+  // 子文件夹默认全部折叠：用 expanded set 反向记录已展开的 category
+  expanded: new Set(),
+};
+
+function el(tag, attrs = {}, ...children) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v);
+  }
+  for (const c of children) {
+    if (c == null) continue;
+    e.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  }
+  return e;
+}
+
+function sectionKey(secLabel) { return "section::" + secLabel; }
+function catKey(secLabel, catLabel) { return secLabel + "::" + catLabel; }
+
+async function fetchPages() {
+  const r = await fetch("/api/reader/pages");
+  state.pages = await r.json();
+  renderPageTabs();
+}
+
+async function fetchList() {
+  const r = await fetch(`/api/reader/list?view=${encodeURIComponent(state.view)}`);
+  state.sections = await r.json();
+  if (!state.didInitSections) {
+    for (const sec of state.sections) {
+      if (sec.defaultOpen) state.expandedSections.add(sectionKey(sec.label));
+    }
+    state.didInitSections = true;
+  }
+  renderNav();
+}
+
+function switchView(view) {
+  if (state.view === view) return;
+  state.view = view;
+  state.filter = "";
+  state.currentItem = null;
+  state.didInitSections = false;
+  state.expandedSections.clear();
+  state.expanded.clear();
+  document.getElementById("search").value = "";
+  document.getElementById("crumb").textContent = "未选择文件";
+  document.getElementById("docContent").innerHTML = emptyHtml();
+  for (const id of ["copyBtn","revealBtn","obsidianBtn","reloadDocBtn"]) {
+    document.getElementById(id).disabled = true;
+  }
+  renderPageTabs();
+  fetchList();
+}
+
+function renderPageTabs() {
+  const tabs = document.getElementById("pageTabs");
+  tabs.innerHTML = "";
+  for (const page of state.pages) {
+    tabs.appendChild(el("button",
+      { class: page.key === state.view ? "on" : "", onclick: () => switchView(page.key) },
+      page.label
+    ));
+  }
+  const todayBtn = document.getElementById("todayBtn");
+  todayBtn.disabled = state.view !== "ymos";
+}
+
+function itemMatches(it) {
+  if (!state.filter) return true;
+  const q = state.filter.toLowerCase();
+  return it.name.toLowerCase().includes(q) || it.date.includes(q) || it.path.toLowerCase().includes(q);
+}
+
+function emptyHtml() {
+  const page = (state.pages || []).find(p => p.key === state.view);
+  const label = page ? page.label : "YMOS Reader";
+  return `
+    <div class="empty">
+      <div class="big">${label}</div>
+      <div>从左侧任一分类点开始 · 或按 <kbd>📅 今日全家桶</kbd> 一键载入今日的每日报告。</div>
+      <div style="margin-top: 14px"><kbd>⌘K</kbd> 聚焦搜索框 &nbsp;·&nbsp; 文件项右键菜单可复制路径 / 在文件管理器中显示 / 在 Obsidian 中打开</div>
+      <div style="margin-top: 14px; font-size: 13px;">正文左右边缘可拖拽调整宽度（光标变成 ↔ 时按住拖动）</div>
+    </div>`;
+}
+
+function renderNav() {
+  const nav = document.getElementById("nav"); nav.innerHTML = "";
+  let isFirstSection = true;
+  // 搜索激活时：自动展开有命中的 category；用户折叠状态在搜索结束后恢复
+  const searchActive = !!state.filter;
+
+  for (const sec of state.sections) {
+    const categoryViews = sec.categories.map(cat => ({
+      cat,
+      filtered: cat.items.filter(itemMatches),
+    }));
+    const sectionCount = categoryViews.reduce((sum, view) => sum + view.filtered.length, 0);
+    const secKey = sectionKey(sec.label);
+    const sectionExpanded = searchActive ? sectionCount > 0 : state.expandedSections.has(secKey);
+
+    nav.appendChild(el("div",
+      { class: "section-head" + (sectionExpanded ? " expanded" : "") + (isFirstSection ? " first" : ""),
+        onclick: () => {
+          if (state.expandedSections.has(secKey)) state.expandedSections.delete(secKey);
+          else state.expandedSections.add(secKey);
+          renderNav();
+        } },
+      el("div", { class: "left" },
+        el("span", { class: "chev" }, "▶"),
+        el("span", { class: "icon" }, sec.icon || "□"),
+        el("span", { class: "label" }, sec.label)
+      ),
+      el("span", { class: "count" }, String(sectionCount))
+    ));
+    isFirstSection = false;
+    if (!sectionExpanded) continue;
+
+    for (const { cat, filtered } of categoryViews) {
+      const key = catKey(sec.label, cat.label);
+      const userExpanded = state.expanded.has(key);
+      const expanded = searchActive ? (filtered.length > 0) : userExpanded;
+
+      const head = el("div",
+        { class: "cat-head" + (expanded ? " expanded" : ""),
+          onclick: () => {
+            if (state.expanded.has(key)) state.expanded.delete(key);
+            else state.expanded.add(key);
+            renderNav();
+          } },
+        el("div", { class: "left" },
+          el("span", { class: "chev" }, "▶"),
+          el("span", { class: "label" }, cat.label)
+        ),
+        el("span", { class: "count" }, String(filtered.length))
+      );
+      nav.appendChild(head);
+
+      const list = el("div", { class: "cat-list" + (expanded ? " open" : "") });
+      if (!filtered.length) {
+        list.appendChild(el("div", { class: "nav-empty" }, "无内容"));
+      } else {
+        for (const it of filtered) {
+          const isActive = state.currentItem && state.currentItem.abs === it.abs;
+          const item = el("div",
+            { class: "item" + (isActive ? " active" : ""),
+              onclick: () => loadDoc(it),
+              oncontextmenu: e => showContextMenu(e, it) },
+            it.date ? el("div", { class: "date" }, it.date) : null,
+            el("div", { class: "name" }, it.name)
+          );
+          list.appendChild(item);
+        }
+      }
+      nav.appendChild(list);
+    }
+  }
+}
+
+function apiUrl(path, it, extra = "") {
+  return `${path}?root=${encodeURIComponent(it.root)}&path=${encodeURIComponent(it.path)}${extra}`;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, ch => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[ch]));
+}
+
+function codeLang(ext) {
+  return ({
+    ".html": "html",
+    ".css": "css",
+    ".js": "javascript",
+    ".mjs": "javascript",
+    ".json": "json",
+    ".py": "python",
+    ".toml": "toml",
+    ".yaml": "yaml",
+    ".yml": "yaml",
+  }[ext] || "text");
+}
+
+async function loadDoc(it) {
+  state.currentItem = it; renderNav();
+  const r = await fetch(apiUrl("/api/reader/file", it));
+  const contentEl = document.getElementById("docContent");
+  if (!r.ok) { contentEl.innerHTML = `<div class="empty">读取失败: ${it.path}</div>`; return; }
+  const j = await r.json();
+  const ext = (j.ext || it.ext || "").toLowerCase();
+  if (ext === ".md" || ext === ".markdown") {
+    contentEl.innerHTML = DOMPurify.sanitize(marked.parse(j.content));
+  } else {
+    contentEl.innerHTML = `<h1>${escapeHtml(it.name)}</h1><pre class="source"><code class="language-${codeLang(ext)}">${escapeHtml(j.content)}</code></pre>`;
+  }
+  document.querySelector(".doc-wrap").scrollTop = 0;
+  updateToTopButton();
+  document.getElementById("crumb").innerHTML = `<b>${it.name}</b> &nbsp;·&nbsp; ${it.path}`;
+  for (const id of ["copyBtn","revealBtn","obsidianBtn","reloadDocBtn"]) {
+    document.getElementById(id).disabled = false;
+  }
+}
+
+/* ===== context menu ===== */
+let ctxEl = null;
+function hideContextMenu() { if (ctxEl) { ctxEl.remove(); ctxEl = null; } }
+function showContextMenu(e, it) {
+  e.preventDefault(); hideContextMenu();
+  ctxEl = el("div", { class: "ctx" },
+    el("div", { class: "ctx-path" }, it.abs),
+    el("button", { onclick: () => { copyPath(it); hideContextMenu(); } }, "📋  复制绝对路径"),
+    el("button", { onclick: () => { copyRelPath(it); hideContextMenu(); } }, "📎  复制相对路径"),
+    el("hr"),
+    el("button", { onclick: () => { revealItem(it); hideContextMenu(); } }, "📂  在文件管理器中显示"),
+    el("button", { onclick: () => { openObsidian(it); hideContextMenu(); } }, "🔮  在 Obsidian 中打开"),
+    el("hr"),
+    el("button", { onclick: () => { loadDoc(it); hideContextMenu(); } }, "👁  在右侧打开")
+  );
+  document.body.appendChild(ctxEl);
+  const w = ctxEl.offsetWidth, h = ctxEl.offsetHeight;
+  ctxEl.style.left = Math.min(e.clientX, window.innerWidth - w - 8) + "px";
+  ctxEl.style.top = Math.min(e.clientY, window.innerHeight - h - 8) + "px";
+}
+window.addEventListener("click", hideContextMenu);
+window.addEventListener("scroll", hideContextMenu, true);
+
+/* ===== actions ===== */
+async function copyPath(it) {
+  let ok = false;
+  try { await navigator.clipboard.writeText(it.abs); ok = true; } catch {}
+  if (!ok) await fetch(apiUrl("/api/reader/copy-path", it));
+  toast("已复制绝对路径");
+}
+async function copyRelPath(it) {
+  try { await navigator.clipboard.writeText(it.path); toast("已复制相对路径"); }
+  catch { toast("复制失败"); }
+}
+function revealItem(it) {
+  fetch(apiUrl("/api/reader/reveal", it)); toast("已在文件管理器中显示");
+}
+function openObsidian(it) {
+  // 需要本机装了 Obsidian 并注册了 obsidian:// 协议；没装则什么也不会发生
+  try {
+    window.location.href = "obsidian://open?path=" + encodeURIComponent(it.abs);
+  } catch (e) {
+    toast("打开失败——本机可能没装 Obsidian");
+  }
+}
+
+/* ===== toolbar ===== */
+document.getElementById("copyBtn").onclick = () => state.currentItem && copyPath(state.currentItem);
+document.getElementById("revealBtn").onclick = () => state.currentItem && revealItem(state.currentItem);
+document.getElementById("obsidianBtn").onclick = () => state.currentItem && openObsidian(state.currentItem);
+document.getElementById("reloadDocBtn").onclick = () => state.currentItem && loadDoc(state.currentItem);
+function openConsole(route, fileName) {
+  window.location.href = location.protocol === "file:" ? fileName : route;
+}
+document.getElementById("homeBtn").onclick = () => openConsole("/", "index.html");
+document.getElementById("sopBtn").onclick = () => openConsole("/sop", "新高买卖决策台.html");
+document.getElementById("planBtn").onclick = () => openConsole("/plan", "交易计划台.html");
+document.getElementById("reloadListBtn").onclick = async () => {
+  await fetchList();
+  if (state.currentItem) loadDoc(state.currentItem);
+  toast("已重新扫描");
+};
+document.getElementById("search").addEventListener("input", e => {
+  state.filter = e.target.value; renderNav();
+});
+
+document.getElementById("todayBtn").onclick = () => {
+  const today = new Date().toISOString().slice(0, 10);
+  // 取配置里第一个 defaultOpen 的 section 作为「每日产出」区；没有就取第一个
+  const daily = state.sections.find(s => s.defaultOpen) || state.sections[0];
+  if (!daily) return;
+  let firstHit = null; let count = 0;
+  state.expandedSections.add(sectionKey(daily.label));
+  // 自动展开 YMOS 下所有 category，让用户能快速切
+  for (const cat of daily.categories) {
+    state.expanded.add(catKey(daily.label, cat.label));
+    if (!cat.items.length) continue;
+    const target = cat.items.find(it => it.date === today) || cat.items[0];
+    count++;
+    if (!firstHit) firstHit = target;
+  }
+  renderNav();
+  if (firstHit) { loadDoc(firstHit); toast(`今日全家桶已就绪 · ${count} 份`); }
+};
+
+const docWrap = document.querySelector(".doc-wrap");
+const toTopBtn = document.getElementById("toTopBtn");
+function updateToTopButton() {
+  toTopBtn.classList.toggle("at-top", docWrap.scrollTop <= 10);
+}
+docWrap.addEventListener("scroll", updateToTopButton, { passive: true });
+function scrollReaderToTop() {
+  docWrap.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  window.scrollTo(0, 0);
+  requestAnimationFrame(updateToTopButton);
+}
+toTopBtn.onclick = e => {
+  e.preventDefault();
+  e.stopPropagation();
+  scrollReaderToTop();
+};
+
+/* ===== 对齐 / 缩放 / 宽度（持久化到 localStorage） ===== */
+const PREFS_KEY = "ymos-reader-prefs";
+const ZOOM_STEPS = [1.00, 1.10, 1.20, 1.30, 1.40, 1.50];
+const DEFAULT_RATIO = 0.75;
+const MIN_WIDTH = 480;
+const prefs = Object.assign(
+  { align: "left", zoom: 1.10, width: null },
+  JSON.parse(localStorage.getItem(PREFS_KEY) || "{}")
+);
+function savePrefs() { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); }
+function maxWidth() {
+  // 主区可用宽度（视口减去侧栏 320px 和一点呼吸余量）
+  return Math.max(MIN_WIDTH, window.innerWidth - 320 - 24);
+}
+function applyAlign() {
+  document.body.classList.remove("align-left","align-center","align-right");
+  document.body.classList.add("align-" + prefs.align);
+  for (const b of document.querySelectorAll("#alignSeg button")) {
+    b.classList.toggle("on", b.dataset.align === prefs.align);
+  }
+}
+function applyZoom() {
+  document.documentElement.style.setProperty("--doc-zoom", prefs.zoom);
+  document.getElementById("zoomVal").textContent = Math.round(prefs.zoom * 100) + "%";
+}
+function applyWidth() {
+  const hasSavedWidth = prefs.width !== null && prefs.width !== "" && Number.isFinite(Number(prefs.width));
+  const preferred = hasSavedWidth ? Number(prefs.width) : Math.round(maxWidth() * DEFAULT_RATIO);
+  const w = Math.max(MIN_WIDTH, Math.min(preferred, maxWidth()));
+  document.documentElement.style.setProperty("--doc-width", w + "px");
+}
+for (const b of document.querySelectorAll("#alignSeg button")) {
+  b.onclick = () => { prefs.align = b.dataset.align; savePrefs(); applyAlign(); };
+}
+function stepZoom(delta) {
+  const idx = ZOOM_STEPS.findIndex(z => Math.abs(z - prefs.zoom) < 0.001);
+  let next = idx === -1 ? 1 : Math.max(0, Math.min(ZOOM_STEPS.length - 1, idx + delta));
+  prefs.zoom = ZOOM_STEPS[next]; savePrefs(); applyZoom();
+}
+document.getElementById("zoomIn").onclick = () => stepZoom(+1);
+document.getElementById("zoomOut").onclick = () => stepZoom(-1);
+document.getElementById("zoomVal").onclick = () => { prefs.zoom = 1.10; savePrefs(); applyZoom(); };
+applyAlign(); applyZoom(); applyWidth();
+window.addEventListener("resize", () => { applyWidth(); savePrefs(); });
+
+/* ===== 拖拽边界调宽度 =====
+ * align-left  + 右手柄 → 宽度 +Δ
+ * align-right + 左手柄 → 宽度 -Δ
+ * align-center + 任一 → 宽度 ±2Δ（居中时拉一边等于两边都动）
+ */
+function startDrag(handleEl, side) {
+  handleEl.addEventListener("mousedown", e => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = document.getElementById("doc").getBoundingClientRect().width;
+    const align = prefs.align;
+    handleEl.classList.add("dragging");
+    document.body.classList.add("dragging-doc");
+    function onMove(ev) {
+      const delta = ev.clientX - startX;
+      let factor = 1;
+      let sign = (side === "right") ? 1 : -1;
+      if (align === "center") factor = 2;
+      let next = startW + sign * factor * delta;
+      next = Math.max(MIN_WIDTH, Math.min(maxWidth(), next));
+      prefs.width = next;
+      document.documentElement.style.setProperty("--doc-width", next + "px");
+    }
+    function onUp() {
+      handleEl.classList.remove("dragging");
+      document.body.classList.remove("dragging-doc");
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      savePrefs();
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  });
+  // 双击手柄 → 重置为默认宽度
+  handleEl.addEventListener("dblclick", () => {
+    prefs.width = null; savePrefs(); applyWidth();
+  });
+}
+startDrag(document.getElementById("resizeLeft"),  "left");
+startDrag(document.getElementById("resizeRight"), "right");
+
+const RESIZE_HINT_KEY = "ymos-reader-resize-hint-seen";
+if (!localStorage.getItem(RESIZE_HINT_KEY) && window.innerWidth > 860) {
+  const hint = document.getElementById("resizeHint");
+  requestAnimationFrame(() => hint.classList.add("show"));
+  setTimeout(() => hint.classList.remove("show"), 5000);
+  localStorage.setItem(RESIZE_HINT_KEY, "1");
+}
+
+window.addEventListener("keydown", e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+    e.preventDefault(); document.getElementById("search").focus();
+  }
+  // ⌘+ / ⌘- 缩放正文（不抢系统页面缩放：要按 Shift 配合）
+  if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "=" || e.key === "+")) {
+    e.preventDefault(); stepZoom(+1);
+  }
+  if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "-") {
+    e.preventDefault(); stepZoom(-1);
+  }
+  if (e.key === "Escape") hideContextMenu();
+});
+
+let toastTimer = null;
+function toast(msg) {
+  let t = document.querySelector(".toast");
+  if (!t) { t = el("div", { class: "toast" }); document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 1600);
+}
+
+fetchPages().then(fetchList);
+</script>
+</body>
+</html>

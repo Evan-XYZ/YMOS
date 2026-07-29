@@ -1,0 +1,117 @@
+{
+  "_说明": "复制本文件为 config.json 后修改。config.json 已在 .gitignore 里，不会被提交。",
+
+  "_vault_root": "你的 Obsidian vault 里 YMOS 所在的绝对路径。留空 = 用 Console/ 的上级目录（即本仓库根），开箱即可跑。",
+  "vault_root": "",
+
+  "_plan_dir": "交易计划的归档目录，相对 vault_root。决策台保存时写到 <plan_dir>/YYYY-MM/YYYY-MM-DD日交易计划.md",
+  "plan_dir": "Brain/交易计划",
+
+  "_audit_dir": "决策留痕的归档目录，相对 vault_root。每次扣扳机/被拦截追加到 <audit_dir>/YYYY-MM/YYYY-MM-DD决策记录.md",
+  "audit_dir": "Brain/决策审计",
+
+  "_reader_roots": "Reader 可读取的根目录。相对路径以 vault_root 为基准；也可以写绝对路径（支持 ~）。",
+  "reader_roots": {
+    "ymos": "."
+  },
+
+  "_reader_pages": "Reader 顶部可切换的页面。每页由 section 和 category 组成；可按自己的目录与阅读习惯增删。",
+  "_reader_mode说明": {
+    "tree": "递归扫所有 .md",
+    "flat-md": "只扫当前层 .md",
+    "flat-whitelist": "只扫当前层白名单文件",
+    "tree-text": "递归扫常见文本文件",
+    "flat-text": "只扫当前层常见文本文件",
+    "latest-month-dirs-text": "只扫最新 N 个 YYYY-MM 子目录",
+    "recent-days-text": "只扫最近 N 天的文件"
+  },
+  "reader_pages": {
+    "ymos": {
+      "label": "YMOS Reader",
+      "sections": [
+        {
+          "label": "每日产出",
+          "icon": "📅",
+          "defaultOpen": true,
+          "categories": [
+            { "label": "市场洞察", "root": "ymos", "rel": "Eyes/市场洞察", "mode": "tree" },
+            { "label": "投资雷达", "root": "ymos", "rel": "Eyes/投资雷达", "mode": "tree" },
+            { "label": "策略分析", "root": "ymos", "rel": "Brain/策略分析", "mode": "tree" }
+          ]
+        },
+        {
+          "label": "决策记录",
+          "icon": "🛑",
+          "defaultOpen": false,
+          "categories": [
+            { "label": "交易计划", "root": "ymos", "rel": "Brain/交易计划", "mode": "tree" },
+            { "label": "决策审计", "root": "ymos", "rel": "Brain/决策审计", "mode": "tree" }
+          ]
+        },
+        {
+          "label": "热门追踪",
+          "icon": "🔥",
+          "defaultOpen": false,
+          "categories": [
+            { "label": "A股 What's Hot", "root": "ymos", "rel": "Eyes/Whats_Hot", "mode": "tree" },
+            { "label": "美股热门追踪", "root": "ymos", "rel": "Eyes/美股热门追踪", "mode": "tree" },
+            { "label": "核心资产动态判定表", "root": "ymos", "rel": "Eyes/核心资产动态判定表", "mode": "tree" }
+          ]
+        },
+        {
+          "label": "持仓与关注",
+          "icon": "🏷️",
+          "defaultOpen": false,
+          "categories": [
+            {
+              "label": "状态机与真相源",
+              "root": "ymos",
+              "rel": "持仓与关注",
+              "mode": "flat-whitelist",
+              "whitelist": [
+                "持仓_状态机.md",
+                "Watchlist_状态机.md",
+                "当前关注方向与投资偏好.md",
+                "账户资金曲线.md",
+                "击球区注册表.md",
+                "主线首发信号跟踪.md",
+                "持仓备忘录_视图.md"
+              ]
+            },
+            { "label": "持仓个股", "root": "ymos", "rel": "持仓与关注/持仓", "mode": "tree" },
+            { "label": "动态 Watchlist", "root": "ymos", "rel": "持仓与关注/动态Watchlist", "mode": "tree" }
+          ]
+        },
+        {
+          "label": "思考沉淀",
+          "icon": "🧠",
+          "defaultOpen": false,
+          "categories": [
+            { "label": "长期记忆 / 状态", "root": "ymos", "rel": "BrainStorm", "mode": "flat-md" },
+            { "label": "Summarized Insights", "root": "ymos", "rel": "BrainStorm/Summarized_Insights", "mode": "tree" },
+            { "label": "Raw Thoughts", "root": "ymos", "rel": "BrainStorm/每日头脑风暴/Raw_Thoughts", "mode": "tree" },
+            { "label": "投资感悟归档", "root": "ymos", "rel": "BrainStorm/投资感悟归档", "mode": "tree" },
+            { "label": "状态机", "root": "ymos", "rel": "BrainStorm/状态机", "mode": "tree" }
+          ]
+        },
+        {
+          "label": "项目文档",
+          "icon": "📁",
+          "defaultOpen": false,
+          "categories": [
+            {
+              "label": "根目录文档",
+              "root": "ymos",
+              "rel": ".",
+              "mode": "flat-whitelist",
+              "whitelist": ["README.md", "总入口暗号.md", "AGENT_GUIDE.md", "进阶指南.md", "CHANGELOG.md", "UPGRADE.md"]
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  "_port": "本地服务端口。只绑 127.0.0.1，不对外暴露。",
+  "port": 5273
+}

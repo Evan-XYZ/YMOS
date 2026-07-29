@@ -101,7 +101,7 @@ def fetch_rss(url, days=1):
             xml_content = response.read().decode("utf-8")
     except urllib.error.HTTPError as e:
         if e.code == 403:
-            print(f"   ⚠️ 源站限制 (403)，跳过")
+            print("   ⚠️ 源站限制 (403)，跳过")
             return "BLOCKED_403"
         else:
             print(f"   ❌ HTTP 错误: {e.code} - {e.reason}")
@@ -220,7 +220,7 @@ def fetch_all_sources(sources, days=1):
             print(f"   ✅ 获取 {len(items)} 条")
             success_count += 1
         else:
-            print(f"   ⚠️ 未获取到数据")
+            print("   ⚠️ 未获取到数据")
             fail_count += 1
 
     # 403 汇总提示
@@ -317,7 +317,7 @@ def main():
         # 分类统计
         cat_summary = result.get("categories_summary", {})
         if cat_summary:
-            print(f"\n📁 分类统计:")
+            print("\n📁 分类统计:")
             for cat, num in sorted(cat_summary.items()):
                 print(f"   {cat}: {num} 条")
         else:
@@ -327,7 +327,7 @@ def main():
                 for cat in item.get("categories", ["未分类"]):
                     cats[cat] = cats.get(cat, 0) + 1
             if cats:
-                print(f"\n📁 标签统计:")
+                print("\n📁 标签统计:")
                 for cat, num in sorted(cats.items()):
                     print(f"   {cat}: {num} 条")
     else:

@@ -201,3 +201,7 @@
 - Dashboard 已生成：持仓与关注/dashboard/YYYY-MM/dashboard_YYYY-MM-DD.html
 - 缺口清单：[X 项数据缺口 / Y 项结构缺口 / 无缺口]
 ```
+
+---
+
+*2026-07-27 · YMOS V4 · 三模块 + 运行时 + 决策台*

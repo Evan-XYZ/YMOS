@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Finnhub 实时价格数据获取工具（勇麦生产环境）
+Finnhub 实时价格数据获取工具
 
 用途：为投研中台补充价格维度数据
 - 实时行情：持仓 + 关注列表当前价格、涨跌幅
@@ -16,7 +16,6 @@ import urllib.error
 import argparse
 import json
 import ssl
-import sys
 import re
 import os
 from datetime import datetime, timedelta, timezone
@@ -26,14 +25,17 @@ from pathlib import Path
 API_KEY = os.getenv("FINNHUB_API_KEY", "")
 FINNHUB_BASE = "https://finnhub.io/api/v1"
 
-# ── 关注列表（持仓 + 雷达，A股不在 Finnhub 覆盖范围内）────────
+# ── 兜底关注列表 ──────────────────────────────────────────────
+# 正常情况下不会用到这里：脚本优先用 --symbols 或 --symbols-from-dir
+# （由持仓/Watchlist 状态机自动喂入）。只有两者都没给时，才回落到这份默认清单。
+#
+# 想改成自己的：设环境变量 YMOS_DEFAULT_SYMBOLS="AAPL,MSFT,..." 即可，不用改代码。
+# 注意 A 股不在 Finnhub 覆盖范围内，会自动走 Tushare / Yahoo 路由。
+DEFAULT_WATCHLIST = ["NVDA", "AMD", "TSM"]   # 仅作占位示例，无任何推荐含义
+
 WATCHLIST = [
-    "NIO",   # 持仓：蔚来，等突破 $6.50
-    "NET",   # 雷达：Cloudflare，<$160 黄金坑
-    "DOCN",  # 雷达：DigitalOcean，等估值回归
-    "AMD",   # 雷达：半导体，等板块错杀机会
-    "NVDA",  # 映射参考：AI基础设施风向标
-]
+    s.strip().upper() for s in os.getenv("YMOS_DEFAULT_SYMBOLS", "").split(",") if s.strip()
+] or DEFAULT_WATCHLIST
 
 # 市场新闻分类
 NEWS_CATEGORIES = ["general", "merger"]
@@ -271,7 +273,7 @@ def fetch_earnings_calendar(symbols, days=7):
 # ─────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser(
-        description="Finnhub 价格数据获取 — 勇麦生产环境"
+        description="Finnhub 价格数据获取"
     )
     parser.add_argument(
         "days", type=float, nargs="?", default=1,
@@ -306,7 +308,7 @@ def main():
     symbols = resolve_symbols(args)
 
     print("=" * 55)
-    print("Finnhub 价格数据工具 — 勇麦生产环境")
+    print("Finnhub 价格数据工具")
     print(f"关注列表: {', '.join(symbols)}")
     print("=" * 55)
 

@@ -147,7 +147,7 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     date_tag = args.date_tag or "latest"
 
-    print(f"📡 价格路由分流结果：")
+    print("📡 价格路由分流结果：")
     print(f"   Finnhub  ({len(finnhub_syms)}): {finnhub_syms or '—'}")
     print(f"   Tushare  ({len(tushare_syms)}): {tushare_syms or '—'}")
     print(f"   Yahoo    ({len(yahoo_syms)}): {yahoo_syms or '—'}")
@@ -158,7 +158,7 @@ def main() -> None:
     yahoo_syms_norm   = [normalize_for_source(s, "yahoo")   for s in yahoo_syms]
 
     if finnhub_syms_norm != finnhub_syms or yahoo_syms_norm != yahoo_syms:
-        print(f"🔄 Crypto 归一化：")
+        print("🔄 Crypto 归一化：")
         if finnhub_syms_norm != finnhub_syms:
             print(f"   Finnhub: {finnhub_syms} → {finnhub_syms_norm}")
         if yahoo_syms_norm != yahoo_syms:
