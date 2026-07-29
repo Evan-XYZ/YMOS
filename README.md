@@ -2,7 +2,7 @@
 
 **Yongmai Operating System** · 把你自己的投资思想，变成一套能运行、能审计、能进化的系统
 
-[![Version](https://img.shields.io/badge/version-4.0.0-blue.svg)](https://github.com/Evan-XYZ/YMOS/releases)
+[![Version](https://img.shields.io/badge/version-4.0.0-blue.svg)](CHANGELOG.md)
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC%20BY--NC%204.0-lightgrey.svg)](LICENSE)
 
 > 以市场触发为起点、以提示词软路由为中枢、以状态机与个股知识库为记忆层、以 Human 最终决策为落点的人机协作投资操作系统。
