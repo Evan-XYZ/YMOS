@@ -18,7 +18,10 @@ YMOS Console — 决策台的本地数据服务。
 from __future__ import annotations
 
 import json
+import math
+import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -36,8 +39,10 @@ DEFAULTS = {
     "vault_root": "",                    # 留空 = 用 Console/ 的上级目录（即 YMOS/）
     "plan_dir": "Brain/交易计划",         # 交易计划归档目录（相对 vault_root）
     "audit_dir": "Brain/决策审计",        # 决策留痕归档目录（相对 vault_root）
+    "trade_dir": "Brain/买入卖出决策",    # 单笔交易生命周期档案（相对 vault_root）
     "reader_roots": {"ymos": "."},        # Reader 根目录（相对 vault_root）
     "reader_pages": {},                   # Reader 页面结构；空时从 config.example.json 读取
+    "reader_custom_paths": [],            # 简易自定义入口；自动追加到 Reader 的“自定义工作区”
     "port": 5273,
 }
 
@@ -63,8 +68,43 @@ CONFIG = load_config()
 VAULT_ROOT = Path(CONFIG["vault_root"]).expanduser().resolve() if CONFIG["vault_root"] else HERE.parent
 ROOT_PLAN = (VAULT_ROOT / CONFIG["plan_dir"]).resolve()
 ROOT_AUDIT = (VAULT_ROOT / CONFIG["audit_dir"]).resolve()
+ROOT_TRADE = (VAULT_ROOT / CONFIG["trade_dir"]).resolve()
 DRAFT_FILE = (ROOT_PLAN / "_当前草稿_自动备份.md").resolve()
+TRADE_CLOSED = (ROOT_TRADE / "已平仓").resolve()
+ACCOUNT_FILE = (ROOT_TRADE / "买卖决策_状态机.md").resolve()
 PORT = int(CONFIG["port"])
+
+def initial_account_markdown() -> str:
+    """生成空账户状态机；只在目标 vault 尚无文件时使用。"""
+    payload = {
+        "version": 4,
+        "accounts": {
+            "CNY": {"capital": 0, "horizonFund": ""},
+            "HKD": {"capital": 0, "horizonFund": ""},
+            "USD": {"capital": 0, "horizonFund": ""},
+        },
+        "maxSingleRatio": 0.33,
+        "changes": [],
+        "updated": "",
+        "portfolioSnapshot": None,
+    }
+    return (
+        "# 买卖决策 · 状态机\n\n"
+        "> 买卖决策台的账户级参数、资金流水与最近一次 Agent 持仓体检快照。\n"
+        "> 单笔交易 Markdown 仍是持仓事实源；`portfolioSnapshot` 是可重新生成的派生视图。\n\n"
+        "<!-- ymos-trade-account：买卖决策台结构化数据，请勿手动修改 -->\n"
+        "```json\n"
+        + json.dumps(payload, ensure_ascii=False, indent=2)
+        + "\n```\n"
+    )
+
+
+def ensure_runtime_layout() -> None:
+    """启动即补齐 Markdown-first 运行目录，而不是等第一次保存才创建。"""
+    for directory in (ROOT_PLAN, ROOT_AUDIT, ROOT_TRADE, TRADE_CLOSED):
+        directory.mkdir(parents=True, exist_ok=True)
+    if not ACCOUNT_FILE.exists():
+        ACCOUNT_FILE.write_text(initial_account_markdown(), encoding="utf-8")
 
 # Reader 默认页面结构来自 config.example.json。这样用户自己的 config.json 只写路径也能开箱运行。
 if not CONFIG.get("reader_pages"):
@@ -81,6 +121,11 @@ for key, rel in (CONFIG.get("reader_roots") or {"ymos": "."}).items():
     raw = Path(str(rel)).expanduser()
     READER_ROOTS[key] = raw.resolve() if raw.is_absolute() else (VAULT_ROOT / raw).resolve()
 READER_ROOTS.setdefault("ymos", VAULT_ROOT)
+
+READER_MODES = {
+    "tree", "flat-md", "flat-whitelist", "tree-text", "flat-text",
+    "latest-month-dirs-text", "recent-days-text",
+}
 
 READER_PAGES: dict[str, dict] = {}
 for key, page in (CONFIG.get("reader_pages") or {}).items():
@@ -99,6 +144,69 @@ for key, page in (CONFIG.get("reader_pages") or {}).items():
             sections.append({**sec, "categories": cats})
     READER_PAGES[key] = {"label": page.get("label", key), "sections": sections}
 
+def build_custom_reader_categories(items: list | None) -> list[dict]:
+    """把简易路径配置转换成 Reader 分类，并拒绝相对路径越界。"""
+    categories = []
+    for index, item in enumerate(items or []):
+        if isinstance(item, str):
+            item = {"path": item}
+        if not isinstance(item, dict) or not str(item.get("path", "")).strip():
+            continue
+
+        path_value = str(item["path"]).strip()
+        raw_path = Path(path_value).expanduser()
+        mode = str(item.get("mode", "tree-text"))
+        if mode not in READER_MODES:
+            print(f"⚠️  Reader 自定义路径模式无效，已跳过：{mode}")
+            continue
+
+        if raw_path.is_absolute():
+            root_key = f"_custom_{index}"
+            READER_ROOTS[root_key] = raw_path.resolve()
+            rel = "."
+            default_label = raw_path.name or f"自定义路径 {index + 1}"
+        else:
+            root_key = str(item.get("root", "ymos"))
+            if root_key not in READER_ROOTS:
+                print(f"⚠️  Reader 自定义路径 root 不存在，已跳过：{root_key}")
+                continue
+            root_base = READER_ROOTS[root_key].resolve()
+            READER_ROOTS[root_key] = root_base
+            target = (root_base / raw_path).resolve()
+            if not target.is_relative_to(root_base):
+                print(f"⚠️  Reader 自定义相对路径越界，已跳过：{path_value}")
+                continue
+            rel = str(raw_path)
+            default_label = raw_path.name or f"自定义路径 {index + 1}"
+
+        cat = {
+            "label": str(item.get("label") or default_label),
+            "root": root_key,
+            "rel": rel,
+            "mode": mode,
+        }
+        for key in ("months", "limit", "days", "fallback"):
+            if key in item:
+                cat[key] = item[key]
+        if isinstance(item.get("whitelist"), list):
+            cat["whitelist"] = set(item["whitelist"])
+        categories.append(cat)
+    return categories
+
+
+# 用户新增产出目录时，不必复制整份 reader_pages。相对路径默认基于 vault_root，
+# 绝对路径则成为一个显式只读根；目录可以暂时不存在，后续创建后会自动出现在列表中。
+custom_categories = build_custom_reader_categories(CONFIG.get("reader_custom_paths"))
+
+if custom_categories:
+    page = READER_PAGES.setdefault("ymos", {"label": "YMOS Reader", "sections": []})
+    page["sections"].append({
+        "label": "自定义工作区",
+        "icon": "🧩",
+        "defaultOpen": False,
+        "categories": custom_categories,
+    })
+
 TEXT_SUFFIXES = {
     ".md", ".markdown", ".txt", ".html", ".css", ".js", ".mjs", ".json",
     ".py", ".toml", ".yaml", ".yml",
@@ -114,11 +222,352 @@ READER_CATEGORIES: list[dict] = [
 DATE_FULL_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
 
-# 一份计划 md 可含两块结构化数据：计划块（收盘定的，永远第一块）+ 执行块（次日盘中补的）
+# 一份计划 md 可含两块结构化数据：计划块（盘前定的，永远第一块）+ 执行块（盘中补的）
 EXEC_DATA_MARK = "ymos-exec-data"
 EXEC_SECTION_MARK = "<!-- ymos-exec-section -->"
 
 MAX_BODY = 5_000_000
+
+# ---------------------------------------------------------------------------
+# 买入卖出决策：单笔交易生命周期（append-only）
+# ---------------------------------------------------------------------------
+TRADE_OPEN_MARK = "ymos-trade-open"
+TRADE_EVENT_MARK = "ymos-trade-event"
+TRADE_ACCOUNT_MARK = "ymos-trade-account"
+CLOSED_MONTH_SPLIT = 12
+
+TRADE_STATUS_PLAN = "计划中"
+TRADE_STATUS_HELD = "持仓中"
+TRADE_STATUS_CLOSED = "已平仓"
+
+_BAD_NAME_CHARS = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
+
+
+def sanitize_seg(value: str, limit: int = 48) -> str:
+    """把标的名 / Ticker 净化成安全文件名片段。"""
+    value = _BAD_NAME_CHARS.sub("", str(value or "")).strip().strip(".")
+    value = re.sub(r"\s+", " ", value)
+    return value[:limit]
+
+
+def trade_filename(name: str, code: str, date: str) -> str | None:
+    """生成 `{名称}_{Ticker}_{日期}.md`；客户端不能直接指定写入路径。"""
+    if not DATE_FULL_RE.match(date or ""):
+        return None
+    safe_name, safe_code = sanitize_seg(name), sanitize_seg(code)
+    if not safe_name and not safe_code:
+        return None
+    stem = "_".join(part for part in (safe_name, safe_code, date) if part)
+    return stem[:120] + ".md"
+
+
+def trade_open_path(filename: str) -> Path | None:
+    """解析计划中 / 持仓中根目录文件；拒绝目录穿越与内部文件。"""
+    if not filename or not filename.endswith(".md") or filename != Path(filename).name:
+        return None
+    if filename.startswith(("_", ".")):
+        return None
+    target = (ROOT_TRADE / filename).resolve()
+    return target if target.parent == ROOT_TRADE else None
+
+
+def find_trade_file(filename: str) -> Path | None:
+    """先查活动文件，再递归查已平仓归档。"""
+    active = trade_open_path(filename)
+    if active is None:
+        return None
+    if active.exists():
+        return active
+    if TRADE_CLOSED.exists():
+        for path in TRADE_CLOSED.rglob(filename):
+            if path.is_file():
+                return path.resolve()
+    return None
+
+
+def closed_dir_for(date: str) -> Path:
+    """平仓少时按年归档；同年达到阈值后，新文件按月归档。"""
+    year_dir = TRADE_CLOSED / date[:4]
+    if not year_dir.exists():
+        return year_dir
+    count = sum(1 for path in year_dir.rglob("*.md") if not path.name.startswith("_"))
+    return year_dir / date[:7] if count >= CLOSED_MONTH_SPLIT else year_dir
+
+
+def parse_front_matter(text: str) -> dict:
+    """解析本项目使用的平铺 `key: value` YAML front matter。"""
+    if not text.startswith("---"):
+        return {}
+    end = text.find("\n---", 3)
+    if end == -1:
+        return {}
+    result: dict = {}
+    for line in text[3:end].splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        result[key.strip()] = value.split("#")[0].strip()
+    return result
+
+
+def set_front_matter(text: str, updates: dict) -> str:
+    """只更新当前状态事实；JSON 事件流保持 append-only。"""
+    if not text.startswith("---"):
+        return text
+    end = text.find("\n---", 3)
+    if end == -1:
+        return text
+    lines = text[3:end].splitlines()
+    for key, value in updates.items():
+        replacement = f"{key}: {value}"
+        for index, line in enumerate(lines):
+            if line.strip().startswith(f"{key}:"):
+                lines[index] = replacement
+                break
+        else:
+            lines.append(replacement)
+    return "---" + "\n".join(lines) + text[end:]
+
+
+def _json_after(text: str, mark: str):
+    index = text.find(mark)
+    if index == -1:
+        return None
+    match = re.search(r"```json\s*\n(.*?)\n```", text[index:], re.S)
+    if not match:
+        return None
+    try:
+        return json.loads(match.group(1))
+    except json.JSONDecodeError:
+        return None
+
+
+def extract_trade_events(text: str) -> list:
+    """读取所有追加事件，而不是只读取第一个 JSON 围栏。"""
+    events = []
+    pattern = re.escape(TRADE_EVENT_MARK) + r".*?\n```json\s*\n(.*?)\n```"
+    for match in re.finditer(pattern, text, re.S):
+        try:
+            event = json.loads(match.group(1))
+            if isinstance(event, dict):
+                event.setdefault("schemaVersion", 1)
+                events.append(event)
+        except json.JSONDecodeError:
+            continue
+    return events
+
+
+def parse_event_block(block: str, allowed_kinds: set[str]) -> dict | None:
+    """校验前端提交的是一个完整事件块，并限制可走当前 endpoint 的事件类型。"""
+    if not isinstance(block, str) or not block.strip() or TRADE_EVENT_MARK not in block:
+        return None
+    event = _json_after(block, TRADE_EVENT_MARK)
+    if not isinstance(event, dict) or event.get("kind") not in allowed_kinds:
+        return None
+    event.setdefault("schemaVersion", 1)
+    return event
+
+
+def _number(value) -> float | None:
+    """读取有限数值；交易事实不能接受 NaN / Infinity。"""
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
+
+
+def trade_runtime(path: Path) -> tuple[str, dict, list]:
+    """读取一笔交易当前状态；所有写接口都以服务端 Markdown 为准。"""
+    text = path.read_text(encoding="utf-8", errors="replace")
+    return text, parse_front_matter(text), extract_trade_events(text)
+
+
+def has_event(events: list, *kinds: str) -> bool:
+    wanted = set(kinds)
+    return any(isinstance(event, dict) and event.get("kind") in wanted for event in events)
+
+
+def valid_calendar_date(value: str) -> bool:
+    if not DATE_FULL_RE.match(value or ""):
+        return False
+    try:
+        datetime.strptime(value, "%Y-%m-%d")
+    except ValueError:
+        return False
+    return True
+
+
+def _vault_rel(path: Path) -> str:
+    try:
+        return str(path.relative_to(VAULT_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def trade_summary(path: Path) -> dict:
+    text = path.read_text(encoding="utf-8", errors="replace")
+    front = parse_front_matter(text)
+    open_data = _json_after(text, TRADE_OPEN_MARK)
+    if isinstance(open_data, dict):
+        open_data.setdefault("schemaVersion", 1)
+    events = extract_trade_events(text)
+    return {
+        "file": path.name,
+        "front": front,
+        "open": open_data,
+        "events": events,
+        "eventCount": len(events),
+        "lastEvent": events[-1] if events else None,
+        "rel": _vault_rel(path),
+        "abs": str(path),
+        "mtime": path.stat().st_mtime,
+    }
+
+
+def _collect_trade(path: Path, bucket: list) -> None:
+    if not path.is_file() or path.suffix != ".md" or path.name.startswith(("_", ".")):
+        return
+    try:
+        item = trade_summary(path)
+    except OSError:
+        return
+    if item["front"].get("ymos_trade", "").lower() in ("true", "1", "yes", "v1"):
+        bucket.append(item)
+
+
+def list_trades() -> dict:
+    """返回活动交易与递归归档交易，两种归档深度均兼容。"""
+    open_items, closed_items = [], []
+    if ROOT_TRADE.exists():
+        for path in ROOT_TRADE.iterdir():
+            _collect_trade(path, open_items)
+    if TRADE_CLOSED.exists():
+        for path in TRADE_CLOSED.rglob("*.md"):
+            _collect_trade(path, closed_items)
+    open_items.sort(key=lambda item: item["mtime"], reverse=True)
+    closed_items.sort(key=lambda item: item["mtime"], reverse=True)
+    return {"open": open_items, "closed": closed_items}
+
+
+# ---------------------------------------------------------------------------
+# 持仓行情：复用 Eyes 的三源价格路由器；失败不阻塞决策流程
+# ---------------------------------------------------------------------------
+PRICE_ROUTER = VAULT_ROOT / "Eyes" / "scripts" / "fetch_price_router.py"
+STATE_FILES = [
+    VAULT_ROOT / "持仓与关注" / "持仓_状态机.md",
+    VAULT_ROOT / "持仓与关注" / "Watchlist_状态机.md",
+]
+PRICE_CACHE: dict = {"at": 0.0, "data": {}}
+PRICE_TTL = 600
+TICKER_RE = re.compile(r"^\^?[A-Z0-9]{1,10}(\.[A-Z]{2})?$")
+
+
+def name_ticker_map() -> dict:
+    """从持仓和 Watchlist 状态机提取 `标的名 → Ticker`。"""
+    result: dict = {}
+    for path in STATE_FILES:
+        if not path.exists():
+            continue
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            if not line.startswith("|"):
+                continue
+            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+            if len(cells) < 2:
+                continue
+            name, ticker = cells[0], cells[1].strip("`").upper()
+            if name and name != "名称" and TICKER_RE.match(ticker):
+                result.setdefault(name, ticker)
+    return result
+
+
+def _norm_symbol(symbol: str) -> str:
+    symbol = (symbol or "").upper()
+    if ":" in symbol:
+        return symbol.split(":", 1)[1].replace("USDT", "")
+    if symbol.endswith("-USD"):
+        return symbol[:-4]
+    return symbol
+
+
+def _parse_price_file(path: Path, output: dict, source: str) -> None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+    except (OSError, json.JSONDecodeError):
+        return
+    for row in payload.get("data", []):
+        if not isinstance(row, dict) or row.get("ok") is False:
+            continue
+        symbol = _norm_symbol(row.get("symbol", ""))
+        price = row.get("price", row.get("last_close"))
+        if not symbol or price in (None, ""):
+            continue
+        pct = row.get("pct_chg", row.get("change_pct"))
+        if pct is None:
+            previous = row.get("prev_close") or row.get("pre_close")
+            if previous is None:
+                bars = row.get("bars") or []
+                if len(bars) >= 2:
+                    previous = bars[-2].get("close")
+            if previous:
+                try:
+                    pct = (float(price) - float(previous)) / float(previous) * 100
+                except (TypeError, ValueError, ZeroDivisionError):
+                    pct = None
+        output[symbol] = {"price": price, "pctChg": pct, "source": source}
+
+
+def price_sources() -> dict:
+    env_path = VAULT_ROOT / ".env"
+    env_text = env_path.read_text(encoding="utf-8", errors="replace") if env_path.exists() else ""
+
+    def configured(key: str) -> bool:
+        for line in env_text.splitlines():
+            line = line.strip()
+            if line.startswith(key + "=") and line.split("=", 1)[1].strip():
+                return True
+        return bool(os.getenv(key, "").strip())
+
+    return {
+        "finnhub": configured("FINNHUB_API_KEY"),
+        "tushare": configured("TUSHARE_TOKEN"),
+        "yahoo": True,
+        "router": PRICE_ROUTER.exists(),
+    }
+
+
+def fetch_prices(symbols: list[str]) -> dict:
+    """调用现有路由器，返回已成功取得的部分行情。"""
+    symbols = [symbol for symbol in dict.fromkeys(
+        value.strip().upper() for value in symbols if value and value.strip()
+    )]
+    if not symbols or not PRICE_ROUTER.exists():
+        return {}
+    import tempfile
+
+    output: dict = {}
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        command = [
+            sys.executable, str(PRICE_ROUTER),
+            "--symbols", ",".join(symbols),
+            "--output-dir", tmp_dir,
+            "--date-tag", "latest",
+        ]
+        try:
+            subprocess.run(
+                command,
+                cwd=str(VAULT_ROOT.parent),
+                timeout=90,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except (OSError, subprocess.SubprocessError):
+            pass
+        for source in ("finnhub", "tushare", "yahoo"):
+            for path in Path(tmp_dir).glob(f"price_scan_{source}_*.json"):
+                _parse_price_file(path, output, source)
+    return output
 
 
 # ---------------------------------------------------------------------------
@@ -308,6 +757,8 @@ def render_audit_entry(payload: dict) -> str:
     passed = bool(payload.get("passed"))
     verdict = "✅ 放行（扣扳机）" if passed else "🛑 拦截（未全绿）"
     target = str(payload.get("target") or "").strip()
+    ticker = str(payload.get("ticker") or "").strip().upper()
+    trade_file = str(payload.get("tradeFile") or "").strip()
     note = str(payload.get("note") or "").strip()
     stance = str(payload.get("stance") or "").strip()
 
@@ -315,6 +766,10 @@ def render_audit_entry(payload: dict) -> str:
     meta = []
     if target:
         meta.append(f"- **标的/场景**：{target}")
+    if ticker:
+        meta.append(f"- **Ticker**：{ticker}")
+    if trade_file:
+        meta.append(f"- **交易文件**：`{Path(trade_file).name}`")
     if stance:
         meta.append(f"- **当日定调**：{stance}")
     if meta:
@@ -342,6 +797,25 @@ def render_audit_entry(payload: dict) -> str:
         lines.append(f"> **备注**：{note}")
         lines.append("")
 
+    audit_data = {
+        "schemaVersion": 1,
+        "kind": "decision_audit",
+        "ts": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "mode": str(payload.get("mode") or ""),
+        "passed": passed,
+        "target": target,
+        "ticker": ticker,
+        "tradeFile": Path(trade_file).name if trade_file else "",
+        "missing": missed,
+    }
+    lines.extend([
+        "<!-- ymos-decision-audit -->",
+        "```json",
+        json.dumps(audit_data, ensure_ascii=False, indent=2),
+        "```",
+        "",
+    ])
+
     lines.append("---")
     lines.append("")
     lines.append("")
@@ -358,8 +832,9 @@ STATIC_ROUTES = {
     "/reader.html": "reader.html",
     "/plan": "交易计划台.html",
     "/交易计划台.html": "交易计划台.html",
-    "/sop": "新高买卖决策台.html",
-    "/新高买卖决策台.html": "新高买卖决策台.html",
+    "/decide": "买卖决策台.html",
+    "/买卖决策台.html": "买卖决策台.html",
+    "/sop": "买卖决策台.html",
 }
 
 
@@ -367,11 +842,15 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         return
 
-    def _send_json(self, code: int, payload) -> None:
+    def _send_json(self, code: int, payload, *, allow_file_preview: bool = False) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        # 只给只读 health 接口开放 file:// 探测。交易写接口绝不开放跨域，
+        # 避免任意网页借本机服务改写用户的 vault。
+        if allow_file_preview:
+            self.send_header("Access-Control-Allow-Origin", "null")
         self.end_headers()
         self.wfile.write(body)
 
@@ -474,14 +953,23 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(404, {"error": "no rules file"})
             return
 
-        # 连接状态：前端状态条用它判断「已连 vault」还是「仅本地暂存」
+        # file:// 预览只允许探测服务是否存在，不暴露 vault 路径，也不开任何写接口跨域。
+        if path == "/api/ping":
+            self._send_json(200, {"ok": True, "storage": "markdown"}, allow_file_preview=True)
+            return
+
+        # 连接状态：由同源正式页面读取，包含实际 Markdown 目录。
         if path == "/api/health":
             self._send_json(200, {
                 "ok": True,
+                "storage": "markdown",
                 "vaultRoot": str(VAULT_ROOT),
                 "planDir": str(ROOT_PLAN),
                 "auditDir": str(ROOT_AUDIT),
+                "tradeDir": str(ROOT_TRADE),
                 "planDirExists": ROOT_PLAN.exists(),
+                "tradeDirExists": ROOT_TRADE.exists(),
+                "accountStateExists": ACCOUNT_FILE.exists(),
             })
             return
 
@@ -500,7 +988,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(200, {"found": True, "state": data, "exec": extract_exec_json(text)})
             return
 
-        # 读「严格早于某日」的最近一份收盘计划（= 今日要执行的上一交易日计划）
+        # 兼容旧版：读「严格早于某日」的最近一份盘前计划。
         if path == "/api/plan/latest":
             before = (qs.get("before", [""]) or [""])[0]
             if not DATE_FULL_RE.match(before or ""):
@@ -518,6 +1006,35 @@ class Handler(BaseHTTPRequestHandler):
                 if data is not None:
                     self._send_json(200, {"found": True, "date": d, "state": data,
                                           "exec": extract_exec_json(text)})
+                    return
+            self._send_json(200, {"found": False})
+            return
+
+        # 盘中自动数据源：优先读取执行日当天的盘前计划；若没有，则回退到
+        # 最近一份更早的旧版计划。这样既支持收盘后提前做下一交易日计划，
+        # 也支持第二天开盘前补计划，同时不让 V4.0 的历史计划失效。
+        if path == "/api/plan/current":
+            date = (qs.get("date", [""]) or [""])[0]
+            if not DATE_FULL_RE.match(date or ""):
+                self._send_json(400, {"error": "bad date"}); return
+            candidates = []
+            if ROOT_PLAN.exists():
+                for md in ROOT_PLAN.rglob("*日交易计划.md"):
+                    match = DATE_RE.search(md.name)
+                    if match and match.group(1) <= date:
+                        candidates.append((match.group(1), md))
+            candidates.sort(key=lambda item: item[0], reverse=True)
+            for plan_date, md in candidates:
+                text = md.read_text(encoding="utf-8", errors="replace")
+                data = extract_plan_json(text)
+                if data is not None:
+                    self._send_json(200, {
+                        "found": True,
+                        "date": plan_date,
+                        "match": "exact" if plan_date == date else "fallback",
+                        "state": data,
+                        "exec": extract_exec_json(text),
+                    })
                     return
             self._send_json(200, {"found": False})
             return
@@ -541,6 +1058,67 @@ class Handler(BaseHTTPRequestHandler):
             if data is None:
                 self._send_json(200, {"found": False}); return
             self._send_json(200, {"found": True, "state": data})
+            return
+
+        if path == "/api/trade/list":
+            self._send_json(200, list_trades())
+            return
+
+        if path == "/api/trade/load":
+            filename = (qs.get("file", [""]) or [""])[0]
+            target = find_trade_file(filename)
+            if target is None:
+                self._send_json(200, {"found": False})
+                return
+            payload = trade_summary(target)
+            payload["found"] = True
+            payload["markdown"] = target.read_text(encoding="utf-8", errors="replace")
+            self._send_json(200, payload)
+            return
+
+        if path == "/api/trade/prices":
+            mapping = name_ticker_map()
+            wanted, resolved, unresolved = [], {}, []
+            for item in list_trades()["open"]:
+                front, open_data = item["front"], (item["open"] or {})
+                if front.get("状态") not in (TRADE_STATUS_HELD, None):
+                    continue
+                name = front.get("标的", "")
+                ticker = (open_data.get("ticker") or front.get("Ticker") or mapping.get(name) or "").strip().upper()
+                if ticker:
+                    wanted.append(ticker)
+                    resolved[name] = ticker
+                elif name:
+                    unresolved.append(name)
+            force = (qs.get("force", ["0"]) or ["0"])[0] == "1"
+            if not force and PRICE_CACHE["data"] and time.time() - PRICE_CACHE["at"] < PRICE_TTL:
+                prices = PRICE_CACHE["data"]
+            else:
+                prices = fetch_prices(wanted)
+                if prices:
+                    PRICE_CACHE.update(at=time.time(), data=prices)
+            self._send_json(200, {
+                "prices": prices,
+                "resolved": resolved,
+                "unresolved": unresolved,
+                "asOf": time.strftime("%Y-%m-%d %H:%M", time.localtime(PRICE_CACHE["at"] or time.time())),
+                "sources": price_sources(),
+            })
+            return
+
+        if path == "/api/trade/account":
+            if not ACCOUNT_FILE.exists():
+                self._send_json(200, {"found": False})
+                return
+            account = _json_after(
+                ACCOUNT_FILE.read_text(encoding="utf-8", errors="replace"),
+                TRADE_ACCOUNT_MARK,
+            )
+            if not isinstance(account, dict):
+                self._send_json(200, {"found": False})
+                return
+            account.setdefault("schemaVersion", 1)
+            self._send_json(200, {"found": True, "account": account})
             return
 
         self.send_response(404)
@@ -605,7 +1183,7 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 target.parent.mkdir(parents=True, exist_ok=True)
                 if not target.exists():
-                    header = f"# {date} 决策记录\n\n> 由 YMOS Console · 新高买卖决策台自动留痕。每一次扣扳机和每一次被拦截都在这里。\n\n"
+                    header = f"# {date} 决策记录\n\n> 由 YMOS Console · 买卖决策台自动留痕。每一次扣扳机和每一次被拦截都在这里。\n\n"
                     target.write_text(header + entry, encoding="utf-8")
                 else:
                     with target.open("a", encoding="utf-8") as fh:
@@ -615,17 +1193,287 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(200, {"ok": True, "abs": str(target)})
             return
 
+        # 买入逻辑建档：服务端生成文件名，已有文件绝不覆盖。
+        if path == "/api/trade/open":
+            payload = self._read_json_body()
+            if payload is None:
+                self._send_json(400, {"error": "bad body"}); return
+            filename = trade_filename(
+                payload.get("name", ""),
+                payload.get("code", ""),
+                str(payload.get("date", "")),
+            )
+            markdown = payload.get("markdown", "")
+            if filename is None or not valid_calendar_date(str(payload.get("date", ""))):
+                self._send_json(400, {"error": "bad name/code/date"}); return
+            if not isinstance(markdown, str) or not markdown.strip():
+                self._send_json(400, {"error": "empty markdown"}); return
+            front = parse_front_matter(markdown)
+            open_data = _json_after(markdown, TRADE_OPEN_MARK)
+            if front.get("ymos_trade", "").lower() not in ("true", "1", "yes", "v1") or not isinstance(open_data, dict):
+                self._send_json(400, {"error": "invalid trade markdown"}); return
+            name = str(payload.get("name", "")).strip()
+            code = str(payload.get("code", "")).strip().upper()
+            date = str(payload.get("date", ""))
+            open_name = str(open_data.get("symbol", "")).strip()
+            open_code = str(open_data.get("ticker", "")).strip().upper()
+            open_date = str(open_data.get("openDate") or open_data.get("date") or "")
+            front_name = str(front.get("标的", "")).strip()
+            front_code = str(front.get("Ticker", "")).strip().upper()
+            front_date = str(front.get("建仓决策日") or front.get("创建日期") or "")
+            if (
+                open_data.get("kind") != "open"
+                or front.get("状态") != TRADE_STATUS_PLAN
+                or open_name != name
+                or front_name != name
+                or open_date != date
+                or front_date != date
+                or (code and (open_code != code or front_code != code))
+                or (not code and (open_code or front_code))
+            ):
+                self._send_json(400, {"error": "trade identity mismatch"}); return
+            if find_trade_file(filename) is not None:
+                self._send_json(409, {"error": "exists", "file": filename}); return
+            target = trade_open_path(filename)
+            if target is None:
+                self._send_json(400, {"error": "bad path"}); return
+            try:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(markdown, encoding="utf-8")
+            except OSError as exc:
+                self._send_json(500, {"error": f"write failed: {exc}"}); return
+            self._send_json(200, {"ok": True, "file": filename, "rel": _vault_rel(target)})
+            return
+
+        # prepare / revise / add / adjust：只能追加到活动文件。
+        if path == "/api/trade/append":
+            payload = self._read_json_body()
+            if payload is None:
+                self._send_json(400, {"error": "bad body"}); return
+            target = find_trade_file(str(payload.get("file", "")))
+            if target is None:
+                self._send_json(404, {"error": "trade file not found"}); return
+            if target.parent != ROOT_TRADE:
+                self._send_json(409, {"error": "trade is already closed"}); return
+            block = payload.get("block", "")
+            event = parse_event_block(block, {"prepare", "revise", "add", "adjust"})
+            if event is None:
+                self._send_json(400, {"error": "invalid event block"}); return
+            _, front, events = trade_runtime(target)
+            status = front.get("状态")
+            kind = event.get("kind")
+            prepared = has_event(events, "prepare", "revise")
+            filled = has_event(events, "fill")
+            allowed = (
+                (kind == "prepare" and status == TRADE_STATUS_PLAN and not prepared and not filled)
+                or (kind == "revise" and status == TRADE_STATUS_PLAN and prepared and not filled)
+                # V4 的 add 只是一份加仓计划 / 压力测试，不改变成交事实。
+                or (
+                    kind == "add" and status == TRADE_STATUS_HELD and filled
+                    and event.get("planOnly") is True
+                    and event.get("changesPositionFacts") is False
+                )
+                or (kind == "adjust" and status == TRADE_STATUS_HELD and filled)
+            )
+            if not allowed:
+                self._send_json(409, {"error": "illegal trade transition", "status": status, "kind": kind}); return
+            try:
+                with target.open("a", encoding="utf-8") as handle:
+                    handle.write("\n" + block.rstrip() + "\n")
+            except OSError as exc:
+                self._send_json(500, {"error": f"append failed: {exc}"}); return
+            self._send_json(200, {"ok": True, "file": target.name, "rel": _vault_rel(target)})
+            return
+
+        # 部分卖出：追加事件，同时更新剩余股数和剩余成本。
+        if path == "/api/trade/sell":
+            payload = self._read_json_body()
+            if payload is None:
+                self._send_json(400, {"error": "bad body"}); return
+            target = find_trade_file(str(payload.get("file", "")))
+            if target is None:
+                self._send_json(404, {"error": "trade file not found"}); return
+            if target.parent != ROOT_TRADE:
+                self._send_json(409, {"error": "trade is already closed"}); return
+            block = payload.get("block", "")
+            event = parse_event_block(block, {"tp", "sl"})
+            if event is None:
+                self._send_json(400, {"error": "invalid sell event"}); return
+            _, front, events = trade_runtime(target)
+            if front.get("状态") != TRADE_STATUS_HELD or not has_event(events, "fill"):
+                self._send_json(409, {"error": "illegal trade transition"}); return
+            current_shares = _number(front.get("持仓股数"))
+            cost_price = _number(front.get("成本价"))
+            sell = event.get("sell") if isinstance(event.get("sell"), dict) else {}
+            before = _number(sell.get("beforeShares"))
+            sold = _number(sell.get("sellShares"))
+            declared_remaining = _number(sell.get("remainingShares"))
+            if (
+                current_shares is None or current_shares <= 0
+                or cost_price is None or cost_price < 0
+                or before is None or abs(before - current_shares) > 1e-8
+                or sold is None or sold <= 0 or sold >= current_shares
+            ):
+                self._send_json(400, {"error": "bad sell facts"}); return
+            remaining = current_shares - sold
+            if declared_remaining is None or abs(declared_remaining - remaining) > 1e-8:
+                self._send_json(400, {"error": "sell remainder mismatch"}); return
+            updates = {
+                "持仓股数": f"{remaining:.8f}".rstrip("0").rstrip("."),
+                "实际投入": f"{remaining * cost_price:.8f}".rstrip("0").rstrip("."),
+            }
+            try:
+                with target.open("a", encoding="utf-8") as handle:
+                    handle.write("\n" + block.rstrip() + "\n")
+                text = target.read_text(encoding="utf-8", errors="replace")
+                target.write_text(set_front_matter(text, updates), encoding="utf-8")
+            except OSError as exc:
+                self._send_json(500, {"error": f"sell failed: {exc}"}); return
+            self._send_json(200, {"ok": True, "file": target.name, "rel": _vault_rel(target)})
+            return
+
+        # 全部平仓：追加结果事件、更新状态，再移动到归档目录。
+        if path == "/api/trade/close":
+            payload = self._read_json_body()
+            if payload is None:
+                self._send_json(400, {"error": "bad body"}); return
+            target = find_trade_file(str(payload.get("file", "")))
+            if target is None:
+                self._send_json(404, {"error": "trade file not found"}); return
+            if target.parent != ROOT_TRADE:
+                self._send_json(409, {"error": "trade is already closed"}); return
+            block = payload.get("block", "")
+            close_date = str(payload.get("closeDate", ""))
+            event = parse_event_block(block, {"close"})
+            if event is None:
+                self._send_json(400, {"error": "invalid close event"}); return
+            if not valid_calendar_date(close_date):
+                self._send_json(400, {"error": "bad closeDate"}); return
+            _, front, events = trade_runtime(target)
+            if front.get("状态") != TRADE_STATUS_HELD or not has_event(events, "fill"):
+                self._send_json(409, {"error": "illegal trade transition"}); return
+            current_shares = _number(front.get("持仓股数"))
+            sell = event.get("sell") if isinstance(event.get("sell"), dict) else {}
+            before = _number(sell.get("beforeShares"))
+            sold = _number(sell.get("sellShares"))
+            remaining = _number(sell.get("remainingShares"))
+            if (
+                current_shares is None or current_shares <= 0
+                or before is None or abs(before - current_shares) > 1e-8
+                or sold is None or abs(sold - current_shares) > 1e-8
+                or remaining is None or abs(remaining) > 1e-8
+            ):
+                self._send_json(400, {"error": "bad close facts"}); return
+            destination_dir = closed_dir_for(close_date)
+            destination = destination_dir / target.name
+            if destination.exists():
+                self._send_json(409, {"error": "archive target exists"}); return
+            try:
+                with target.open("a", encoding="utf-8") as handle:
+                    handle.write("\n" + block.rstrip() + "\n")
+                text = target.read_text(encoding="utf-8", errors="replace")
+                text = set_front_matter(text, {
+                    "状态": TRADE_STATUS_CLOSED,
+                    "平仓日": close_date,
+                    "持仓股数": 0,
+                    "实际投入": 0,
+                })
+                target.write_text(text, encoding="utf-8")
+                destination_dir.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(target), str(destination))
+            except OSError as exc:
+                self._send_json(500, {"error": f"close failed: {exc}"}); return
+            self._send_json(200, {"ok": True, "file": destination.name, "rel": _vault_rel(destination)})
+            return
+
+        # 确认建仓：计划中 → 持仓中，同时写入当前成交事实。
+        if path == "/api/trade/fill":
+            payload = self._read_json_body()
+            if payload is None:
+                self._send_json(400, {"error": "bad body"}); return
+            target = find_trade_file(str(payload.get("file", "")))
+            if target is None:
+                self._send_json(404, {"error": "trade file not found"}); return
+            if target.parent != ROOT_TRADE:
+                self._send_json(409, {"error": "trade is already closed"}); return
+            block = payload.get("block", "")
+            fill_date = str(payload.get("fillDate", ""))
+            event = parse_event_block(block, {"fill"})
+            if event is None:
+                self._send_json(400, {"error": "invalid fill event"}); return
+            if not valid_calendar_date(fill_date):
+                self._send_json(400, {"error": "bad fillDate"}); return
+            _, front, events = trade_runtime(target)
+            if (
+                front.get("状态") != TRADE_STATUS_PLAN
+                or not has_event(events, "prepare", "revise")
+                or has_event(events, "fill")
+            ):
+                self._send_json(409, {"error": "illegal trade transition"}); return
+            event_fill = event.get("fill") if isinstance(event.get("fill"), dict) else {}
+            shares = _number(payload.get("shares"))
+            cost_price = _number(payload.get("costPrice"))
+            event_shares = _number(event_fill.get("shares"))
+            event_price = _number(event_fill.get("price"))
+            event_amount = _number(event_fill.get("actualAmount", shares * cost_price if shares is not None and cost_price is not None else None))
+            if shares is None or cost_price is None or shares <= 0 or cost_price <= 0:
+                self._send_json(400, {"error": "bad fill values"}); return
+            if event_shares is None or event_price is None or abs(event_shares - shares) > 1e-8 or abs(event_price - cost_price) > 1e-8:
+                self._send_json(400, {"error": "fill event mismatch"}); return
+            actual_amount = shares * cost_price
+            declared_amount = _number(payload.get("actualAmount", actual_amount))
+            if (
+                declared_amount is None or abs(declared_amount - actual_amount) > 0.01
+                or event_amount is None or abs(event_amount - actual_amount) > 0.01
+            ):
+                self._send_json(400, {"error": "fill amount mismatch"}); return
+            updates = {
+                "状态": TRADE_STATUS_HELD,
+                "建仓完成日": fill_date,
+                "持仓股数": f"{shares:.8f}".rstrip("0").rstrip("."),
+                "成本价": f"{cost_price:.8f}".rstrip("0").rstrip("."),
+                "实际投入": f"{actual_amount:.8f}".rstrip("0").rstrip("."),
+            }
+            try:
+                with target.open("a", encoding="utf-8") as handle:
+                    handle.write("\n" + block.rstrip() + "\n")
+                text = target.read_text(encoding="utf-8", errors="replace")
+                target.write_text(set_front_matter(text, updates), encoding="utf-8")
+            except OSError as exc:
+                self._send_json(500, {"error": f"fill failed: {exc}"}); return
+            self._send_json(200, {"ok": True, "file": target.name, "rel": _vault_rel(target)})
+            return
+
+        # 账户参数是固定单文件；写入前必须包含可解析的账户 JSON。
+        if path == "/api/trade/account":
+            payload = self._read_json_body()
+            if payload is None:
+                self._send_json(400, {"error": "bad body"}); return
+            markdown = payload.get("markdown", "")
+            account = _json_after(markdown, TRADE_ACCOUNT_MARK) if isinstance(markdown, str) else None
+            if not isinstance(account, dict):
+                self._send_json(400, {"error": "invalid account markdown"}); return
+            try:
+                ACCOUNT_FILE.parent.mkdir(parents=True, exist_ok=True)
+                ACCOUNT_FILE.write_text(markdown, encoding="utf-8")
+            except OSError as exc:
+                self._send_json(500, {"error": f"write failed: {exc}"}); return
+            self._send_json(200, {"ok": True, "rel": _vault_rel(ACCOUNT_FILE)})
+            return
+
         self.send_response(404)
         self.end_headers()
 
 
 def main() -> None:
+    ensure_runtime_layout()
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print("  YMOS Console · Reader + 决策台")
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print(f"  📂 vault 根目录 : {VAULT_ROOT}")
-    print(f"  📝 交易计划     : {ROOT_PLAN}  {'✅' if ROOT_PLAN.exists() else '（首次保存时自动创建）'}")
-    print(f"  🧾 决策审计     : {ROOT_AUDIT}  {'✅' if ROOT_AUDIT.exists() else '（首次留痕时自动创建）'}")
+    print(f"  📝 交易计划     : {ROOT_PLAN}  ✅")
+    print(f"  🧾 决策审计     : {ROOT_AUDIT}  ✅")
+    print(f"  📈 买卖决策     : {ROOT_TRADE}  ✅")
     print(f"  📚 Reader 页面  : {len(READER_PAGES)}")
     if not (HERE / "config.json").exists():
         print("  ⚠️  未找到 config.json —— 正在使用默认路径。")

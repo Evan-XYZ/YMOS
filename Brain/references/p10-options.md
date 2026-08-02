@@ -1,6 +1,5 @@
 # P10: 期权策略参考 (Options Strategy)
-
-
+> **策略内核层 · 判断工具｜`optional`** 不做衍生品可直接删除。启用前必须在 Profile 的 `scope.instruments` 里显式允许，否则买卖决策台不会放行。
 
 ## 路径上下文（YMOS）
 - 根目录：`YMOS/`

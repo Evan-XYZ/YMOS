@@ -1,0 +1,4798 @@
+<!doctype html>
+<html lang="zh" data-edition="open-source-generic">
+
+<head>
+  <meta charset="utf-8" />
+  <title>买卖决策台 · YMOS V4</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#faf9f5" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="决策台" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --bg-sidebar: #f4f2ea;
+      --bg-elev: #ffffff;
+      --ink: #1f1e1c;
+      --ink-2: #4a4844;
+      --ink-3: #8a857c;
+      --line: #e7e3d8;
+      --line-strong: #d8d2c2;
+      --accent: #cc785c;
+      --accent-ink: #b56247;
+      --accent-soft: rgba(204, 120, 92, 0.10);
+      --green: #4f7a52;
+      --green-soft: rgba(79, 122, 82, 0.10);
+      --red: #b0483b;
+      --red-soft: rgba(176, 72, 59, 0.09);
+      --stance: #5f7d95;
+      --stance-soft: rgba(95, 125, 149, 0.12);
+      --main-w: 100%;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      height: 100vh;
+      height: 100dvh;
+    }
+
+    body.dragging-col {
+      cursor: col-resize;
+      user-select: none;
+    }
+
+    body.dragging-col * {
+      cursor: col-resize !important;
+    }
+
+    /* ========== Sidebar ========== */
+    aside {
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .brand {
+      padding: 22px 22px 18px;
+      font-family: "Source Serif 4", Georgia, serif;
+      font-size: 21px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex: 0 0 8px;
+    }
+
+    .brand .sub {
+      margin-left: auto;
+      font-family: "Inter", sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink-3);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .mode-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0 24px;
+    }
+
+    .group-head {
+      padding: 18px 22px 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+
+    .mode-btn {
+      margin: 3px 12px;
+      padding: 11px 14px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      color: var(--ink-2);
+      transition: background 0.12s, border-color 0.12s;
+    }
+
+    .mode-btn:hover {
+      background: rgba(204, 120, 92, 0.06);
+    }
+
+    .mode-btn.on {
+      background: var(--bg-elev);
+      border-color: var(--line-strong);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+      color: var(--ink);
+    }
+
+    .mode-btn .m-icon {
+      width: 26px;
+      height: 26px;
+      flex: 0 0 26px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .mode-btn.on.buy .m-icon {
+      background: var(--accent-soft);
+    }
+
+    .mode-btn.on.sell .m-icon {
+      background: var(--green-soft);
+    }
+
+    .mode-btn.on.stance .m-icon {
+      background: var(--stance-soft);
+    }
+
+    .mode-btn .m-txt {
+      min-width: 0;
+    }
+
+    .mode-btn .m-label {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+
+    .mode-btn .m-desc {
+      font-size: 11px;
+      color: var(--ink-3);
+      line-height: 1.3;
+      margin-top: 1px;
+    }
+
+    .mode-btn.on .m-mark {
+      margin-left: auto;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex: 0 0 6px;
+      background: var(--accent);
+    }
+
+    .mode-btn.on.sell .m-mark {
+      background: var(--green);
+    }
+
+    .mode-btn.on.stance .m-mark {
+      background: var(--stance);
+    }
+
+    .side-foot {
+      padding: 14px 20px 18px;
+      border-top: 1px solid var(--line);
+      font-size: 11px;
+      color: var(--ink-3);
+      line-height: 1.6;
+    }
+
+    .side-foot b {
+      color: var(--ink-2);
+      font-weight: 600;
+    }
+
+    .side-link {
+      display: inline-block;
+      margin-top: 8px;
+      color: var(--accent-ink);
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      border-bottom: 1px dashed var(--accent-ink);
+    }
+
+    /* ========== Main (可拖拽宽度) ========== */
+    main {
+      position: relative;
+      overflow: hidden;
+      background: var(--bg);
+      min-width: 0;
+    }
+
+    .main-col {
+      position: relative;
+      height: 100vh;
+      height: 100dvh;
+      width: var(--main-w);
+      max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      border-right: 1px solid var(--line);
+    }
+
+    /* 移动端 / 嵌入版顶栏（桌面独立版隐藏，靠 @media 或 .embedded 打开） */
+    .mobile-topbar {
+      display: none;
+      flex-direction: column;
+      gap: 9px;
+      flex: 0 0 auto;
+      padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+      border-bottom: 1px solid var(--line);
+      background: var(--bg-sidebar);
+    }
+
+    .mtb-brand {
+      font-family: "Source Serif 4", Georgia, serif;
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--ink);
+    }
+
+    .mtb-brand .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex: 0 0 7px;
+    }
+
+    .mtb-brand .mtb-sub {
+      margin-left: auto;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      font-family: "Inter", sans-serif;
+    }
+
+    .mtb-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+
+    .mtb-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .mtb-chip {
+      flex: 0 0 auto;
+      padding: 8px 15px;
+      border-radius: 20px;
+      border: 1px solid var(--line-strong);
+      background: var(--bg-elev);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-2);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .mtb-chip.on.buy {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .mtb-chip.on.sell {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+    }
+
+    .mtb-chip.on.stance {
+      background: var(--stance);
+      border-color: var(--stance);
+      color: #fff;
+    }
+
+    .resize-handle {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: -4px;
+      width: 9px;
+      cursor: col-resize;
+      z-index: 30;
+      background: transparent;
+      transition: background 0.15s;
+    }
+
+    .resize-handle:hover,
+    .resize-handle.dragging {
+      background: var(--accent-soft);
+    }
+
+    .resize-handle::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 3px;
+      width: 2px;
+      background: transparent;
+      border-radius: 2px;
+      transition: background 0.15s;
+    }
+
+    .resize-handle:hover::after,
+    .resize-handle.dragging::after {
+      background: var(--accent);
+    }
+
+    .resize-grip {
+      position: absolute;
+      right: -1px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 5px;
+      height: 46px;
+      border-radius: 4px;
+      z-index: 31;
+      background: var(--line-strong);
+      opacity: 0.55;
+      pointer-events: none;
+      transition: opacity 0.15s, background 0.15s;
+    }
+
+    .resize-handle:hover~.resize-grip,
+    .main-col:hover .resize-grip {
+      opacity: 0.9;
+    }
+
+    .resize-hint {
+      position: absolute;
+      right: 12px;
+      top: 72px;
+      z-index: 40;
+      padding: 8px 11px;
+      border-radius: 7px;
+      background: var(--ink);
+      color: #fff;
+      font-size: 12px;
+      line-height: 1.45;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+      opacity: 0;
+      transform: translateX(8px);
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .resize-hint.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .head {
+      padding: 26px 40px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .head .kicker {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent-ink);
+      margin-bottom: 8px;
+    }
+
+    .head h1 {
+      font-family: "Source Serif 4", Georgia, serif;
+      font-size: 27px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin: 0 0 8px;
+      color: var(--ink);
+    }
+
+    .head .tagline {
+      font-size: 14px;
+      color: var(--ink-2);
+      line-height: 1.5;
+    }
+
+    .core-banner {
+      margin: 20px 40px 0;
+      padding: 13px 18px;
+      border-radius: 10px;
+      background: var(--accent-soft);
+      border: 1px solid rgba(204, 120, 92, 0.25);
+      font-size: 13.5px;
+      color: var(--ink);
+      line-height: 1.55;
+      display: flex;
+      gap: 11px;
+      align-items: flex-start;
+    }
+
+    .core-banner.sell {
+      background: var(--green-soft);
+      border-color: rgba(79, 122, 82, 0.25);
+    }
+
+    .core-banner .cb-icon {
+      flex: 0 0 auto;
+      font-size: 16px;
+    }
+
+    .core-banner b {
+      font-weight: 600;
+    }
+
+    .body-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 40px 28px;
+    }
+
+    .section {
+      margin-top: 26px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .section-title .s-name {
+      font-family: "Source Serif 4", Georgia, serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .section-title .s-rule {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 9px;
+      border-radius: 20px;
+      letter-spacing: 0.02em;
+    }
+
+    .s-rule.all {
+      background: var(--accent-soft);
+      color: var(--accent-ink);
+    }
+
+    .s-rule.any {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .section-title .s-prog {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--ink-3);
+      font-feature-settings: "tnum";
+    }
+
+    .item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--bg-elev);
+      margin-bottom: 9px;
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s;
+      position: relative;
+    }
+
+    .item:hover {
+      border-color: var(--line-strong);
+    }
+
+    .item.checked {
+      border-color: rgba(204, 120, 92, 0.4);
+      background: rgba(204, 120, 92, 0.035);
+    }
+
+    .item.redline {
+      border-left: 3px solid var(--red);
+    }
+
+    .item.redline.checked {
+      border-left-color: var(--red);
+      background: var(--red-soft);
+      border-color: rgba(176, 72, 59, 0.3);
+    }
+
+    .cbox {
+      flex: 0 0 22px;
+      width: 22px;
+      height: 22px;
+      margin-top: 1px;
+      border-radius: 6px;
+      border: 2px solid var(--line-strong);
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.12s;
+    }
+
+    .item:hover .cbox {
+      border-color: var(--accent);
+    }
+
+    .item.checked .cbox {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .item.redline.checked .cbox {
+      background: var(--red);
+      border-color: var(--red);
+    }
+
+    .cbox svg {
+      width: 13px;
+      height: 13px;
+      opacity: 0;
+      transform: scale(0.6);
+      transition: all 0.12s;
+    }
+
+    .item.checked .cbox svg {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .i-body {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .i-label {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--ink);
+      line-height: 1.4;
+    }
+
+    .i-label .rl-tag {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--red);
+      border: 1px solid rgba(176, 72, 59, 0.4);
+      border-radius: 4px;
+      padding: 0 5px;
+      margin-left: 8px;
+      vertical-align: 1px;
+      letter-spacing: 0.03em;
+    }
+
+    .i-note {
+      font-size: 12.5px;
+      color: var(--ink-3);
+      line-height: 1.5;
+      margin-top: 4px;
+    }
+
+    .i-note em {
+      color: var(--accent-ink);
+      font-style: normal;
+      font-weight: 500;
+    }
+
+    /* 提示卡（实盘提醒，非勾选项） */
+    .tips {
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .tip {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      border: 1px solid rgba(176, 72, 59, 0.22);
+      border-left: 3px solid var(--red);
+      border-radius: 10px;
+      background: var(--red-soft);
+      padding: 12px 15px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--ink-2);
+    }
+
+    .tip .tip-icon {
+      flex: 0 0 auto;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .tip em {
+      color: var(--red);
+      font-style: normal;
+      font-weight: 600;
+    }
+
+    /* ========== 每日定调：选择表单 ========== */
+    .stance {
+      padding-top: 6px;
+    }
+
+    .stance-q {
+      margin-top: 22px;
+    }
+
+    .stance-q:first-child {
+      margin-top: 8px;
+    }
+
+    .stance-q-title {
+      font-family: "Source Serif 4", Georgia, serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+
+    .stance-opts {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stance-opt {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      align-items: flex-start;
+      text-align: left;
+      padding: 14px 15px;
+      border: 1px solid var(--line-strong);
+      border-radius: 11px;
+      background: var(--bg-elev);
+      cursor: pointer;
+      font-family: inherit;
+      color: var(--ink-2);
+      transition: all 0.12s;
+    }
+
+    .stance-opt:hover {
+      border-color: var(--stance);
+    }
+
+    .stance-opt .so-main {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .stance-opt .so-sub {
+      font-size: 11.5px;
+      color: var(--ink-3);
+      line-height: 1.3;
+    }
+
+    .stance-opt.on {
+      border-color: var(--stance);
+      background: var(--stance-soft);
+      box-shadow: 0 0 0 1px var(--stance) inset;
+    }
+
+    .stance-opt.on .so-sub {
+      color: var(--stance);
+    }
+
+    .stance-note {
+      margin-top: 24px;
+      padding: 13px 16px;
+      border-radius: 10px;
+      background: var(--stance-soft);
+      border: 1px solid rgba(95, 125, 149, 0.25);
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--ink-2);
+    }
+
+    .stance-note em {
+      color: var(--stance);
+      font-style: normal;
+      font-weight: 600;
+    }
+
+    .stance-plan {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px 14px;
+      border-radius: 11px;
+      border: 1px solid var(--line-strong);
+      background: var(--bg-elev);
+      color: var(--ink);
+      font-family: inherit;
+      font-size: 13.5px;
+      line-height: 1.6;
+      resize: vertical;
+      outline: none;
+      min-height: 76px;
+    }
+
+    .stance-plan:focus {
+      border-color: var(--stance);
+      box-shadow: 0 0 0 3px var(--stance-soft);
+    }
+
+    .sc-plan {
+      display: inline-block;
+      margin-top: 5px;
+      font-weight: 400;
+      color: var(--ink-2);
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+
+    /* ========== 今日定调条：在其它 tab 顶部动态显示当天参数 ========== */
+    .stance-ctx {
+      margin: 6px 0 4px;
+      padding: 11px 15px;
+      border-radius: 10px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 13px;
+      line-height: 1.5;
+      border: 1px solid var(--line-strong);
+      background: var(--bg-elev);
+      color: var(--ink-2);
+      cursor: pointer;
+    }
+
+    .stance-ctx .sc-icon {
+      flex: 0 0 auto;
+      font-size: 15px;
+    }
+
+    .stance-ctx b {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .stance-ctx.none {
+      border-style: dashed;
+    }
+
+    .stance-ctx.good {
+      background: var(--green-soft);
+      border-color: rgba(79, 122, 82, 0.3);
+    }
+
+    .stance-ctx.good b,
+    .stance-ctx.good .sc-msg {
+      color: var(--green);
+    }
+
+    .stance-ctx.warn {
+      background: var(--red-soft);
+      border-color: rgba(176, 72, 59, 0.32);
+    }
+
+    .stance-ctx.warn b,
+    .stance-ctx.warn .sc-msg {
+      color: var(--red);
+    }
+
+    .stance-ctx .sc-msg {
+      font-weight: 600;
+    }
+
+    body.embedded .stance-ctx {
+      margin: 6px 0;
+    }
+
+    /* ========== Action bar（正常流式，固定在列底部） ========== */
+    .action-bar {
+      flex: 0 0 auto;
+      background: var(--bg);
+      border-top: 1px solid var(--line);
+      padding: 16px 40px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      z-index: 10;
+    }
+
+    .prog-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .prog-label {
+      font-size: 12px;
+      color: var(--ink-2);
+      margin-bottom: 7px;
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+    }
+
+    .prog-label b {
+      font-family: "Source Serif 4", serif;
+      font-size: 15px;
+      color: var(--ink);
+      font-feature-settings: "tnum";
+      white-space: nowrap;
+      /* 窄屏下别把 "12 / 27" 折成两行 */
+    }
+
+    .prog-label .hint {
+      color: var(--ink-3);
+      font-size: 11.5px;
+    }
+
+    .prog-track {
+      height: 7px;
+      border-radius: 7px;
+      background: var(--line);
+      overflow: hidden;
+    }
+
+    .prog-fill {
+      height: 100%;
+      border-radius: 7px;
+      background: var(--accent);
+      width: 0;
+      transition: width 0.25s ease;
+    }
+
+    .action-bar.sell .prog-fill {
+      background: var(--green);
+    }
+
+    .action-bar.stance .prog-fill {
+      background: var(--stance);
+    }
+
+    .fire-btn {
+      flex: 0 0 auto;
+      padding: 14px 30px;
+      border-radius: 10px;
+      border: none;
+      font-family: "Inter", sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      transition: all 0.14s;
+      background: var(--line-strong);
+      color: var(--bg-elev);
+      white-space: nowrap;
+    }
+
+    .fire-btn.locked {
+      background: #cfc8b8;
+      color: #fff;
+      box-shadow: none;
+    }
+
+    .fire-btn.ready {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(204, 120, 92, 0.35);
+    }
+
+    .action-bar.sell .fire-btn.ready {
+      background: var(--green);
+      box-shadow: 0 4px 14px rgba(79, 122, 82, 0.32);
+    }
+
+    .action-bar.stance .fire-btn.ready {
+      background: var(--stance);
+      box-shadow: 0 4px 14px rgba(95, 125, 149, 0.32);
+    }
+
+    .fire-btn.ready:hover {
+      transform: translateY(-1px);
+    }
+
+    .fire-btn:active {
+      transform: translateY(1px);
+    }
+
+    /* ========== Modal ========== */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(31, 30, 28, 0.42);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      transition: opacity 0.16s;
+    }
+
+    .overlay.show {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 520px;
+      background: var(--bg-elev);
+      border: 1px solid var(--line-strong);
+      border-radius: 16px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+      overflow: hidden;
+      transform: translateY(8px) scale(0.99);
+      transition: transform 0.18s;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .overlay.show .modal {
+      transform: none;
+    }
+
+    .modal.shake {
+      animation: shake 0.45s cubic-bezier(.36, .07, .19, .97) both;
+    }
+
+    @keyframes shake {
+
+      10%,
+      90% {
+        transform: translateX(-1px);
+      }
+
+      20%,
+      80% {
+        transform: translateX(2px);
+      }
+
+      30%,
+      50%,
+      70% {
+        transform: translateX(-4px);
+      }
+
+      40%,
+      60% {
+        transform: translateX(4px);
+      }
+    }
+
+    .m-top {
+      padding: 26px 28px 20px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .m-badge {
+      flex: 0 0 auto;
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 23px;
+    }
+
+    .modal.warn .m-badge {
+      background: var(--red-soft);
+    }
+
+    .modal.pass .m-badge {
+      background: var(--green-soft);
+    }
+
+    .m-head {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .m-title {
+      font-family: "Source Serif 4", Georgia, serif;
+      font-size: 21px;
+      font-weight: 600;
+      color: var(--ink);
+      line-height: 1.3;
+      margin-bottom: 6px;
+    }
+
+    .m-sub {
+      font-size: 13.5px;
+      color: var(--ink-2);
+      line-height: 1.55;
+    }
+
+    .m-quote {
+      margin: 0 28px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: var(--red-soft);
+      border-left: 3px solid var(--red);
+      font-size: 13.5px;
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    .modal.pass .m-quote {
+      background: var(--green-soft);
+      border-left-color: var(--green);
+    }
+
+    .m-list {
+      margin: 16px 28px 4px;
+    }
+
+    .m-list .ml-head {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      margin-bottom: 8px;
+    }
+
+    .m-list ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .m-list li {
+      font-size: 13.5px;
+      color: var(--ink);
+      padding: 7px 0 7px 24px;
+      position: relative;
+      border-bottom: 1px dashed var(--line);
+      line-height: 1.45;
+    }
+
+    .m-list li:last-child {
+      border-bottom: none;
+    }
+
+    .m-list li::before {
+      content: "✗";
+      position: absolute;
+      left: 4px;
+      top: 7px;
+      color: var(--red);
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .m-list li .li-sec {
+      color: var(--ink-3);
+      font-size: 11.5px;
+      margin-left: 6px;
+    }
+
+    .m-actions {
+      padding: 18px 28px 24px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .m-btn {
+      padding: 11px 20px;
+      border-radius: 9px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      border: 1px solid var(--line-strong);
+      background: var(--bg-elev);
+      color: var(--ink-2);
+    }
+
+    .m-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent-ink);
+    }
+
+    .m-btn.solid {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+
+    .m-btn.solid:hover {
+      background: var(--accent-ink);
+      border-color: var(--accent-ink);
+      color: #fff;
+    }
+
+    .m-btn.danger {
+      background: var(--red);
+      color: #fff;
+      border-color: var(--red);
+    }
+
+    .m-btn.danger:hover {
+      background: #97392e;
+      border-color: #97392e;
+      color: #fff;
+    }
+
+    .m-btn.go {
+      background: var(--green);
+      color: #fff;
+      border-color: var(--green);
+    }
+
+    .m-btn.go:hover {
+      background: #3f6543;
+      border-color: #3f6543;
+      color: #fff;
+    }
+
+    /* ========== Toast ========== */
+    .toast {
+      position: fixed;
+      bottom: 26px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--ink);
+      color: #fff;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+      z-index: 3000;
+      opacity: 0;
+      transition: opacity 0.18s, transform 0.18s;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    @media (max-width: 820px) {
+      body {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        display: none;
+      }
+
+      .main-col {
+        width: 100% !important;
+        border-right: none;
+      }
+
+      .resize-handle,
+      .resize-grip,
+      .resize-hint {
+        display: none;
+      }
+
+      .mobile-topbar {
+        display: flex;
+      }
+
+      /* 顶栏样式在基础层已定义，这里只负责显示 */
+
+      .head {
+        padding: 14px 16px 12px;
+      }
+
+      .head .kicker {
+        display: none;
+      }
+
+      .head h1 {
+        font-size: 21px;
+        margin-bottom: 6px;
+      }
+
+      .head .tagline {
+        font-size: 12.5px;
+        line-height: 1.45;
+      }
+
+      .core-banner {
+        margin: 12px 16px 0;
+        padding: 11px 14px;
+        font-size: 12.5px;
+      }
+
+      .body-scroll {
+        padding: 4px 16px 20px;
+      }
+
+      .section {
+        margin-top: 20px;
+      }
+
+      .item {
+        padding: 13px 14px;
+      }
+
+      .action-bar {
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+        gap: 12px;
+      }
+
+      .prog-label b {
+        font-size: 14px;
+      }
+
+      .fire-btn {
+        padding: 12px 18px;
+        font-size: 14px;
+      }
+
+      .overlay {
+        padding: 14px;
+        align-items: flex-end;
+      }
+
+      .modal {
+        max-height: 88vh;
+        border-radius: 16px 16px 0 0;
+      }
+
+      .m-top {
+        padding: 20px 20px 16px;
+      }
+
+      .m-quote {
+        margin: 0 20px;
+      }
+
+      .m-list {
+        margin: 14px 20px 4px;
+      }
+
+      .m-actions {
+        padding: 16px 20px calc(18px + env(safe-area-inset-bottom));
+      }
+
+      .m-btn {
+        flex: 1 1 auto;
+        text-align: center;
+      }
+    }
+
+    /* ========== 顶部上下文条：策略切换 + 持仓选择 ========== */
+    .ctx-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .strat-seg {
+      display: inline-flex;
+      background: var(--bg-sidebar);
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      padding: 3px;
+      gap: 3px;
+    }
+
+    .strat-btn {
+      border: 0;
+      background: transparent;
+      font: inherit;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--ink-3);
+      padding: 6px 13px;
+      border-radius: 7px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .strat-btn:hover { color: var(--ink-2); }
+
+    .strat-btn.on {
+      background: var(--bg-elev);
+      color: var(--accent-ink);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+    }
+
+    .pos-pick {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12.5px;
+      color: var(--ink-3);
+    }
+
+    .pos-pick select {
+      font: inherit;
+      font-size: 12.5px;
+      color: var(--ink);
+      background: var(--bg-elev);
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      padding: 6px 9px;
+      max-width: 260px;
+    }
+
+    .conn-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: var(--red-soft);
+      color: var(--red);
+      border: 1px solid rgba(176, 72, 59, .28);
+    }
+
+    .conn-tag.ok { background: var(--green-soft); color: var(--green); border-color: rgba(79, 122, 82, .28); }
+
+    /* ========== 建仓准备表单 ========== */
+    .pf-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      align-items: start;
+      /* 不 stretch：否则同一行里最高的那格（选项多的）会把邻居撑成空白大盒子 */
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .pf-row {
+      background: var(--bg-elev);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 11px 13px;
+    }
+
+    .pf-row.wide { grid-column: 1 / -1; }
+
+    .pf-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-2);
+      margin-bottom: 7px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .pf-label .pf-unit { color: var(--ink-3); font-weight: 500; }
+
+    .pf-input {
+      width: 100%;
+      font: inherit;
+      font-size: 14px;
+      color: var(--ink);
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid var(--line-strong);
+      padding: 4px 0;
+      outline: none;
+    }
+
+    .pf-input:focus { border-bottom-color: var(--accent); }
+
+    .pf-hint {
+      font-size: 11.5px;
+      color: var(--ink-3);
+      line-height: 1.5;
+      margin-top: 7px;
+    }
+
+    .pf-hint.bad { color: var(--red); font-weight: 600; }
+    .pf-hint.ok { color: var(--green); }
+
+    .pf-opts { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .pf-opt {
+      border: 1px solid var(--line-strong);
+      background: var(--bg);
+      color: var(--ink-2);
+      font: inherit;
+      font-size: 12px;
+      padding: 5px 11px;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+
+    .pf-opt:hover { border-color: var(--accent); }
+
+    .pf-opt.on {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .pf-opt.on.neg { background: var(--red); border-color: var(--red); }
+
+    .pf-opt .opt-sub {
+      display: block;
+      font-size: 10.5px;
+      font-weight: 400;
+      opacity: .72;
+      margin-top: 1px;
+    }
+
+    /* ========== 滑块 ========== */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pf-range {
+      flex: 1 1 auto;
+      min-width: 0;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 3px;
+      background: var(--line-strong);
+      outline: none;
+      margin: 8px 0;
+    }
+
+    .pf-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--bg-elev);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .18);
+      cursor: grab;
+    }
+
+    .pf-range::-webkit-slider-thumb:active { cursor: grabbing; }
+
+    .pf-range::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--bg-elev);
+      cursor: grab;
+    }
+
+    .slider-val {
+      flex: 0 0 auto;
+      min-width: 62px;
+      text-align: right;
+      font-family: "Source Serif 4", serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent-ink);
+      font-feature-settings: "tnum";
+    }
+
+    .slider-val.dim { color: var(--ink-3); font-weight: 500; }
+
+    .pf-input.num {
+      flex: 0 0 auto;
+      width: 128px;
+      text-align: right;
+      font-feature-settings: "tnum";
+    }
+
+    .slider-ticks {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10.5px;
+      color: var(--ink-3);
+      margin-top: -2px;
+    }
+
+    .pf-range:disabled { opacity: .4; cursor: not-allowed; }
+    .pf-range:disabled::-webkit-slider-thumb { background: var(--ink-3); cursor: not-allowed; }
+
+    .pf-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      font-size: 12.5px;
+      color: var(--ink-2);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .pf-check input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+    .pf-check b { color: var(--ink); }
+
+    .pf-label.acct-head {
+      font-size: 13.5px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 12px;
+    }
+
+    /* 跳过冷却期：给短线选手的逃生门，但跳过这件事本身会被记下来 */
+    .skip-btn {
+      font: inherit;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--accent-ink);
+      background: var(--accent-soft);
+      border: 1px solid rgba(204, 120, 92, .3);
+      border-radius: 6px;
+      padding: 3px 9px;
+      margin-left: 8px;
+      cursor: pointer;
+      vertical-align: 1px;
+    }
+
+    .skip-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .skip-btn.undo { color: var(--ink-3); background: transparent; border-color: var(--line-strong); }
+    .skip-btn.undo:hover { background: var(--bg-sidebar); color: var(--ink-2); }
+
+    .m-tbl.arch td:first-child { color: var(--ink-3); width: 42%; }
+    .m-tbl.arch td { border-bottom-color: var(--line); }
+
+    /* ========== Dashboard ========== */
+    .tbl-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .m-tbl.dash { min-width: 520px; }
+    .m-tbl.dash th { white-space: nowrap; }
+    .m-tbl.dash td { white-space: nowrap; font-feature-settings: "tnum"; }
+    .m-tbl.dash td .sub { color: var(--ink-3); font-weight: 400; font-size: 11.5px; }
+    .m-tbl.dash td.neg, .m-tbl.dash td.neg b { color: var(--red); font-weight: 700; }
+    .m-tbl.dash td.up { color: var(--green); font-weight: 700; }
+    .m-tbl.dash td.down { color: var(--red); font-weight: 700; }
+    .m-tbl.dash td .sub.up { color: var(--green); font-weight: 600; }
+    .m-tbl.dash td .sub.down { color: var(--red); font-weight: 600; }
+
+    .stance-ctx .sc-link {
+      color: var(--accent-ink);
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 1px dashed var(--accent-ink);
+    }
+
+    .stance-ctx .sc-link:hover { color: var(--accent); }
+
+    .new-btn {
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      background: var(--accent);
+      border: 0;
+      border-radius: 7px;
+      padding: 6px 13px;
+      margin-top: 8px;
+      cursor: pointer;
+    }
+
+    .new-btn:hover { background: var(--accent-ink); }
+
+    .new-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12.5px;
+      color: var(--ink-3);
+      background: var(--bg-elev);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 13px;
+      margin-bottom: 14px;
+    }
+
+    .new-bar b { color: var(--ink); }
+    .new-bar .new-btn { margin-top: 0; }
+
+    /* 回看态：看得见但改不动 —— 那是建仓当时存下来的事实 */
+    .item.ro { cursor: default; opacity: .92; }
+    .item.ro:hover { border-color: var(--line-strong); }
+    .item.ro .cbox { opacity: .8; }
+    .item.ro .i-text { background: var(--bg-sidebar); color: var(--ink-2); cursor: default; }
+
+    .empty-note {
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: var(--ink-3);
+      padding: 10px 2px 2px;
+    }
+
+    .empty-note b { color: var(--ink-2); }
+
+    .flag {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      font-size: 12.5px;
+      line-height: 1.6;
+      padding: 9px 12px;
+      border-radius: 9px;
+      margin-bottom: 7px;
+      border: 1px solid var(--line-strong);
+      color: var(--ink-2);
+    }
+
+    .flag.bad { background: var(--red-soft); border-color: rgba(176, 72, 59, .3); }
+    .flag.bad b { color: var(--red); }
+    .flag.warn { background: var(--bg-elev); }
+    .flag.warn b { color: var(--ink); }
+
+    .mini-btn {
+      font: inherit;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--accent-ink);
+      background: transparent;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      padding: 3px 9px;
+      cursor: pointer;
+    }
+
+    .mini-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    .fill-sum {
+      font-family: "Source Serif 4", serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink);
+      padding: 6px 0 2px;
+      font-feature-settings: "tnum";
+    }
+
+    .fill-sum .sub { font-family: "Inter", sans-serif; font-size: 12.5px; font-weight: 400; color: var(--ink-3); }
+    .fill-sum.ok { color: var(--green); }
+    .fill-sum.bad { color: var(--red); }
+    .fill-sum.bad .sub b { color: var(--red); }
+
+    /* 锁住的步骤：看得见但进不去 —— 逻辑没过，谈钱没有意义 */
+    .mode-btn.locked { opacity: .5; }
+    .mode-btn.locked:hover { background: transparent; cursor: not-allowed; }
+
+    /* 计算出来的指标卡 —— 数字自己说话，没有「点一下变绿」的入口 */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      padding: 11px 13px;
+      background: var(--bg-elev);
+    }
+
+    .metric.ok { background: var(--green-soft); border-color: rgba(79, 122, 82, .3); }
+    .metric.bad { background: var(--red-soft); border-color: rgba(176, 72, 59, .32); }
+
+    .mt-val { font-size: 19px; font-weight: 700; letter-spacing: -.3px; }
+    .metric.ok .mt-val { color: var(--green); }
+    .metric.bad .mt-val { color: var(--red); }
+    .mt-label { font-size: 11.5px; color: var(--ink-3); margin-top: 3px; }
+
+    /* ========== 条目扩展类型：计算型闸门 / 必填文本 ========== */
+    .item.calc { cursor: default; }
+    .item.calc:hover { border-color: var(--line-strong); }
+
+    .item.calc .cbox {
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .item.calc.pass .cbox { background: var(--green); border-color: var(--green); color: #fff; }
+    .item.calc.fail .cbox { background: var(--red); border-color: var(--red); color: #fff; }
+    .item.calc.idle .cbox { background: var(--bg); border-color: var(--line-strong); color: var(--ink-3); }
+    .item.calc .cbox svg { display: none; }
+
+    .item.calc.fail { background: var(--red-soft); border-color: rgba(176, 72, 59, .32); }
+    .item.calc.pass { background: var(--green-soft); border-color: rgba(79, 122, 82, .28); }
+
+    .calc-detail {
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 6px;
+      color: var(--ink-2);
+    }
+
+    .item.calc.fail .calc-detail { color: var(--red); }
+    .item.calc.pass .calc-detail { color: var(--green); }
+
+    .item.txt { cursor: default; display: block; }
+    .item.txt:hover { border-color: var(--line-strong); }
+    .item.txt.filled { background: var(--bg-elev); border-color: var(--line-strong); }
+
+    .i-text {
+      width: 100%;
+      margin-top: 8px;
+      font: inherit;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--ink);
+      background: var(--bg);
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      padding: 9px 11px;
+      resize: vertical;
+      outline: none;
+    }
+
+    .i-text:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .item.txt.empty .i-text { border-color: rgba(176, 72, 59, .4); }
+
+    .req-tag {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent-ink);
+      background: var(--accent-soft);
+      border-radius: 4px;
+      padding: 2px 5px;
+      margin-left: 7px;
+      vertical-align: 2px;
+    }
+
+    /* ========== 弹窗内的压力测试 / 结果验证表单 ========== */
+    .m-tbl {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      margin: 4px 0 2px;
+    }
+
+    .m-tbl th,
+    .m-tbl td {
+      border-bottom: 1px solid var(--line);
+      padding: 7px 8px;
+      text-align: left;
+    }
+
+    .m-tbl th { color: var(--ink-3); font-weight: 600; font-size: 11.5px; }
+    .m-tbl td b { font-weight: 700; }
+    .m-tbl tr.bad td b { color: var(--red); }
+
+    .m-form { display: flex; flex-direction: column; gap: 11px; margin: 4px 0 2px; }
+
+    .m-field-label { font-size: 12px; font-weight: 600; color: var(--ink-2); margin-bottom: 5px; }
+
+    .m-form textarea,
+    .m-form input {
+      width: 100%;
+      font: inherit;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--ink);
+      background: var(--bg);
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      padding: 8px 10px;
+      resize: vertical;
+      outline: none;
+    }
+
+    .m-form textarea:focus,
+    .m-form input:focus { border-color: var(--accent); }
+  </style>
+</head>
+
+<body>
+
+  <aside>
+    <div class="brand">
+      <span class="dot"></span>
+      <span>决策台</span>
+      <span class="sub">YMOS</span>
+    </div>
+    <div class="mode-nav" id="modeNav"></div>
+    <div class="side-foot">
+      <b>增加风险</b>的动作要过闸门；<b>降低风险</b>的动作零摩擦、随时可执行。<br>
+      结构层由数字判定，<b>点不绿</b> —— 改数字才是唯一的解除方式。<br>
+      每个动作都<b>追加</b>进本地决策文件，不覆盖历史。<br>
+      <a class="side-link" href="/reader" data-file-href="reader.html">Reader</a> ·
+      <a class="side-link" href="/plan" data-file-href="交易计划台.html">交易计划台</a>
+    </div>
+  </aside>
+
+  <main>
+    <div class="main-col" id="mainCol">
+      <div class="mobile-topbar">
+        <div class="mtb-brand">
+          <span class="dot"></span>
+          <span>决策台</span>
+          <span class="mtb-sub">YMOS</span>
+        </div>
+        <div class="mtb-tabs" id="mobileTabs"></div>
+      </div>
+      <div class="head">
+        <div class="ctx-bar">
+          <div class="strat-seg" id="stratSeg"></div>
+          <div class="pos-pick" id="posPick"></div>
+        </div>
+        <div class="kicker" id="kicker">前置 · 资金与风险结构</div>
+        <h1 id="title">建仓准备</h1>
+        <div class="tagline" id="tagline"></div>
+      </div>
+      <div class="core-banner" id="coreBanner" style="display:none"></div>
+      <div class="body-scroll" id="bodyScroll"></div>
+
+      <div class="action-bar" id="actionBar">
+        <div class="prog-wrap">
+          <div class="prog-label">
+            <b id="progText">0 / 0</b>
+            <span class="hint" id="progHint">条件已确认</span>
+          </div>
+          <div class="prog-track">
+            <div class="prog-fill" id="progFill"></div>
+          </div>
+        </div>
+        <button class="fire-btn locked" id="fireBtn"></button>
+      </div>
+
+      <div class="resize-handle" id="resizeRight" title="拖动调整正文宽度 · 双击复位"></div>
+      <div class="resize-grip"></div>
+      <div class="resize-hint" id="resizeHint">↔ 这里可以拖动调宽<br>双击恢复 75% 默认宽度</div>
+    </div>
+  </main>
+
+  <!-- Modal -->
+  <div class="overlay" id="overlay">
+    <div class="modal" id="modal">
+      <div class="m-top">
+        <div class="m-badge" id="mBadge"></div>
+        <div class="m-head">
+          <div class="m-title" id="mTitle"></div>
+          <div class="m-sub" id="mSub"></div>
+        </div>
+      </div>
+      <div class="m-quote" id="mQuote"></div>
+      <div class="m-list" id="mList"></div>
+      <div class="m-actions" id="mActions"></div>
+    </div>
+  </div>
+
+  <script>
+    /* =====================================================================
+       买卖决策台 · YMOS
+       ---------------------------------------------------------------------
+       层级关系（别再搞反）：
+         买卖决策台 = 投资逻辑层，在前。
+         交易计划台 = 操盘手层的执行记录，在后。
+       所以这里的闸门只能来自「自己的账户参数 + 这一笔的结构参数」，
+       绝不从收盘计划反过来卡决策 —— 下游不能约束上游。
+
+       流程顺序：
+         ① 账户参数（一次性，存状态机文件）
+         ② 开新仓 · 买入逻辑   ← 先完成论点与可证伪化，立即建立决策文件
+         ③ 建仓准备 · 结构层   ← 复核论点，再补齐仓位、退出动作与期限
+       两步是同一份建仓决策的分段复核：第一步建档，第二步以追加事件更新。
+
+       两条设计原则：
+         · 非对称摩擦：增加风险的方向设闸门，降低风险的方向零摩擦。
+         · 计算型红线：结构层由数字判定，界面上没有「点一下变绿」的入口。
+       ===================================================================== */
+    const CHECK_SVG = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    /* ============ 字典 ============ */
+    const CURRENCY = {
+      CNY: { label: "人民币", sym: "¥", max: 5000000, step: 10000 },
+      HKD: { label: "港元", sym: "HK$", max: 5000000, step: 10000 },
+      USD: { label: "美元", sym: "$", max: 1000000, step: 5000 },
+    };
+    // 资金期限按月选：1–120 个月，再加「长期」。显示时自动换成年 / 年+月。
+    function fundHorizonLabel(months) {
+      if (months >= 9999) return "长期";
+      if (months < 12) return months + " 个月";
+      const y = Math.floor(months / 12), m = months % 12;
+      return y + " 年" + (m ? " " + m + " 个月" : "");
+    }
+    function normalizeFundKey(key) {
+      const legacy = { "1y": "12m", "3y": "36m", "5y": "60m" };
+      return legacy[key] || key;
+    }
+    const HORIZON_FUND = Array.from({ length: 120 }, (_, i) => ({
+      key: (i + 1) + "m", label: fundHorizonLabel(i + 1), months: i + 1,
+    })).concat([{ key: "long", label: "长期", months: 9999 }]);
+    const FUND_TICKS = ["1 月", "1 年", "2 年", "3 年", "5 年", "10 年", "长期"];
+    const HORIZON_THESIS = [
+      { key: "weeks", label: "数周", months: 1 },
+      { key: "q12", label: "1-2 季", months: 6 },
+      { key: "m612", label: "6-12 月", months: 12 },
+      { key: "y13", label: "1-3 年", months: 36 },
+      { key: "y3p", label: "3 年以上", months: 60 },
+    ];
+    const EXIT_CONTROL = {
+      internal: { label: "内生", sub: "无杠杆 / 无到期日", ok: true },
+      leverage: { label: "有杠杆 / 融资", sub: "有人能追保平我", ok: false },
+      expiry: { label: "有到期日", sub: "期权 / 合约会先死", ok: false },
+    };
+    const SELL_PORTION = {
+      all: { label: "全部清仓", ratio: 1 },
+      half: { label: "半仓", ratio: 0.5 },
+      third: { label: "三分之一", ratio: 1 / 3 },
+    };
+    const COOL_MIN = 10;           // 冷却期（分钟）：开始填这笔到扣扳机的最短间隔
+    const STRESS_DROP = 0.30;      // 加仓压力测试：再跌 30%
+
+    function horizonBy(list, key) { const k = list === HORIZON_FUND ? normalizeFundKey(key) : key; return list.find(x => x.key === k) || null; }
+    function horizonIdx(list, key) { const k = list === HORIZON_FUND ? normalizeFundKey(key) : key; const i = list.findIndex(x => x.key === k); return i < 0 ? -1 : i; }
+
+    /* =====================================================================
+       结构层 · RISK_GATE（策略无关，住在「建仓准备」）
+       从被逼仓的案例反推：杀死一个人的往往不是看错方向，是结构。
+       这几条不问「这个标的会不会涨」，只问「我还在不在牌桌上」。
+       r1-r4 是计算型 —— 由数字判定，点不绿。
+       ===================================================================== */
+    const RISK_GATE = {
+      name: "结构层 · 出局资格", rule: "all", note: "策略可以换，这一层不能换。", items: [
+        {
+          id: "r1", type: "calc", label: "出局权内生", redline: true,
+          note: "谁有权强制我平仓？<em>出局条件必须由我自己定义</em>。把「什么时候必须认输」外包给一个利益不一致的第三方（融资追保、期权到期日、杠杆平仓线），就是结构性缺陷 —— 跟看多看空对不对无关。论点还没兑现但合约先死了，是散户版的期限错配。",
+          calc: () => {
+            if (!prep.exitControl) return { state: "idle", detail: "还没选出局权归属" };
+            const e = EXIT_CONTROL[prep.exitControl];
+            return e.ok ? { state: "pass", detail: "出局权在我手里" } : { state: "fail", detail: e.label + " —— " + e.sub + "，止损线不是我写的" };
+          },
+        },
+        {
+          id: "r2", type: "calc", label: "期限匹配", redline: true,
+          note: "论点兑现周期 ≤ 这笔钱的可用期限（该账户在账户参数里定的）。不匹配就是定时炸弹，<em>跟方向对错无关</em> —— 用几个月内要用的钱，去承载一个要跑几年才兑现的叙事，方向再对也会先被时间清算。",
+          calc: () => {
+            const acc = prepAccount();
+            const f = horizonBy(HORIZON_FUND, acc.horizonFund), t = horizonBy(HORIZON_THESIS, prep.horizonThesis);
+            if (!f) return { state: "idle", detail: CURRENCY[prep.account].label + "账户还没定资金可用期限" };
+            if (!t) return { state: "idle", detail: "还没选论点兑现周期" };
+            return f.months >= t.months
+              ? { state: "pass", detail: CURRENCY[prep.account].label + "账户可用 " + f.label + " ≥ 论点要跑 " + t.label }
+              : { state: "fail", detail: CURRENCY[prep.account].label + "账户只有 " + f.label + "，论点要跑 " + t.label + " —— 期限错配" };
+          },
+        },
+        {
+          id: "r3", type: "calc", label: "单笔 ≤ 上限", redline: true,
+          note: "单个标的不超过该账户资金基数的既定比例（账户参数里定的，默认 1/3）。这条不讲道理、不看信心 —— <em>信念强度峰值和风险暴露峰值往往是同一时刻</em>，所以上限必须在信念之外。",
+          calc: () => {
+            const m = metrics();
+            if (!m.cap) return { state: "idle", detail: CURRENCY[prep.account].label + "账户还没填资金基数" };
+            if (!m.total) return { state: "idle", detail: "还没填投入金额" };
+            const pct = (m.ratio * 100).toFixed(1) + "%", cap = (account.maxSingleRatio * 100).toFixed(0) + "%";
+            return m.ratio <= account.maxSingleRatio + 1e-9
+              ? { state: "pass", detail: "占该账户 " + pct + "（上限 " + cap + "）" }
+              : { state: "fail", detail: "占该账户 " + pct + " —— 超出上限 " + cap + "，超了 " + fmtMoney(m.total - m.cap * account.maxSingleRatio) };
+          },
+        },
+        {
+          id: "r4", type: "calc", label: "退出条件已定 · 风险可算", redline: true,
+          note: "这笔最坏会亏多少、占账户多少 —— 这个数字必须<em>现在</em>就算得出来，不是事到临头再说。<br>不设价格止损也可以（长期 / 左侧建仓），但那意味着<em>出局条件换成了逻辑证伪</em>，最大风险就是这笔投入的全部 —— 那个数字同样要现在就看清楚。",
+          calc: () => {
+            const m = metrics();
+            if (!m.cap || !m.total) return { state: "idle", detail: "资金或投入金额未填全" };
+            if (prep.noStop) {
+              return { state: "pass", detail: "无价格止损 · 出局条件 = 逻辑证伪；最大风险为本笔全部 " + fmtMoney(m.total) + "（占账户 " + (m.total / m.cap * 100).toFixed(2) + "%）" };
+            }
+            if (!m.stopPct) return { state: "idle", detail: "还没定止损幅度（或勾选「不设价格止损」）" };
+            return { state: "pass", detail: "最大亏 " + fmtMoney(m.maxLoss) + "，占账户 " + (m.lossOfAcct * 100).toFixed(2) + "%" };
+          },
+        },
+        {
+          id: "r4b", label: "这个数字我看着不难受", redline: true,
+          note: "上面那个金额，如果<em>明天就真的发生</em>，我依然睡得着、不会想加本金扳回来。看着难受，说明仓位太大 —— 回去改数字，别在这里说服自己。",
+        },
+        {
+          id: "r5", label: "相关性坍缩已检查",
+          note: "真实分散度是<em>压力下的分散度</em>，不是平时的。检查方式：如果这条主叙事明天被证伪，我组合里还有几个仓位能<em>独立存活</em>？不同公司、不同国家、不同环节，本质上可能是同一笔交易。",
+        },
+        {
+          id: "r6", label: "出局位不在明牌上",
+          note: "我的仓位和出局位，对手方推得出来吗？止损放在所有人都看得到的<em>整数关口 / 明显技术位</em>，等于把自己的出局价写在墙上。（不设价格止损的，这条问的是：我的证伪条件会不会被对手方拿来做文章。）",
+        },
+      ],
+    };
+
+    /* 退出逻辑住在「建仓准备」，但不重复「失效信号」：
+       失效信号是判断层的可观测证据，这里写证据出现后的执行动作。 */
+    const EXIT_GATE = {
+      name: "退出动作 · 失效后怎么做", rule: "all", note: "上一步定义「什么证明我错了」，这里只定义「错了以后怎么退」。", items: [
+        {
+          id: "x4", type: "text", required: true, label: "失效后的退出动作", rows: 4,
+          placeholder: "上面的失效信号出现后：立即清仓，还是分步减仓？用收盘确认还是盘中触发？若未证伪但达到价格 / 时间上限，怎么处理？退完后总仓位是多少？",
+          note: "这是<em>证据 → 动作</em>的映射，也是投降条款。不要再写一遍失效信号；要写它出现后你必须做什么。",
+        },
+      ],
+    };
+
+    /* 论点：首次住在「买入逻辑」，建仓准备时再复核一次。
+       五分钟能勾完的清单会退化成橡皮图章；写不出失效信号的人，写不完这一页。 */
+    const THESIS_GATE = {
+      name: "论点 · 可证伪化", rule: "all", items: [
+        { id: "x1", type: "text", required: true, label: "买入逻辑（一句话）", rows: 2, placeholder: "为什么是它 —— 不是为什么买这个板块。", note: "写不成一句话，说明还没想清楚。" },
+        { id: "x2", type: "text", required: true, label: "论点失效证据（可证伪）", rows: 3, placeholder: "例：跌破关键位且 3 日无承接 / 毛利率连续 2 季下滑 / 核心订单被公告证伪。", note: "这里只写<em>什么可观测事实证明论点错了</em>，不写卖出动作。「感觉不对」不是证据。" },
+        { id: "x3", type: "text", required: true, label: "催化剂与兑现窗口", rows: 2, placeholder: "什么事发生会让它兑现？大概在什么时间窗口？", note: "没有窗口，下一步就没法判断期限匹配，也没法在到期时诚实地承认没兑现。" },
+      ],
+    };
+
+    /* 纪律层：住在「买入逻辑」。只用自身可观测的东西，不依赖任何外部计划。 */
+    const DISCIPLINE_GATE = {
+      name: "纪律层 · 防冲动", rule: "all", items: [
+        { id: "d1", label: "不是冲动买回", redline: true, note: "这不是刚<em>止损 / 止盈后</em>的日内买回。若确实要买回：必须重走全部建仓条件 —— <em>这道门能排除约 90% 的买回错误</em>。" },
+        {
+          id: "d2", type: "calc", skippable: true, label: "冷却期", redline: true,
+          note: "从开始审这笔到扣扳机，默认要 " + COOL_MIN + " 分钟。<em>任何能在冲动发生后被快速满足的门槛，都会退化成橡皮图章</em> —— 这一条是给「五分钟写完一份文档来给已做的决定盖章」上的锁。<br>" +
+            "<em>短线选手 / 补录历史交易</em>可以跳过：跳过不是作弊，跳过这件事本身会被<em>写进决策文件</em>。事后复盘时，把「跳过冷却期的交易」和「等满的交易」分开看胜率，你就知道这道门对你值不值钱。",
+          calc: () => {
+            if (prep.coolSkipped) {
+              const mins = prep.startedAt ? Math.floor((Date.now() - prep.startedAt) / 60000) : 0;
+              return { state: "pass", skipped: true, detail: "已跳过冷却期（实际思考 " + mins + " 分钟）—— 这条会记进决策文件" };
+            }
+            if (!prep.startedAt) return { state: "idle", detail: "还没开始填这一笔" };
+            const mins = Math.floor((Date.now() - prep.startedAt) / 60000);
+            return mins >= COOL_MIN
+              ? { state: "pass", detail: "已思考 " + mins + " 分钟" }
+              : { state: "fail", detail: "才 " + mins + " 分钟，还差 " + (COOL_MIN - mins) + " 分钟" };
+          },
+        },
+      ],
+    };
+
+    /* 通用策略中的论点、风险、退出与纪律条目共享同一份输入状态。 */
+    [RISK_GATE, EXIT_GATE, THESIS_GATE, DISCIPLINE_GATE].forEach(sec => {
+      sec.shared = true;
+      sec.items.forEach(it => { it.shared = true; });
+    });
+
+    /* =====================================================================
+       策略层
+       ===================================================================== */
+    const STRATEGIES = {
+      generic: {
+        label: "通用策略", short: "通用",
+        desc: "标的无关的标准骨架：判断 / 退出 / 纪律三层",
+        modes: {
+          buy_new: {
+            kicker: "买入 · 开新仓 · 第一步", title: "通用买入逻辑审计",
+            tagline: "这是一个<em>不预设打法</em>的骨架：论点与纪律层是所有人共用的，判断层留给你自己的流派。价值、趋势、事件驱动都能往里套 —— 换的是判断依据，不是这套门。",
+            fireIdle: "保存买入逻辑 · 建立决策文件 →",
+            passTitle: "逻辑门全过", passSub: "论点、失效信号、催化剂窗口都写下来了。下一步谈钱：投多少、止损在哪、跟资金期限冲不冲突。",
+            passQuote: "结构层的教训是这个市场里唯一可以从别人的尸体上免费学会的部分 —— Alpha 学不来，风控结构学得来。",
+            warnQuote: "还有条件没确认。跳过它们扣扳机，就是在重复上一次的错误 —— 而下一次你连「为什么错」都查不到。",
+            sections: [
+              {
+                name: "判断层 · 为什么是它", rule: "all", items: [
+                  { id: "g1", label: "位置与赔率已评估", note: "向下空间 vs 向上空间，我算过。<em>不是因为它涨了所以要买</em>，也不是因为它跌了所以便宜。" },
+                  { id: "g2", label: "不是跟随别人的判断", note: "这个决定我能<em>自己讲完整</em>，不需要引用某个人的观点来撑。别人的认知不可转让。" },
+                  { id: "g3", label: "已排除「怕踏空」动机", note: "如果这个标的明天涨停但我没买，我会遗憾但不会痛苦 —— 痛苦说明这是 FOMO，不是判断。" },
+                ]
+              },
+            ],
+            tips: ["这套骨架不问你是哪一派。它只保证：无论哪一派，你都有可证伪的论点、写下来的退出逻辑、和一个不由别人决定的出局位。"],
+          },
+          buy_add: {
+            kicker: "买入 · 加仓计划", title: "加仓计划 · 压力测试",
+            tagline: "这里只记录<em>加仓计划与压力测试</em>，不代表已经成交，也不会改动当前股数和成本。真实加仓成交功能留给后续版本。",
+            fireIdle: "保存加仓计划 · 不改持仓事实",
+            passTitle: "加仓计划压力测试完成",
+            passSub: "本次只追加计划与压力测试记录；当前股数、成本价和实际投入保持不变。",
+            passQuote: "加仓不需要新的理由，需要的是「加完之后我还扛得住吗」这个问题的答案。",
+            warnQuote: "加仓前的条件没确认完。原有论点还成立吗？还是只是因为它跌了、或者因为它涨了？",
+            sections: [
+              {
+                name: "加仓资格", rule: "all", items: [
+                  { id: "ga1", label: "原论点仍然成立", redline: true, note: "建仓时写的失效信号<em>一条都没被触发</em>。被触发了却还想加，那不是加仓，是摊平。" },
+                  { id: "ga2", label: "不是为了摊低成本", redline: true, note: "加仓的理由是<em>赔率变好了</em>，不是<em>我亏了想快点回本</em>。后者是把亏损变成灾难的标准路径。" },
+                  { id: "ga3", label: "加完仍在结构层之内", note: "加完之后单笔占比、最大亏损、期限，全部重算过 —— 见上面结构层的数字。" },
+                ]
+              },
+            ],
+          },
+          sell_tp: {
+            kicker: "卖出 · 止盈 / 减仓", title: "止盈决策",
+            tagline: "这一页<em>不拦你</em>：降低风险的动作零摩擦。勾选只是把理由记进决策文件 —— 一条没勾也能卖，文件里会如实写着「无触发条件」。",
+            fireIdle: "确认 · 止盈并记录",
+            passTitle: "止盈已记录", passSub: "理由已写进决策文件。平仓后的结果验证会拿它跟实际对账。",
+            passQuote: "会卖的是师傅 —— 卖的不只是单票，是整个账户的胜利果实。",
+            sections: [
+              {
+                name: "记录 · 为什么卖", rule: "any", items: [
+                  { id: "gt1", label: "到达预设止盈条件", note: "建仓时写的止盈 / 减仓条件被触发，按纪律执行。" },
+                  { id: "gt2", label: "论点已兑现", note: "催化剂发生了、价格反映了 —— <em>论点兑现即离场</em>，不贪续集。" },
+                  { id: "gt3", label: "赔率转差", note: "向上空间已被定价，向下空间变大。" },
+                  { id: "gt4", label: "组合层面需要降敞口", note: "不是这个标的的问题，是账户层的相关性 / 总敞口需要降。" },
+                ]
+              },
+            ],
+          },
+          sell_sl: {
+            kicker: "卖出 · 止损", title: "止损决策",
+            tagline: "这一页<em>永远不拦你</em>。降低风险的动作必须零摩擦、随时可执行、不需要文档。",
+            fireIdle: "确认 · 止损并记录",
+            passTitle: "止损已记录", passSub: "承认这一笔错了，比证明自己没错便宜得多。教训会留在决策文件里。",
+            passQuote: "谁买到了继续学习的门票，谁才有资格谈复利。survivability 才是那个可复利的变量。",
+            sections: [
+              {
+                name: "记录 · 为什么走", rule: "any", items: [
+                  { id: "gs1", label: "失效信号被触发", note: "建仓时写的那条<em>可证伪信号</em>真的发生了。这是最干净的一种止损。" },
+                  { id: "gs2", label: "触发预设止损位", note: "打到建仓时定的价位，按纪律执行，不重新论证。" },
+                  { id: "gs3", label: "结构性原因", note: "不是标的的问题：期限、敞口、相关性坍缩 —— 结构层出问题也要走。" },
+                  { id: "gs4", label: "论点没错但我扛不住", note: "诚实记下来。这说明<em>仓位</em>错了，不是判断错了 —— 下次该调的是结构，不是眼光。" },
+                ]
+              },
+            ],
+          },
+        },
+      },
+    };
+
+    /*
+     * 开源版只暴露通用策略。结构红线留在代码里，用户自己的判断清单
+     * 则可通过 rules.json 覆盖；sections 一旦提供，会整体替换对应模式的内置清单。
+     */
+    async function loadExternalRules() {
+      try {
+        const res = await fetch("/rules.json", { cache: "no-store" });
+        if (!res.ok) return;
+        const rules = await res.json();
+        const patch = rules.strategy || rules.generic || {};
+        const modePatch = patch.modes || rules.modes || {};
+        for (const key of ["label", "short", "desc"]) {
+          if (patch[key] != null) STRATEGIES.generic[key] = patch[key];
+        }
+        for (const [key, value] of Object.entries(modePatch)) {
+          if (!STRATEGIES.generic.modes[key] || !value || typeof value !== "object") continue;
+          Object.assign(STRATEGIES.generic.modes[key], value);
+        }
+      } catch (e) {
+        // 没有自定义规则时直接使用内置通用骨架。
+      }
+    }
+
+    /* 模式元信息（通用策略共用） */
+    const MODE_META = {
+      dash: { kind: "prep", group: "总览", navLabel: "持仓总览", navDesc: "敞口 / 结构层体检", icon: "📊" },
+      account: { kind: "prep", group: "总览", navLabel: "账户参数", navDesc: "资金基数 / 期限 / 变动记录", icon: "🏦" },
+      buy_new: { kind: "buy", group: "买入", navLabel: "① 买入逻辑", navDesc: "论点 / 可证伪 · 先建档", icon: "🧠" },
+      prepare: { kind: "buy", group: "买入", navLabel: "② 建仓准备", navDesc: "投多少 / 止损 / 冲突检查", icon: "🧱" },
+      fill: { kind: "buy", group: "买入", navLabel: "③ 确认建仓", navDesc: "计划 → 实际成交", icon: "✅" },
+      buy_add: { kind: "buy", group: "买入", navLabel: "加仓计划", navDesc: "压力测试 · 不改持仓事实", icon: "➕" },
+      sell_tp: { kind: "sell", group: "卖出", navLabel: "止盈 / 减仓", navDesc: "零摩擦 · 记录理由", icon: "🟢" },
+      sell_sl: { kind: "sell", group: "卖出", navLabel: "止损", navDesc: "零摩擦 · 立即离场", icon: "🔻" },
+      adjust: { kind: "admin", group: "持仓管理", navLabel: "调整止损", navDesc: "必须写理由 · 留痕", icon: "⚖️" },
+    };
+    const ORDER = ["dash", "account", "buy_new", "prepare", "fill", "buy_add", "sell_tp", "sell_sl", "adjust"];
+    const ST_PLAN = "计划中", ST_HELD = "持仓中", ST_CLOSED = "已平仓";
+
+    /* 建仓准备：策略无关的第二步。逻辑成立之后才谈钱。 */
+    const PREPARE_MODE = {
+      kicker: "买入 · 开新仓 · 第二步", title: "建仓准备 · 结构层",
+      tagline: "买入逻辑已经建档。现在先再审一遍论点（可修改），再回答：<em>这笔会不会把我打出牌桌</em>。结构红线由数字判定，<em>点不绿</em>。",
+      fireIdle: "保存建仓准备 · 更新决策文件",
+      passTitle: "结构层全过 · 可按计划建仓",
+      passSub: "论点、退出逻辑、仓位、风险、期限都对上了。最后一秒问自己：这笔是为了赚确定性，不是为了对冲怕踏空的焦虑。",
+      passQuote: "看对了方向，仓位太轻也只是小赚；但别一上来就顶格，给自己留加仓和试错的余地。",
+      warnQuote: "计算型的红线点不绿 —— 回去改数字，别在这里说服自己。",
+      sections: [],   // 由 currentSections() 注入 THESIS_GATE + RISK_GATE + EXIT_GATE
+    };
+
+    /* 确认建仓：把「计划」变成「事实」。
+       在此之前，建仓准备里的金额与止损都还是计划，改它天经地义；
+       在此之后，档案锁死 —— 因为它记录的已经是发生过的事。 */
+    const FILL_MODE = {
+      kicker: "买入 · 开新仓 · 第三步", title: "确认建仓 · 计划 → 实际",
+      tagline: "实际成交了才填这一步。填完这笔就从「计划中」变成「持仓中」，建仓档案随之锁死 —— <em>成交前改的是计划，成交后改的是历史</em>。",
+      fireIdle: "确认建仓 · 写回实际成交",
+      passTitle: "建仓已确认", passSub: "计划与实际的偏差已记进决策文件。以后回看，能知道你是不是总在按计划以外的价格和数量下手。",
+      passQuote: "计划投入和实际投入的长期偏差，比任何一次单笔的对错都更能说明问题。",
+      warnQuote: "至少要填成交价和股数 —— 没有这两个数，账户敞口就算不出来，Dashboard 也就是摆设。",
+      sections: [],
+      tips: ["实际比计划买得多，是最常见的一种失控 —— 它通常发生在「盘中看着还会涨」的那一刻。这个偏差会被记下来，回头能算出你平均超买多少。"],
+    };
+
+    /* 调整止损：放宽止损必须付出留痕的代价 —— 约束的解除如果不需要成本，它就不是约束。 */
+    const ADJUST_MODE = {
+      kicker: "持仓管理 · 调整止损", title: "调整止损位",
+      tagline: "先复现当前生效的止损 / 退出策略，再定义新规则。改动会记录成「旧规则 → 新规则」事件，不会把原来的止损悄悄抹掉。",
+      fireIdle: "记录 · 调整止损",
+      passTitle: "调整已记录", passSub: "新的止损位和理由已追加进决策文件。原来的那条不会被抹掉。",
+      passQuote: "一条你随时可以解释、可以说「这次情况不一样」的规则，严格来说不是约束，是备忘录。",
+      warnQuote: "调整止损必须写清楚为什么。写不出理由的调整，本质上是在给已经做出的妥协盖章。",
+      sections: [
+        {
+          name: "调整审计（必填）", rule: "all", items: [
+            { id: "j1", type: "text", required: true, label: "为什么要调整", rows: 3, placeholder: "例：财报确认逻辑加强，止损上移锁住利润 / 建仓时止损定得过紧，回踩正常波动就会被打掉。", note: "<em>收紧</em>止损通常是好事；<em>放宽</em>止损几乎总是坏事 —— 如果是放宽，把「为什么这次不一样」写清楚，未来的你会来审判这段话。" },
+            {
+              id: "j2", type: "calc", required: true, label: "新的退出规则已明确", redline: true,
+              note: "有价格止损就必须给出幅度；改为逻辑退出，就必须写出可执行的退出策略。",
+              calc: () => prep.adjustMode === "price"
+                ? (num(prep.adjustStopPct) > 0 ? { state: "pass", detail: "新价格止损 -" + num(prep.adjustStopPct).toFixed(1) + "%" } : { state: "idle", detail: "还没设新的止损幅度" })
+                : prep.adjustMode === "logic"
+                  ? ((prep.adjustExitRule || "").trim() ? { state: "pass", detail: "已改为逻辑证伪退出" } : { state: "idle", detail: "还没写新的退出策略" })
+                  : { state: "idle", detail: "还没选新的退出方式" },
+            },
+          ]
+        },
+      ],
+      tips: ["如果你发现自己<em>反复在放宽止损</em>，问题不在止损位，在建仓时的仓位 —— 仓位对了，止损不会让你难受到想改它。"],
+    };
+
+    /* =====================================================================
+       状态
+       ===================================================================== */
+    const ACCOUNT_KEY = "ymos-trade-account";
+    const PREP_KEY = "ymos-trade-prep";
+    const QUOTES_KEY = "ymos-trade-last-quotes";
+
+    let currentStrategy = "generic";
+    let currentMode = "account";
+    // 存储桶 key = (通用结构条目 ? "shared" : "generic") + "/" + 模式。
+    // 论点在买入逻辑与建仓准备两个审视时点之间复用。
+    const checks = {};
+    const texts = {};
+
+    let account = blankAccount();
+    let prep = blankPrep();
+    let trades = { open: [], closed: [] };
+    let activeFile = "";           // 当前选中的持仓决策文件名
+    let activeOpen = null;         // 该持仓的建仓档案（只读回看用）
+    let activeChecks = {}, activeTexts = {};   // 该持仓建仓当时勾了什么、写了什么（回看用，不进编辑桶）
+    let accountEditCode = "CNY";  // 账户参数页当前正在设置的单一账户
+    let serverOk = true;           // 嵌入版使用浏览器本地体验存储；独立版使用本地 Python 服务
+    // 行情不写进单笔决策文件；最后一次成功结果连同持仓总览快照写入账户状态机。
+    // 浏览器仍留一份缓存，仅作本地服务不可用时的降级兜底。
+    let quotes = { prices: {}, resolved: {}, unresolved: [], asOf: "", loading: false, tried: false, restored: false, restoredFrom: "", lastError: "" };
+
+    function blankAccount() {
+      // 分市场账户：人民币 / 港元 / 美元各自有资金基数与可用期限。
+      // 单笔上限是全局比例 —— 它是一条纪律，不该按币种打折。
+      return {
+        version: 4,
+        accounts: { CNY: { capital: 0, horizonFund: "" }, HKD: { capital: 0, horizonFund: "" }, USD: { capital: 0, horizonFund: "" } },
+        maxSingleRatio: 1 / 3, changes: [], updated: "", portfolioSnapshot: null,
+      };
+    }
+    function migrateAccount(a) {
+      const b = blankAccount();
+      if (!a) return b;
+      if (a.accounts) {                       // v2
+        for (const k of Object.keys(b.accounts)) if (a.accounts[k]) {
+          Object.assign(b.accounts[k], a.accounts[k]);
+          b.accounts[k].horizonFund = normalizeFundKey(b.accounts[k].horizonFund);
+        }
+      } else if (a.capital != null) {         // v1：单账户 → 落到它当时的币种上
+        b.accounts[a.currency || "CNY"] = { capital: num(a.capital), horizonFund: normalizeFundKey(a.horizonFund || "") };
+      }
+      if (a.maxSingleRatio) b.maxSingleRatio = a.maxSingleRatio;
+      if (Array.isArray(a.changes)) b.changes = a.changes.slice(-200);
+      if (a.updated) b.updated = a.updated;
+      if (a.portfolioSnapshot && typeof a.portfolioSnapshot === "object") b.portfolioSnapshot = a.portfolioSnapshot;
+      return b;
+    }
+    function blankPrep() {
+      return {
+        symbol: "",                 // 标的：名称或代码，一个字段就够
+        ticker: "",                 // 取价用的 ticker（选填）：状态机里能查到就不用填
+        account: "CNY",             // 这笔用哪个市场的账户
+        horizonThesis: "",
+        amount: 0, addAmount: 0,
+        stopPct: 0,                 // 只留止损幅度 —— 买入价是买的时候才知道的，现在填是假精确
+        noStop: false,              // 长期 / 左侧建仓可以不设价格止损，出局条件换成逻辑证伪
+        exitControl: "",
+        coolSkipped: false,         // 冷却期是否被跳过（会写进决策文件）
+        fillPrice: 0, fillShares: 0, fillNote: "",   // 确认建仓：实际成交价 / 股数 / 备注
+        sellPortion: "all", sellPrice: 0, sellNote: "",
+        adjustMode: "", adjustStopPct: 0, adjustExitRule: "",
+        startedAt: null,
+      };
+    }
+
+    /* 条目级存储：通用结构条目走 "shared" 桶，判断条目走 "generic" 桶 */
+    function bkey(it, mode) { return (it && it.shared ? "shared" : currentStrategy) + "/" + (mode || currentMode); }
+    function bank(store, it, mode) { const k = bkey(it, mode); if (!store[k]) store[k] = {}; return store[k]; }
+    function cget(it, mode) { return viewing() ? !!activeChecks[it.id] : !!bank(checks, it, mode)[it.id]; }
+    function cset(it, v) { if (!viewing()) bank(checks, it)[it.id] = v; }
+    function tget(it, mode) { return viewing() ? (activeTexts[it.id] || "") : (bank(texts, it, mode)[it.id] || ""); }
+    function tset(it, v) { if (!viewing()) bank(texts, it)[it.id] = v; }
+    /* 「买入逻辑」在选中文件时只读回看；「建仓准备」对计划中文件可编辑，
+       用追加事件保留每次复核的历史。
+       想建新的一笔，把顶部持仓选择器切回「未选」—— 页面上有一键按钮。 */
+    function viewing() { return !!activeFile && (currentMode === "buy_new" || (currentMode === "prepare" && !activeIsPlan())); }
+
+    /* =====================================================================
+       工具
+       ===================================================================== */
+    function num(v) { const n = parseFloat(v); return isFinite(n) ? n : 0; }
+    function todayStr() {
+      const d = new Date(), p = n => String(n).padStart(2, "0");
+      return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+    }
+    function nowStamp() {
+      const d = new Date(), p = n => String(n).padStart(2, "0");
+      return todayStr() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+    }
+    function prepAccount() { return account.accounts[prep.account] || account.accounts.CNY; }
+    function cur(code) { return CURRENCY[code || prep.account] || CURRENCY.CNY; }
+    function fmtMoney(v, code) {
+      if (!isFinite(v)) return "—";
+      return cur(code).sym + Math.round(v).toLocaleString("en-US");
+    }
+    function escapeHTML(s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+    }
+    function stripTags(s) { return String(s == null ? "" : s).replace(/<[^>]*>/g, ""); }
+
+    /* 派生指标：一处算，闸门 / 指标卡 / 压力测试 / 写盘都读它 */
+    function metrics() {
+      const cap = num(prepAccount().capital);
+      const base = num(prep.amount);
+      const add = num(prep.addAmount);
+      const total = currentMode === "buy_add" ? base + add : base;
+      const ratio = cap > 0 ? total / cap : 0;
+      const stopPct = prep.noStop ? 0 : num(prep.stopPct);
+      // 不设价格止损时，最大风险就是这笔投入的全部 —— 出局条件换成了逻辑证伪
+      const maxLoss = prep.noStop ? total : total * stopPct / 100;
+      return { cap, base, add, total, ratio, stopPct, maxLoss, lossOfAcct: cap > 0 ? maxLoss / cap : 0 };
+    }
+
+    function markStarted() { if (!prep.startedAt) prep.startedAt = Date.now(); persistPrep(); }
+    function persistPrep() { try { localStorage.setItem(PREP_KEY, JSON.stringify(prep)); } catch (e) { } }
+    function persistAccountLocal() { try { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account)); } catch (e) { } }
+
+    function currentModeDef() {
+      if (currentMode === "adjust") return ADJUST_MODE;
+      if (currentMode === "prepare") return PREPARE_MODE;
+      if (currentMode === "fill") return FILL_MODE;
+      if (currentMode === "account" || currentMode === "dash") return null;
+      return STRATEGIES[currentStrategy].modes[currentMode] || null;
+    }
+    function currentSections() {
+      const m = currentModeDef();
+      if (!m) return [];
+      const own = m.sections || [];
+      if (currentMode === "buy_new") return [THESIS_GATE].concat(own, [DISCIPLINE_GATE]);
+      // 同一论点在买入逻辑与建仓准备两个时点各审一遍。
+      if (currentMode === "prepare") return [THESIS_GATE, RISK_GATE, EXIT_GATE];
+      if (currentMode === "fill") return [];
+      if (currentMode === "buy_add") return [RISK_GATE].concat(own);
+      return own;
+    }
+    /* 非对称摩擦：只有增加风险的方向会被锁。 */
+    function isGated() { return ["buy_new", "prepare", "buy_add", "adjust"].indexOf(currentMode) !== -1; }
+    // 当前选中的这笔处于什么状态
+    function activeStatus() {
+      const it = trades.open.find(x => x.file === activeFile);
+      return it ? (it.front["状态"] || ST_PLAN) : "";
+    }
+    function activeIsPlan() { return activeStatus() === ST_PLAN; }
+    /* 需要录成交的两种情况：还没成交的计划；以及老文件——状态写着持仓中但从没记过股数。 */
+    function needsFill() {
+      const it = trades.open.find(x => x.file === activeFile);
+      if (!it) return false;
+      if ((it.front["状态"] || ST_PLAN) === ST_PLAN) return true;
+      return !num(it.front["持仓股数"]);
+    }
+    /* 第一步只是买入逻辑建档；有 prepare/revise 事件后才算完成建仓准备。
+       旧版文件把结构参数直接写在 open 里，保留兼容。 */
+    function tradePrepared(it) {
+      if (!it) return false;
+      if ((it.events || []).some(e => e.kind === "prepare" || e.kind === "revise")) return true;
+      const o = it.open || {};
+      return num(o.amount) > 0 && !!o.horizonThesis && !!o.exitControl;
+    }
+    function activePrepared() { return tradePrepared(trades.open.find(x => x.file === activeFile)); }
+
+    /* 买入逻辑（第一步）是否已通过 —— 决定「建仓准备」这一步开不开 */
+    function logicPassed() {
+      const m = STRATEGIES[currentStrategy].modes.buy_new;
+      const secs = [THESIS_GATE].concat(m.sections || [], [DISCIPLINE_GATE]);
+      const ok = it => {
+        if (it.type === "calc") { const s = it.calc().state; return s === "pass" || (s === "idle" && it.idleOk); }
+        if (it.type === "text") return !it.required || !!tget(it, "buy_new").trim();
+        return cget(it, "buy_new");
+      };
+      return secs.every(sec => {
+        const done = sec.items.filter(ok).length;
+        return sec.rule === "any" ? done >= 1 : done === sec.items.length;
+      });
+    }
+    // 至少有一个账户填了资金与期限，就算设好了
+    function accountReady() {
+      return Object.keys(account.accounts).some(k => num(account.accounts[k].capital) > 0 && !!account.accounts[k].horizonFund);
+    }
+    function firstReadyAccount() {
+      return Object.keys(account.accounts).find(k => num(account.accounts[k].capital) > 0 && !!account.accounts[k].horizonFund) || "CNY";
+    }
+
+    /* 正式数据 API：只访问 YMOS 本地服务。 */
+    async function api(path, opts) {
+      const res = await fetch(path, opts);
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) { const e = new Error(j.error || res.status); e.status = res.status; e.payload = j; throw e; }
+      serverOk = true;
+      return j;
+    }
+
+    /* 账户参数：状态机文件优先，localStorage 兜底（和交易计划台一个套路） */
+    async function loadAccount() {
+      try { const raw = localStorage.getItem(ACCOUNT_KEY); if (raw) account = migrateAccount(JSON.parse(raw)); } catch (e) { }
+      try {
+        const j = await api("/api/trade/account");
+        if (j.found && j.account) account = migrateAccount(j.account);   // v1 单账户会被搬到对应币种下
+      } catch (e) { serverOk = false; }
+      if (!num(prepAccount().capital)) prep.account = firstReadyAccount();
+      persistAccountLocal();
+    }
+
+    async function loadTrades() {
+      try {
+        trades = await api("/api/trade/list");
+        if (activeFile && !trades.open.some(t => t.file === activeFile)) activeFile = "";
+      } catch (e) { serverOk = false; trades = { open: [], closed: [] }; }
+    }
+
+    /* 选中一笔持仓：把建仓档案回填进 prep，让结构层用真实数字重算 */
+    async function selectTrade(file) {
+      activeFile = file || "";
+      activeOpen = null; activeChecks = {}; activeTexts = {};
+      if (!activeFile) { renderAll(); return; }
+      try {
+        const j = await api("/api/trade/load?file=" + encodeURIComponent(activeFile));
+        if (j.found && j.open) {
+          const o = j.open;
+          activeOpen = o;
+          if (o.strategy && STRATEGIES[o.strategy]) currentStrategy = o.strategy;
+          const plan = Object.assign({}, o);
+          for (const e of (j.events || [])) {
+            if (["prepare", "revise"].indexOf(e.kind) === -1 || !e.metrics) continue;
+            Object.assign(plan, e.metrics);
+          }
+          prep = Object.assign(blankPrep(), {
+            symbol: o.symbol || o.name || "",
+            ticker: o.ticker || "",
+            account: plan.account || plan.currency || "CNY",
+            horizonThesis: plan.horizonThesis || "",
+            amount: num(plan.amount), stopPct: num(plan.stopPct), noStop: !!plan.noStop,
+            exitControl: plan.exitControl || "",
+            startedAt: Date.now() - COOL_MIN * 60000 - 1000,   // 已有仓位：冷却期不重复计
+          });
+          persistPrep();
+        }
+        // 回填「当时勾了什么、写了什么」：买入逻辑 → 建仓准备 → 后续修订依次叠加。
+        for (const e of (j.events || [])) {
+          if (["open", "prepare", "revise"].indexOf(e.kind) === -1) continue;
+          Object.assign(activeChecks, e.checks || {});
+          Object.assign(activeTexts, e.texts || {});
+        }
+        const latestRule = Object.assign({}, activeOpen || {});
+        for (const e of (j.events || [])) {
+          if (["prepare", "revise"].indexOf(e.kind) !== -1 && e.metrics) Object.assign(latestRule, e.metrics);
+          if (e.kind === "adjust" && e.adjust) {
+            latestRule.noStop = !!e.adjust.noStop;
+            latestRule.stopPct = e.adjust.stopPct;
+            latestRule.exitRule = e.adjust.exitRule || "";
+          }
+        }
+        prep.adjustMode = latestRule.noStop ? "logic" : "price";
+        prep.adjustStopPct = latestRule.noStop ? 0 : num(latestRule.stopPct);
+        prep.adjustExitRule = latestRule.exitRule || activeTexts.x4 || "";
+        // 建仓准备是第二个审视时点：用文件中的最新论点/结构值预填，但保持可编辑。
+        clearBuckets("prepare");
+        for (const sec of [THESIS_GATE, RISK_GATE, EXIT_GATE]) {
+          for (const it of sec.items) {
+            if (it.type === "text" && activeTexts[it.id] != null) bank(texts, it, "prepare")[it.id] = activeTexts[it.id];
+            else if (it.type !== "calc" && activeChecks[it.id]) bank(checks, it, "prepare")[it.id] = true;
+          }
+        }
+      } catch (e) { serverOk = false; }
+      renderAll();
+    }
+
+    /* =====================================================================
+       渲染 · 顶部上下文条
+       ===================================================================== */
+    function renderCtxBar() {
+      const seg = document.getElementById("stratSeg");
+      seg.innerHTML = "";
+      for (const key of Object.keys(STRATEGIES)) {
+        const s = STRATEGIES[key];
+        const b = document.createElement("button");
+        b.className = "strat-btn" + (key === currentStrategy ? " on" : "");
+        b.textContent = s.label;
+        b.title = s.desc;
+        b.onclick = () => switchStrategy(key);
+        seg.appendChild(b);
+      }
+
+      const pick = document.getElementById("posPick");
+      pick.innerHTML = "";
+      if (!serverOk) {
+        const tag = document.createElement("span");
+        tag.className = "conn-tag";
+        tag.textContent = "未连本地服务 · 不写盘";
+        tag.title = "跑 python3 server.py 后刷新，就能把每个动作写进本地决策文件。";
+        pick.appendChild(tag);
+        return;
+      }
+      const label = document.createElement("span");
+      label.textContent = "持仓";
+      pick.appendChild(label);
+      const sel = document.createElement("select");
+      sel.innerHTML = '<option value="">— 未选（开新仓不需要）—</option>' +
+        trades.open.map(t => {
+          const f = t.front || {};
+          return '<option value="' + escapeHTML(t.file) + '"' + (t.file === activeFile ? " selected" : "") + '>' +
+            escapeHTML((f["标的"] || t.file) + " · " + (f["状态"] || ST_PLAN) + " · " + (f["建仓决策日"] || f["开仓决策日"] || "")) + '</option>';
+        }).join("");
+      sel.onchange = () => selectTrade(sel.value);
+      pick.appendChild(sel);
+      const tag = document.createElement("span");
+      tag.className = "conn-tag ok";
+      const nHeld = trades.open.filter(x => (x.front["状态"] || ST_PLAN) === ST_HELD).length;
+      tag.textContent = "持仓 " + nHeld + " · 计划 " + (trades.open.length - nHeld) + " · 已平 " + trades.closed.length;
+      pick.appendChild(tag);
+      // 重读本地 Markdown 真相源。
+      const rf = document.createElement("button");
+      rf.className = "mini-btn";
+      rf.textContent = "🔄 重读文件";
+      rf.title = "重新读取 买入卖出决策/ 下的所有决策文件与账户参数";
+      rf.onclick = async () => {
+        rf.textContent = "读取中…";
+        await Promise.all([loadTrades(), loadAccount()]);
+        if (activeFile) await selectTrade(activeFile); else renderAll();
+        toast("已重读决策文件");
+      };
+      pick.appendChild(rf);
+    }
+
+    /* =====================================================================
+       渲染 · 侧栏 / 移动端 chip
+       ===================================================================== */
+    function modeLocked(key) {
+      if (key === "prepare") return !activeFile && !logicPassed();   // 回看 / 改计划时不锁
+      if (key === "fill") return !activeFile || !needsFill() || !activePrepared();
+      return false;
+    }
+    function renderNav() {
+      const nav = document.getElementById("modeNav");
+      nav.innerHTML = "";
+      let lastGroup = null;
+      for (const key of ORDER) {
+        const m = MODE_META[key];
+        if (m.group !== lastGroup) {
+          const gh = document.createElement("div");
+          gh.className = "group-head";
+          gh.textContent = m.group;
+          nav.appendChild(gh);
+          lastGroup = m.group;
+        }
+        const locked = modeLocked(key);
+        const btn = document.createElement("div");
+        btn.className = "mode-btn " + m.kind + (key === currentMode ? " on" : "") + (locked ? " locked" : "");
+        btn.onclick = () => switchMode(key);
+        if (locked) btn.title = key === "fill" ? "先保存建仓准备，才能确认实际成交" : "先在「① 买入逻辑」完成论点建档";
+        btn.innerHTML =
+          '<div class="m-icon">' + (locked ? "🔒" : m.icon) + '</div>' +
+          '<div class="m-txt"><div class="m-label">' + m.navLabel + '</div>' +
+          '<div class="m-desc">' + (locked ? (key === "fill" ? "锁 · 建仓准备未保存" : "锁 · 买入逻辑未建档") : m.navDesc) + '</div></div>' +
+          '<div class="m-mark"></div>';
+        nav.appendChild(btn);
+      }
+
+      const wrap = document.getElementById("mobileTabs");
+      if (!wrap) return;
+      wrap.innerHTML = "";
+      for (const key of ORDER) {
+        const m = MODE_META[key];
+        const chip = document.createElement("div");
+        chip.className = "mtb-chip " + m.kind + (key === currentMode ? " on" : "");
+        chip.textContent = (modeLocked(key) ? "🔒 " : "") + m.navLabel;
+        chip.onclick = () => switchMode(key);
+        wrap.appendChild(chip);
+      }
+    }
+
+    /* =====================================================================
+       渲染 · 主区
+       ===================================================================== */
+    function renderMode() {
+      const meta = MODE_META[currentMode];
+      const def = currentModeDef();
+      document.getElementById("kicker").textContent = currentMode === "account" ? "账户 · 系统化参数" : (def ? def.kicker : meta.navLabel);
+      document.getElementById("title").textContent = currentMode === "account" ? "账户参数" : (def ? def.title : meta.navLabel);
+      document.getElementById("tagline").innerHTML = currentMode === "account"
+        ? "这一页设一次就好，之后每笔交易都拿它当分母。它<em>不属于任何一笔交易</em> —— 所以单独放在这里，存成本地状态机文件。"
+        : (def ? def.tagline : "");
+
+      const banner = document.getElementById("coreBanner");
+      if (def && def.banner) {
+        banner.style.display = "flex";
+        banner.className = "core-banner " + meta.kind;
+        banner.innerHTML = '<span class="cb-icon">' + (meta.kind === "sell" ? "⚖️" : "🧭") + '</span><div>' + def.banner + '</div>';
+      } else {
+        banner.style.display = "none";
+      }
+
+      const scroll = document.getElementById("bodyScroll");
+      scroll.innerHTML = "";
+      if (location.protocol === "file:") scroll.appendChild(filePreviewNotice());
+
+      if (currentMode === "dash") {
+        renderDash(scroll);
+        updateProgress(); scroll.scrollTop = 0;
+        return;
+      }
+
+      if (currentMode === "account") {
+        renderAccount(scroll);
+        updateProgress(); scroll.scrollTop = 0;
+        return;
+      }
+
+      if (currentMode === "fill") {
+        if (!activeFile || !needsFill()) scroll.appendChild(fillNotice());
+        else { scroll.appendChild(buildFillForm()); appendTips(scroll, FILL_MODE); }
+        updateProgress(); scroll.scrollTop = 0;
+        return;
+      }
+
+      // 已成交的：建仓准备变成只读档案；还在计划中的：可以继续改（改的是计划，不是历史）
+      if (currentMode === "prepare" && activeFile && !activeIsPlan()) {
+        scroll.appendChild(newTradeBar());
+        renderArchive(scroll);
+        updateProgress(); scroll.scrollTop = 0;
+        return;
+      }
+      if (currentMode === "prepare" && activeFile && activeIsPlan()) {
+        scroll.appendChild(reviseNotice());
+        scroll.appendChild(newTradeBar());
+        if (!accountReady()) scroll.appendChild(accountNotice());
+        scroll.appendChild(buildMetrics());
+        scroll.appendChild(buildPrepForm());
+        for (const sec of currentSections()) scroll.appendChild(buildSection(sec));
+        updateProgress(); scroll.scrollTop = 0;
+        return;
+      }
+
+      if (currentMode === "prepare" && !activeFile && !logicPassed()) {
+        scroll.appendChild(lockedNotice());
+        updateProgress(); scroll.scrollTop = 0;
+        return;
+      }
+
+      if (currentMode === "buy_new") {
+        if (activeFile) scroll.appendChild(viewBar("买入逻辑"));
+        else scroll.appendChild(buildSymbolBar());
+      }
+      if (currentMode !== "buy_new" && currentMode !== "prepare") {
+        const need = buildTradeNeeded();
+        if (need) scroll.appendChild(need);
+      }
+      if (currentMode === "prepare" || currentMode === "buy_add") {
+        if (!accountReady()) scroll.appendChild(accountNotice());
+        scroll.appendChild(buildMetrics());
+        scroll.appendChild(buildPrepForm());
+      }
+      if (MODE_META[currentMode].kind === "sell" && activeFile) {
+        scroll.appendChild(buildPositionContext("sell"));
+        scroll.appendChild(buildSellForm());
+      }
+      if (currentMode === "adjust" && activeFile) {
+        scroll.appendChild(buildPositionContext("adjust"));
+        scroll.appendChild(buildAdjustForm());
+      }
+
+      for (const sec of currentSections()) scroll.appendChild(buildSection(sec));
+      appendTips(scroll, def);
+      updateProgress();
+      scroll.scrollTop = 0;
+    }
+
+    function appendTips(scroll, m) {
+      if (!m || !m.tips || !m.tips.length) return;
+      const tipsEl = document.createElement("div");
+      tipsEl.className = "tips";
+      for (const t of m.tips) {
+        const tip = document.createElement("div");
+        tip.className = "tip";
+        tip.innerHTML = '<span class="tip-icon">⚠️</span><div>' + t + '</div>';
+        tipsEl.appendChild(tip);
+      }
+      scroll.appendChild(tipsEl);
+    }
+
+    /* =====================================================================
+       持仓总览（数字版 Dashboard）
+       持仓事实来自单笔决策文件；现价优先从账户状态机的最近快照恢复。
+       页面再用当前股数 / 成本 / 计划金额重算总览，不把快照当成持仓账本。
+       ===================================================================== */
+    function decisionPlan(item) {
+      const o = Object.assign({}, item.open || {});
+      for (const e of (item.events || [])) {
+        if (["prepare", "revise"].indexOf(e.kind) !== -1 && e.metrics) Object.assign(o, e.metrics);
+        if (e.kind === "adjust" && e.adjust) {
+          o.noStop = !!e.adjust.noStop;
+          o.stopPct = e.adjust.noStop ? null : num(e.adjust.stopPct);
+          o.exitRule = e.adjust.exitRule || "";
+        }
+      }
+      return o;
+    }
+    function activeTradeItem() { return trades.open.find(x => x.file === activeFile) || null; }
+    function activePosition() {
+      const item = activeTradeItem();
+      if (!item) return null;
+      const f = item.front || {}, plan = decisionPlan(item), live = tradeLive(item);
+      const shares = num(f["持仓股数"]), costPrice = num(f["成本价"]);
+      return {
+        item, plan, shares, costPrice, costAmount: shares * costPrice,
+        currentPrice: live ? live.price : 0,
+        marketValue: live ? live.marketValue : 0,
+        pnl: live ? live.pnl : null, pnlPct: live ? live.pnlPct : null,
+      };
+    }
+    function fmtShares(v) {
+      if (!isFinite(v)) return "—";
+      return (+v.toFixed(4)).toLocaleString("en-US", { maximumFractionDigits: 4 });
+    }
+    function sellPositionPreview() {
+      const p = activePosition();
+      if (!p || !p.shares) return { before: 0, sell: 0, remain: 0 };
+      const ratio = (SELL_PORTION[prep.sellPortion] || SELL_PORTION.all).ratio;
+      const sell = prep.sellPortion === "all" ? p.shares : p.shares * ratio;
+      return { before: p.shares, sell, remain: Math.max(0, p.shares - sell) };
+    }
+    function tradeAmount(item) {
+      const f = item.front || {}, o = decisionPlan(item);
+      const shares = num(f["持仓股数"]), cost = num(f["成本价"]), actual = num(f["实际投入"]);
+      if (actual) return actual;
+      if (shares && cost) return shares * cost;
+      return num(o.amount);                       // 还没成交：按计划金额占位
+    }
+    function tradeAcct(item) { const o = decisionPlan(item); return o.account || o.currency || "CNY"; }
+    function tradeRealizedPnl(item) {
+      return (item.events || []).reduce((sum, e) => sum + (e.sell && e.sell.realizedPnl != null ? num(e.sell.realizedPnl) : 0), 0);
+    }
+    function accountSnapshot(code) {
+      const held = trades.open.filter(t => (t.front["状态"] || ST_PLAN) === ST_HELD && tradeAcct(t) === code);
+      const planned = trades.open.filter(t => (t.front["状态"] || ST_PLAN) === ST_PLAN && tradeAcct(t) === code);
+      const costBasis = held.reduce((s, t) => s + tradeAmount(t), 0);
+      const marketValue = held.reduce((s, t) => { const lv = tradeLive(t); return s + (lv ? lv.marketValue : tradeAmount(t)); }, 0);
+      const unrealizedPnl = held.reduce((s, t) => { const lv = tradeLive(t); return s + (lv ? lv.pnl : 0); }, 0);
+      const realizedPnl = trades.open.concat(trades.closed).filter(t => tradeAcct(t) === code).reduce((s, t) => s + tradeRealizedPnl(t), 0);
+      const pending = planned.reduce((s, t) => s + tradeAmount(t), 0);
+      const capital = num((account.accounts[code] || {}).capital);
+      const nav = capital + realizedPnl + unrealizedPnl;
+      return { code, held, planned, capital, costBasis, marketValue, unrealizedPnl, realizedPnl, pending, nav, available: nav - marketValue - pending };
+    }
+
+    /* 账户级快照：单笔 Markdown 仍是持仓事实源，这里只记录「最后一次行情刷新时看到的汇总结果」。
+       页面恢复后仍会用当前交易文件重算，不会把快照当成第二套持仓账本。 */
+    function buildPortfolioSnapshot() {
+      const byAccount = {};
+      for (const code of Object.keys(CURRENCY)) {
+        const s = accountSnapshot(code);
+        byAccount[code] = {
+          capital: s.capital, nav: s.nav, costBasis: s.costBasis, marketValue: s.marketValue,
+          unrealizedPnl: s.unrealizedPnl, realizedPnl: s.realizedPnl,
+          pending: s.pending, available: s.available,
+          heldCount: s.held.length, plannedCount: s.planned.length,
+        };
+      }
+      const held = trades.open.filter(t => (t.front["状态"] || ST_PLAN) === ST_HELD);
+      const positions = held.map(item => {
+        const f = item.front || {}, live = tradeLive(item), code = tradeAcct(item);
+        const plan = decisionPlan(item), context = tradeDecisionContext(item);
+        const shares = num(f["持仓股数"]), costPrice = num(f["成本价"]), costAmount = shares * costPrice;
+        const stopStatus = plan.noStop ? "logic_exit"
+          : !live || live.toStopPct == null ? "price_unavailable"
+            : live.toStopPct < 0 ? "breached" : live.toStopPct < 5 ? "near" : "within_limit";
+        return {
+          file: item.file, name: f["标的"] || item.file, ticker: tradeTicker(item), account: code,
+          shares, costPrice, lastPrice: live ? live.price : null,
+          costAmount, marketValue: live ? live.marketValue : costAmount,
+          unrealizedPnl: live ? live.pnl : null, pnlPct: live ? live.pnlPct : null,
+          exposurePct: byAccount[code] && byAccount[code].nav ? (live ? live.marketValue : costAmount) / byAccount[code].nav * 100 : null,
+          noStop: !!plan.noStop,
+          stopPct: plan.noStop ? null : num(plan.stopPct) || null,
+          stopPrice: live ? live.stopPrice : (plan.noStop || !costPrice || !num(plan.stopPct) ? null : costPrice * (1 - num(plan.stopPct) / 100)),
+          distanceToStopPct: live ? live.toStopPct : null,
+          stopStatus,
+          horizonThesis: plan.horizonThesis || "",
+          thesis: context.thesis,
+          invalidationSignal: context.invalidationSignal,
+          catalyst: context.catalyst,
+          exitAction: plan.exitRule || context.exitAction || "",
+          source: live ? (live.source || "") : "",
+        };
+      });
+      const health = portfolioHealth();
+      for (const position of positions) {
+        const related = health.alerts.filter(a => a.file === position.file);
+        position.alerts = related.map(a => ({ severity: a.severity, type: a.type, message: a.message }));
+        position.suggestedPrompts = Array.from(new Set(related.flatMap(a => a.suggestedPrompts || [])));
+      }
+      return {
+        schemaVersion: 1,
+        asOf: quotes.asOf || nowStamp(),
+        savedAt: nowStamp(),
+        prices: quotes.prices || {},
+        resolved: quotes.resolved || {},
+        unresolved: quotes.unresolved || [],
+        sources: quotes.sources || {},
+        accounts: byAccount,
+        positions,
+        health,
+        agentRouting: {
+          purpose: "Agent 日常持仓扫描入口；先读 health，只在有告警时打开 sourceFile 与对应 P 系列提示词。",
+          sourceOfTruth: "单笔交易 Markdown 是持仓事实源；本快照是最近一次行情时点的派生视图。",
+          defaultPortfolioPrompt: "P7",
+          suggestedRuns: health.suggestedRuns,
+        },
+      };
+    }
+
+    function tradeTicker(item) {
+      const o = decisionPlan(item), f = item.front || {};
+      return (o.ticker || f["Ticker"] || quotes.resolved[f["标的"]] || "").toUpperCase();
+    }
+    /* 行情派生：只有「有股数 + 有成本价 + 拿到现价」三者齐全才算得出浮盈。
+       缺一个就退回成本口径，不猜、不补零。 */
+    function tradeLive(item) {
+      const f = item.front || {}, o = decisionPlan(item);
+      const q = quotes.prices[tradeTicker(item)];
+      const shares = num(f["持仓股数"]), cost = num(f["成本价"]);
+      if (!q || !shares || !cost) return null;
+      const price = num(q.price);
+      if (!price) return null;
+      const mv = price * shares, costAmt = cost * shares;
+      const stopPct = o.noStop ? 0 : num(o.stopPct);
+      return {
+        price, pctChg: q.pctChg == null ? null : num(q.pctChg), source: q.source,
+        marketValue: mv, costAmount: costAmt, pnl: mv - costAmt,
+        pnlPct: costAmt ? (mv - costAmt) / costAmt * 100 : 0,
+        // 距止损：现价相对「成本 ×(1-止损幅度)」还有多远
+        stopPrice: stopPct ? cost * (1 - stopPct / 100) : null,
+        toStopPct: stopPct ? (price - cost * (1 - stopPct / 100)) / price * 100 : null,
+      };
+    }
+
+    function tradeDecisionContext(item) {
+      const texts = {};
+      for (const event of (item.events || [])) {
+        if (["open", "prepare", "revise"].indexOf(event.kind) !== -1 && event.texts) Object.assign(texts, event.texts);
+      }
+      return {
+        thesis: texts.x1 || "",
+        invalidationSignal: texts.x2 || "",
+        catalyst: texts.x3 || "",
+        exitAction: texts.x4 || "",
+      };
+    }
+
+    function portfolioHealth() {
+      const held = trades.open.filter(t => (t.front["状态"] || ST_PLAN) === ST_HELD);
+      const planned = trades.open.filter(t => (t.front["状态"] || ST_PLAN) === ST_PLAN);
+      const alerts = [];
+      const add = (severity, type, item, message, prompts) => {
+        const f = (item && item.front) || {}, name = f["标的"] || (item && item.file) || "账户级";
+        alerts.push({
+          severity, type, name,
+          ticker: item ? tradeTicker(item) : "",
+          file: item ? item.file : "",
+          message,
+          suggestedPrompts: prompts || [],
+        });
+      };
+
+      for (const item of trades.open) {
+        const plan = decisionPlan(item), code = tradeAcct(item), acct = account.accounts[code] || {};
+        const name = item.front["标的"] || item.file, capital = num(acct.capital) || num(plan.capital), amount = tradeAmount(item);
+        if (capital && amount / capital > account.maxSingleRatio + 1e-9) {
+          add("critical", "position_limit_exceeded", item,
+            name + " 占账户 " + (amount / capital * 100).toFixed(1) + "%，超出单笔上限 " + (account.maxSingleRatio * 100).toFixed(0) + "%",
+            ["P7", "P12"]);
+        }
+        const fund = horizonBy(HORIZON_FUND, plan.horizonFund), thesis = horizonBy(HORIZON_THESIS, plan.horizonThesis);
+        if (fund && thesis && thesis.months > fund.months) {
+          add("critical", "horizon_mismatch", item,
+            name + " 资金期限 " + fund.label + " 短于论点周期 " + thesis.label,
+            ["P6", "P7", "P12"]);
+        }
+        if (plan.exitControl && EXIT_CONTROL[plan.exitControl] && !EXIT_CONTROL[plan.exitControl].ok) {
+          add("critical", "external_exit_control", item,
+            name + " 的出局权外生：" + EXIT_CONTROL[plan.exitControl].label,
+            ["P6", "P12"]);
+        }
+        if (plan.noStop) {
+          add("warning", "logic_exit_review", item,
+            name + " 不设价格止损，需要核对论点失效信号",
+            ["P2", "P6"]);
+        }
+      }
+
+      for (const item of held) {
+        const live = tradeLive(item), name = item.front["标的"] || item.file;
+        if (live && live.toStopPct != null && live.toStopPct < 0) {
+          add("critical", "stop_breached", item,
+            name + " 现价已跌破止损位 " + Math.abs(live.toStopPct).toFixed(1) + "%",
+            ["P2", "P6", "P12"]);
+        } else if (live && live.toStopPct != null && live.toStopPct < 5) {
+          add("warning", "near_stop", item,
+            name + " 距止损位只剩 " + live.toStopPct.toFixed(1) + "%",
+            ["P6", "P12"]);
+        }
+      }
+
+      const skipped = trades.open.concat(trades.closed).filter(t => (t.open || {}).coolSkipped).length;
+      if (skipped) {
+        add("warning", "cooldown_skipped", null,
+          "跳过冷却期的交易 " + skipped + " / " + (trades.open.length + trades.closed.length),
+          ["P7", "P12"]);
+      }
+
+      const suggestions = [], seen = new Set();
+      for (const alert of alerts) {
+        if (!alert.suggestedPrompts.length) continue;
+        const key = (alert.ticker || "portfolio") + ":" + alert.suggestedPrompts.join("+");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        suggestions.push({
+          scope: alert.ticker ? "position" : "portfolio",
+          name: alert.name,
+          ticker: alert.ticker,
+          prompts: alert.suggestedPrompts,
+          reason: alert.message,
+          sourceFile: alert.file,
+        });
+      }
+      const criticalCount = alerts.filter(x => x.severity === "critical").length;
+      const warningCount = alerts.filter(x => x.severity === "warning").length;
+      return {
+        status: criticalCount ? "critical" : warningCount ? "attention" : "normal",
+        summary: {
+          heldCount: held.length,
+          plannedCount: planned.length,
+          pricedCount: held.filter(item => !!tradeLive(item)).length,
+          criticalCount,
+          warningCount,
+          stopBreachedCount: alerts.filter(x => x.type === "stop_breached").length,
+          nearStopCount: alerts.filter(x => x.type === "near_stop").length,
+          logicExitReviewCount: alerts.filter(x => x.type === "logic_exit_review").length,
+        },
+        alerts,
+        suggestedRuns: suggestions,
+      };
+    }
+
+    function hasQuotes() { return Object.keys(quotes.prices || {}).length > 0; }
+
+    function persistQuotes() {
+      if (!hasQuotes()) return;
+      try {
+        localStorage.setItem(QUOTES_KEY, JSON.stringify({
+          prices: quotes.prices || {}, resolved: quotes.resolved || [], unresolved: quotes.unresolved || [],
+          asOf: quotes.asOf || nowStamp(), sources: quotes.sources || {}, savedAt: nowStamp(),
+        }));
+      } catch (e) { }
+    }
+
+    function restoreQuotes() {
+      let saved = null, restoredFrom = "";
+      const snapshot = account && account.portfolioSnapshot;
+      if (snapshot && snapshot.prices && Object.keys(snapshot.prices).length) {
+        saved = snapshot;
+        restoredFrom = "obsidian";
+      }
+      try {
+        if (!saved) {
+          const raw = localStorage.getItem(QUOTES_KEY);
+          const cached = raw ? JSON.parse(raw) : null;
+          if (cached && cached.prices && Object.keys(cached.prices).length) {
+            saved = cached;
+            restoredFrom = "browser";
+          }
+        }
+      } catch (e) { }
+      if (saved) {
+        quotes = Object.assign(quotes, saved, {
+          loading: false, tried: true, restored: true, restoredFrom, lastError: "",
+        });
+      }
+    }
+
+    function quoteBar() {
+      const el = document.createElement("div");
+      const held = trades.open.filter(x => (x.front["状态"] || ST_PLAN) === ST_HELD);
+      const got = held.filter(x => quotes.prices[tradeTicker(x)]).length;
+      if (quotes.loading) {
+        el.className = "stance-ctx none";
+        el.innerHTML = '<span class="sc-icon">📡</span><div>正在拉行情…（走 YMOS 自己的价格路由器：美股 Finnhub / A股 Tushare / 港股 Yahoo）</div>';
+        return el;
+      }
+      if (!quotes.tried) {
+        el.className = "stance-ctx none";
+        el.innerHTML = '<span class="sc-icon">📡</span><div>下面是<b>成本口径</b>的数字（不联网，开源版默认就是这样）。' +
+          '<br><button class="new-btn" id="qGo">📡 打通动态价格</button>' +
+          '<span class="sc-msg" style="display:block;margin-top:6px">走 YMOS 自己的价格路由器，跟投资雷达同一个源。现价不写进单笔决策文件；成功后会连同总览写入<b>账户状态机快照</b>。</span></div>';
+        el.querySelector("#qGo").onclick = () => loadQuotes(true);
+        return el;
+      }
+      const un = (quotes.unresolved || []);
+      const s = quotes.sources || {};
+      const srcTxt = [
+        "美股/Crypto → " + (s.finnhub ? "Finnhub" : "Yahoo 兜底（未配 FINNHUB_API_KEY）"),
+        "A股 → " + (s.tushare ? "Tushare" : "Yahoo 兜底（未配 TUSHARE_TOKEN）"),
+        "港股 → Yahoo",
+      ].join("　·　");
+      el.className = "stance-ctx " + (got ? "good" : "warn");
+      const statusText = quotes.restored
+        ? ('当前按' + (quotes.restoredFrom === "obsidian" ? ' Obsidian 状态机快照' : '浏览器备用缓存') + '显示')
+        : '本次行情已更新，总览快照已写入状态机';
+      el.innerHTML = '<span class="sc-icon">📡</span><div>最近行情 <b>' + got + ' / ' + held.length + '</b>　·　上次更新 <b>' + escapeHTML(quotes.asOf || "未知") + '</b>' +
+        '　<a class="sc-link" id="qGo">重新拉取 →</a>' +
+        '<br><span class="sc-msg">' + statusText + '。' + escapeHTML(srcTxt) + '</span>' +
+        (quotes.lastError ? '<br><span class="sc-msg">⚠️ ' + escapeHTML(quotes.lastError) + '</span>' : '') +
+        (un.length ? '<br><span class="sc-msg">查不到 ticker：<b>' + un.map(escapeHTML).join("、") + '</b> —— 在「建仓准备」的 Ticker 栏补一个，或先加进持仓 / Watchlist 状态机。</span>' : '') + '</div>';
+      el.querySelector("#qGo").onclick = () => loadQuotes(true);
+      return el;
+    }
+
+    async function loadQuotes(force) {
+      if (!serverOk) return;
+      quotes.loading = true; renderMode();
+      try {
+        const j = await api("/api/trade/prices" + (force ? "?force=1" : ""));
+        if (j && j.prices && Object.keys(j.prices).length) {
+          quotes = Object.assign(quotes, j, { loading: false, tried: true, restored: false, restoredFrom: "", lastError: "" });
+          persistQuotes();
+          try {
+            account.portfolioSnapshot = buildPortfolioSnapshot();
+            persistAccountLocal();
+            await writeAccountState();
+          } catch (snapshotError) {
+            quotes.lastError = "行情已更新，但 Obsidian 总览快照写入失败。";
+          }
+        } else {
+          quotes.loading = false; quotes.tried = true;
+          quotes.lastError = hasQuotes() ? "本次拉取没有返回有效价格，继续显示上一次行情。" : "本次拉取没有返回有效价格。";
+        }
+      } catch (e) {
+        quotes.loading = false; quotes.tried = true;
+        quotes.lastError = hasQuotes() ? "本次拉取失败，继续显示上一次行情。" : "本次拉取失败。";
+      }
+      renderMode();
+    }
+
+    function renderDash(scroll) {
+      const held = trades.open.filter(t => (t.front["状态"] || ST_PLAN) === ST_HELD);
+      const plan = trades.open.filter(t => (t.front["状态"] || ST_PLAN) === ST_PLAN);
+
+      /* ---- 各账户敞口 ---- */
+      const accBox = document.createElement("div");
+      accBox.className = "section";
+      let accRows = "";
+      for (const code of Object.keys(CURRENCY)) {
+        const a = account.accounts[code], cap = num(a.capital);
+        if (!cap) continue;
+        const s = accountSnapshot(code);
+        const totalPnl = s.realizedPnl + s.unrealizedPnl;
+        accRows +=
+          '<tr><td><b>' + CURRENCY[code].sym + ' ' + CURRENCY[code].label + '</b></td>' +
+          '<td>' + fmtMoney(cap, code) + '</td>' +
+          '<td><b>' + fmtMoney(s.nav, code) + '</b>' +
+          (totalPnl ? '<span class="sub ' + (totalPnl > 0 ? "up" : "down") + '"> · ' + (totalPnl > 0 ? "+" : "") + fmtMoney(totalPnl, code) + '</span>' : '') + '</td>' +
+          '<td>' + fmtMoney(s.costBasis, code) + '</td>' +
+          '<td><b>' + fmtMoney(s.marketValue, code) + '</b></td>' +
+          '<td>' + (s.pending ? fmtMoney(s.pending, code) + '<span class="sub"> · ' + s.planned.length + ' 笔</span>' : '—') + '</td>' +
+          '<td class="' + (s.available < 0 ? "neg" : "") + '"><b>' + fmtMoney(s.available, code) + '</b></td>' +
+          '<td>' + s.held.length + ' 笔</td></tr>';
+      }
+      accBox.innerHTML = '<div class="section-title"><span class="s-name">账户敞口</span><span class="s-rule all">' +
+        (hasQuotes() ? "净值 + 市值口径" : "成本口径（待拉行情）") + '</span></div>' +
+        (accRows
+          ? '<div class="tbl-scroll"><table class="m-tbl dash"><tr><th>账户</th><th>资金基数</th><th>账户净值</th><th>持仓成本</th><th>持仓市值</th><th>待建计划</th><th>剩余可开</th><th>持仓数</th></tr>' + accRows + '</table></div>' +
+            '<div class="empty-note">账户净值 = 资金基数 + 已实现盈亏 + 浮动盈亏；剩余可开 = 账户净值 − 持仓市值 − 待建计划。未拉行情时，市值暂按剩余成本计。</div>'
+          : '<div class="empty-note">还没启用任何账户 —— 先去「账户参数」设置资金基数。</div>');
+      scroll.appendChild(accBox);
+
+      /* ---- 结构层体检：只报能从数据里查出来的问题 ---- */
+      const health = portfolioHealth();
+      const flags = health.alerts.map(alert => ({
+        lv: alert.severity === "critical" ? "bad" : "warn",
+        txt: (alert.name && alert.name !== "账户级" ? "<b>" + escapeHTML(alert.name) + "</b> · " : "") +
+          escapeHTML(alert.message.replace(alert.name + " ", "")) +
+          (alert.suggestedPrompts.length ? "<span class=\"sub\"> · 建议 " + alert.suggestedPrompts.join(" → ") + "</span>" : ""),
+      }));
+
+      const chk = document.createElement("div");
+      chk.className = "section";
+      chk.innerHTML = '<div class="section-title"><span class="s-name">结构层体检</span>' +
+        '<span class="s-rule ' + (flags.some(f => f.lv === "bad") ? "any" : "all") + '">' + (flags.length ? flags.length + " 项" : "无异常") + '</span></div>' +
+        (flags.length
+          ? flags.map(f => '<div class="flag ' + f.lv + '"><span>' + (f.lv === "bad" ? "🛑" : "⚠️") + '</span><div>' + f.txt + '</div></div>').join("")
+          : '<div class="empty-note">当前持仓与计划都在结构层之内。这不代表方向对，只代表<b>你还在牌桌上</b>。</div>');
+      scroll.appendChild(chk);
+
+      /* ---- 持仓明细 ---- */
+      scroll.appendChild(tradeTable("持仓中（已成交）", held, true));
+      scroll.appendChild(tradeTable("计划中（等待建仓）", plan, false));
+
+      /* ---- 已平仓错因分布 ---- */
+      const layers = {};
+      for (const t2 of trades.closed) {
+        const ev = (t2.events || []).find(e => e.closing && e.result && e.result.layer);
+        const k = ev ? ev.result.layer : "未填";
+        layers[k] = (layers[k] || 0) + 1;
+      }
+      const cl = document.createElement("div");
+      cl.className = "section";
+      cl.innerHTML = '<div class="section-title"><span class="s-name">已平仓复盘</span><span class="s-rule all">' + trades.closed.length + ' 笔</span></div>' +
+        (trades.closed.length
+          ? '<div class="tbl-scroll"><table class="m-tbl dash"><tr><th>错在哪一层</th><th>笔数</th></tr>' +
+          Object.keys(layers).map(k => '<tr><td>' + escapeHTML(k) + '</td><td><b>' + layers[k] + '</b></td></tr>').join("") + '</table></div>' +
+          '<div class="empty-note">哪一层出现得最多，就该在哪一层加拦截点 —— 这张表是整套系统里唯一会告诉你「下一版该改哪里」的东西。</div>'
+          : '<div class="empty-note">还没有平掉的交易。第一笔平仓后，这里会开始积累「错在哪一层」的分布。</div>');
+      scroll.appendChild(cl);
+      // 行情只针对「持仓中」文件拉取；把取价状态放在总览最底下，不打断上方体检。
+      if (serverOk) scroll.appendChild(quoteBar());
+    }
+
+    function tradeTable(title, list, isHeld) {
+      const showLive = isHeld && hasQuotes();
+      const box = document.createElement("div");
+      box.className = "section";
+      let rows = "";
+      for (const it of list) {
+        const o = decisionPlan(it), f = it.front || {}, code = tradeAcct(it);
+        const a = account.accounts[code] || {}, cap = num(a.capital) || num(o.capital);
+        const amt = tradeAmount(it);
+        const shares = num(f["持仓股数"]), cost = num(f["成本价"]);
+        const th = horizonBy(HORIZON_THESIS, o.horizonThesis);
+        const over = cap && amt / cap > account.maxSingleRatio + 1e-9;
+        const lv = isHeld ? tradeLive(it) : null;
+        const exposureDenom = isHeld && lv ? accountSnapshot(code).nav : cap;
+        const exposureAmount = isHeld && lv ? lv.marketValue : amt;
+        const pnlText = !lv ? "—" : lv.pnl > 0 ? "浮盈 +" + lv.pnlPct.toFixed(1) + "%" : lv.pnl < 0 ? "浮亏 " + lv.pnlPct.toFixed(1) + "%" : "持平 0.0%";
+        const live = isHeld && showLive
+          ? '<td>' + (lv ? lv.price : '<span class="sub">—</span>') + '</td>' +
+            '<td class="' + (lv && lv.pnl > 0 ? "up" : lv && lv.pnl < 0 ? "down" : "") + '">' + pnlText + '</td>' +
+            '<td class="' + (lv && lv.toStopPct != null && lv.toStopPct < 5 ? "neg" : "") + '">' +
+            (lv ? (lv.toStopPct == null ? "无止损" : (lv.toStopPct >= 0 ? "还有 " + lv.toStopPct.toFixed(1) + "%" : "已破 " + Math.abs(lv.toStopPct).toFixed(1) + "%")) : "—") + '</td>'
+          : '';
+        rows += '<tr>' +
+          '<td><b>' + escapeHTML(f["标的"] || it.file) + '</b><span class="sub"> · ' + escapeHTML(f["策略"] || "") + '</span></td>' +
+          '<td>' + CURRENCY[code].sym + '</td>' +
+          '<td>' + fmtMoney(lv ? lv.marketValue : amt, code) + '</td>' +
+          (isHeld ? '<td>' + fmtMoney(lv ? lv.costAmount : amt, code) + '</td>' : '') +
+          '<td class="' + (over ? "neg" : "") + '">' + (exposureDenom ? (exposureAmount / exposureDenom * 100).toFixed(1) + "%" : "—") + '</td>' +
+          (isHeld ? '<td>' + (shares ? shares.toLocaleString("en-US") : "—") + '</td><td>' + (cost || "—") + '</td>' : '') +
+          live +
+          '<td>' + (o.noStop ? "逻辑证伪" : (o.stopPct ? "-" + num(o.stopPct).toFixed(1) + "%" : "—")) + '</td>' +
+          '<td>' + (th ? th.label : "—") + '</td>' +
+          '<td><button class="mini-btn" data-file="' + escapeHTML(it.file) + '">打开</button></td>' +
+          '</tr>';
+      }
+      box.innerHTML = '<div class="section-title"><span class="s-name">' + title + '</span><span class="s-rule all">' + list.length + ' 笔</span></div>' +
+        (list.length
+          ? '<div class="tbl-scroll"><table class="m-tbl dash"><tr><th>标的</th><th>币</th><th>' +
+          (isHeld ? "持仓市值" : "计划投入") + '</th>' +
+          (isHeld ? '<th>持仓成本</th>' : '') + '<th>占账户</th>' +
+          (isHeld ? '<th>股数</th><th>成本价</th>' : '') +
+          (showLive ? '<th>现价</th><th>浮盈亏</th><th>距止损</th>' : '') +
+          '<th>止损</th><th>论点周期</th><th></th></tr>' + rows + '</table></div>'
+          : '<div class="empty-note">' + (isHeld ? "还没有已成交的持仓。走完「② 建仓准备」再到「③ 确认建仓」，这里就有了。" : "没有等待建仓的计划。") + '</div>');
+      box.querySelectorAll(".mini-btn").forEach(b => {
+        b.onclick = async () => { await selectTrade(b.dataset.file); switchMode("prepare"); };
+      });
+      return box;
+    }
+
+    /* 当前有效规则 = 买入逻辑建档 + prepare/revise + 后续止损调整。 */
+    function effectivePlan() {
+      const base = Object.assign({}, activeOpen || {});
+      const it = trades.open.find(x => x.file === activeFile);
+      const evs = (it && it.events) || [];
+      let revisions = 0;
+      for (const e of evs) {
+        if (["prepare", "revise"].indexOf(e.kind) !== -1 && e.metrics) {
+          revisions++;
+          Object.assign(base, e.metrics);
+        }
+        if (e.kind === "adjust" && e.adjust) {
+          base.noStop = !!e.adjust.noStop;
+          base.stopPct = e.adjust.noStop ? null : num(e.adjust.stopPct);
+          base.exitRule = e.adjust.exitRule || "";
+        }
+      }
+      base._revisions = revisions;
+      return base;
+    }
+
+    /* ---- 确认建仓表单 ---- */
+    function fillNotice() {
+      const el = document.createElement("div");
+      el.className = "stance-ctx none";
+      el.innerHTML = '<span class="sc-icon">✅</span><div>' +
+        (!activeFile
+          ? '先在顶部选一笔<b>计划中</b>的决策文件 —— 确认建仓是把某一笔的「计划」变成「实际成交」。'
+          : !activePrepared()
+            ? '这笔只完成了<b>买入逻辑建档</b>。先去「② 建仓准备」复核论点、补齐仓位与退出动作并保存，再来确认成交。'
+          : '这笔已经录过成交（' + escapeHTML(activeStatus()) + ' · ' + escapeHTML((trades.open.find(x=>x.file===activeFile)||{front:{}}).front["持仓股数"] || "") + ' 股）。要加仓走「加仓」，要改止损走「调整止损」。') + '</div>';
+      return el;
+    }
+
+    function buildFillForm() {
+      const o = effectivePlan();
+      const code = o.account || o.currency || "CNY", c = CURRENCY[code] || CURRENCY.CNY;
+      const planned = num(o.amount);
+      const actual = num(prep.fillPrice) * num(prep.fillShares);
+      const diff = planned ? (actual - planned) / planned * 100 : 0;
+      const wrap = document.createElement("div");
+      wrap.className = "pf-grid";
+      wrap.innerHTML =
+        '<div class="pf-row wide"><div class="pf-label acct-head"><span>' + escapeHTML(o.symbol || activeFile) + '</span>' +
+        '<span class="pf-unit">计划投入 ' + fmtMoney(planned, code) + '（' + c.sym + ' ' + c.label + '账户' +
+        (o._revisions ? ' · 已修订 ' + o._revisions + ' 次' : '') + '）</span></div>' +
+        '<div class="pf-hint">填实际成交的价格和股数。两者相乘就是实际投入，会自动跟计划对比。</div></div>' +
+
+        '<div class="pf-row"><div class="pf-label">实际成交价 <span class="pf-unit">' + c.sym + '</span></div>' +
+        '<input class="pf-input" type="number" step="0.01" id="flPrice" value="' + (prep.fillPrice || "") + '" placeholder="0.00" /></div>' +
+
+        '<div class="pf-row"><div class="pf-label">实际股数 / 份额</div>' +
+        '<input class="pf-input" type="number" step="1" id="flShares" value="' + (prep.fillShares || "") + '" placeholder="0" />' +
+        '<div class="pf-hint">只记股数就够 —— 现价由 YMOS 行情源另行拉取，不在这里手抄。</div></div>' +
+
+        '<div class="pf-row wide"><div class="pf-label">实际投入</div>' +
+        '<div class="fill-sum ' + (Math.abs(diff) > 10 ? "bad" : (actual ? "ok" : "")) + '">' +
+        (actual ? fmtMoney(actual, code) + '　<span class="sub">vs 计划 ' + fmtMoney(planned, code) +
+          (planned ? '　·　偏差 <b>' + (diff >= 0 ? "+" : "") + diff.toFixed(1) + '%</b>' : '') + '</span>' : '填完价格和股数就会算出来') +
+        '</div>' +
+        (Math.abs(diff) > 10 && actual
+          ? '<div class="pf-hint bad">跟计划差了 ' + Math.abs(diff).toFixed(1) + '% —— 这个偏差会写进决策文件。<b>实际比计划买得多</b>是最常见的一种失控，它通常发生在「盘中看着还会涨」的那一刻。</div>'
+          : '<div class="pf-hint">偏差会如实记录。长期看，这个数比任何一次单笔的对错都更能说明问题。</div>') + '</div>' +
+
+        '<div class="pf-row wide"><div class="pf-label">成交备注 <span class="pf-unit">选填</span></div>' +
+        '<textarea class="i-text" id="flNote" rows="2" placeholder="分几笔买的？有没有追价？跟计划不一样的地方，写一句。">' + escapeHTML(prep.fillNote || "") + '</textarea></div>';
+
+      const bind = (id, fn) => {
+        const el = wrap.querySelector("#" + id);
+        el.addEventListener("input", () => { fn(el.value); updateProgress(); });
+        el.addEventListener("change", () => renderMode());
+      };
+      bind("flPrice", v => prep.fillPrice = num(v));
+      bind("flShares", v => prep.fillShares = num(v));
+      wrap.querySelector("#flNote").addEventListener("input", e => { prep.fillNote = e.target.value; });
+      return wrap;
+    }
+
+    /* 回看条：选中某笔时，买入逻辑页显示的是那一笔当时的内容 */
+    function viewBar(what) {
+      const st = activeStatus();
+      const el = document.createElement("div");
+      el.className = "stance-ctx good";
+      el.innerHTML = '<span class="sc-icon">👁</span><div>正在回看 <b>' + escapeHTML(activeOpen && activeOpen.symbol || activeFile) + '</b>（' + escapeHTML(st) + '）当时的' + what +
+        ' —— 下面的勾选与文字<b>只读</b>，是建仓那一刻存下来的事实。' +
+        '<br><button class="new-btn" id="nvNew">＋ 新建一笔（清空选择）</button></div>';
+      el.querySelector("#nvNew").onclick = () => selectTrade("");
+      return el;
+    }
+    /* 建仓准备页顶部也放一个，免得想新建时找不到出口 */
+    function newTradeBar() {
+      const el = document.createElement("div");
+      el.className = "new-bar";
+      el.innerHTML = '<span>当前操作的是 <b>' + escapeHTML(activeOpen && activeOpen.symbol || activeFile) + '</b></span>' +
+        '<button class="new-btn" id="ntNew">＋ 新建一笔（清空选择）</button>';
+      el.querySelector("#ntNew").onclick = () => { selectTrade(""); switchMode("buy_new"); };
+      return el;
+    }
+
+    /* 计划中的这笔仍可改：改的是计划，不是历史 */
+    function reviseNotice() {
+      const el = document.createElement("div");
+      el.className = "stance-ctx";
+      el.innerHTML = '<span class="sc-icon">📝</span><div>正在完成 <b>' + escapeHTML(activeFile) + '</b> 的<b>建仓准备</b>（还没成交）。' +
+        '<br>上一步的论点已在下方复现，可以在这个时点重新修改。保存会追加新事件，原始买入逻辑保留在文件里。' +
+        '<span class="sc-msg">成交之后就锁死了：那时改的就是历史，不是计划。</span></div>';
+      return el;
+    }
+
+    /* 已建仓的档案回看：档案本身不可改（append-only），要变更走「调整止损」事件 */
+    function renderArchive(scroll) {
+      const o = effectivePlan();
+      const head = document.createElement("div");
+      head.className = "stance-ctx good";
+      head.innerHTML = '<span class="sc-icon">📄</span><div>正在回看 <b>' + escapeHTML(activeFile) + '</b> 的建仓档案。' +
+        '<span class="sc-msg">要建新的一笔？把顶部持仓选择器切回「未选」。</span></div>';
+      scroll.appendChild(head);
+
+      if (!activeOpen) {
+        const e = document.createElement("div");
+        e.className = "stance-ctx none";
+        e.innerHTML = '<span class="sc-icon">⏳</span><div>正在读取建仓档案…（读不到的话，这份文件可能是手改过的，缺 <b>ymos-trade-open</b> 数据块）</div>';
+        scroll.appendChild(e);
+        return;
+      }
+
+      const code = o.account || o.currency || "CNY";
+      const f = horizonBy(HORIZON_FUND, o.horizonFund), th = horizonBy(HORIZON_THESIS, o.horizonThesis);
+      const ec = EXIT_CONTROL[o.exitControl];
+      const rows = [
+        ["记账账户", CURRENCY[code] ? CURRENCY[code].sym + " " + CURRENCY[code].label : code],
+        ["账户资金基数（当时快照）", fmtMoney(num(o.capital), code)],
+        ["资金可用期限", f ? f.label : "—"],
+        ["论点兑现周期", th ? th.label : "—"],
+        ["计划投入", fmtMoney(num(o.amount), code) + (num(o.capital) ? "（占 " + (num(o.amount) / num(o.capital) * 100).toFixed(1) + "%）" : "")],
+        ["止损", o.noStop ? "不设价格止损 · 出局条件 = 逻辑证伪" : (o.stopPct ? "-" + num(o.stopPct).toFixed(1) + "%" : "—")],
+        ["最大风险", fmtMoney(num(o.maxLoss), code)],
+        ["出局权归属", ec ? ec.label + "（" + ec.sub + "）" : "—"],
+        ["冷却期", o.coolSkipped ? "⚠️ 已跳过" : "已等满"],
+        ["建仓日", o.openDate || "—"],
+      ];
+      const box = document.createElement("div");
+      box.className = "section";
+      box.innerHTML = '<div class="section-title"><span class="s-name">建仓档案 · 只读</span>' +
+        '<span class="s-rule all">不可修改</span></div>' +
+        '<table class="m-tbl arch">' + rows.map(r => '<tr><td>' + r[0] + '</td><td><b>' + escapeHTML(String(r[1])) + '</b></td></tr>').join("") + '</table>';
+      scroll.appendChild(box);
+
+      const why = document.createElement("div");
+      why.className = "tips";
+      why.innerHTML =
+        '<div class="tip"><span class="tip-icon">🔒</span><div>建仓档案<em>故意不给改</em>。它记录的是「我当时是怎么想的」—— 事后改它，就等于把过去的自己改成跟现在一致，那这份文件就再也证明不了任何事。<br>' +
+        '要变更止损或失效条件：走 <em>「调整止损」</em>，它会以事件<em>追加</em>，旧的那条留在原处。</div></div>' +
+        '<div class="tip"><span class="tip-icon">📖</span><div>想看完整的事件流（每次加仓 / 止盈 / 调整的正文与理由），去 Reader 侧栏 <em>YMOS → 买入卖出决策</em> 打开这份 md。</div></div>';
+      scroll.appendChild(why);
+    }
+
+    function lockedNotice() {
+      const el = document.createElement("div");
+      el.className = "stance-ctx none";
+      el.onclick = () => switchMode("buy_new");
+      el.innerHTML = '<span class="sc-icon">🔒</span><div>先去「<b>① 买入逻辑</b>」把这个标的论点建档 —— 买入逻辑、失效证据、催化剂窗口、判断层条件。<br>' +
+        '逻辑不成立，谈投多少钱是没有意义的：<em>仓位不能替判断背书</em>。<span class="sc-msg">点这里过去 →</span></div>';
+      return el;
+    }
+    function accountNotice() {
+      const el = document.createElement("div");
+      el.className = "stance-ctx warn";
+      el.onclick = () => switchMode("account");
+      el.innerHTML = '<span class="sc-icon">🏦</span><div>账户参数还没设 —— <b>资金基数</b>和<b>资金可用期限</b>是结构层的分母，没有它们算不出占比、也判不了期限冲突。<span class="sc-msg">点这里去设 →</span></div>';
+      return el;
+    }
+    function buildTradeNeeded() {
+      if (activeFile) return null;
+      const el = document.createElement("div");
+      el.className = "stance-ctx none";
+      el.innerHTML = '<span class="sc-icon">📂</span><div>' +
+        (serverOk
+          ? '还没选持仓 —— 上方选一笔<b>持仓中</b>的决策文件，这个动作才知道往哪个文件追加。（没有的话先走「① 买入逻辑 → ② 建仓准备」建一笔。）'
+          : '未连本地服务：可以照常勾选做判断，但<b>不会写盘</b>。跑 <b>python3 server.py</b> 后刷新即可。') + '</div>';
+      return el;
+    }
+
+    function filePreviewNotice() {
+      const el = document.createElement("div");
+      el.className = "stance-ctx warn";
+      el.innerHTML = '<span class="sc-icon">🗄️</span><div><b>当前是 file:// 页面预览，不是 YMOS 数据模式。</b>' +
+        '<br>这里填写的内容不会形成可供 Agent 复盘的 Markdown 真相源。请先在 <b>Console</b> 目录运行 <code>python3 server.py</code>，再从 ' +
+        '<a class="sc-link" href="http://127.0.0.1:5273/decide">http://127.0.0.1:5273/decide</a> 打开。</div>';
+      return el;
+    }
+
+    /* ---- 标的：一个字段就够，名称或代码都行 ---- */
+    function buildSymbolBar() {
+      const wrap = document.createElement("div");
+      wrap.className = "pf-grid";
+      wrap.innerHTML =
+        '<div class="pf-row wide"><div class="pf-label">标的 <span class="pf-unit">名称或代码，写你自己认得的那个</span></div>' +
+        '<input class="pf-input" type="text" id="pfSymbol" value="' + escapeHTML(prep.symbol || "") + '" placeholder="例：苹果" />' +
+        '<div class="pf-hint">文件名由服务端根据 <b>标的 + Ticker（若有）+ 日期</b> 生成，不接受前端路径。</div></div>' +
+        '<div class="pf-row wide"><div class="pf-label">Ticker <span class="pf-unit">选填 · 只为总览拉行情用</span></div>' +
+        '<input class="pf-input" type="text" id="pfTicker" value="' + escapeHTML(prep.ticker || "") + '" placeholder="例：AAPL / 688008.SS / 0700.HK" />' +
+        '<div class="pf-hint">不填也行 —— 总览会先按标的名去<b>持仓 / Watchlist 状态机</b>里查。查不到才需要在这里补一个。</div></div>';
+      const el = wrap.querySelector("#pfSymbol");
+      el.addEventListener("input", () => { prep.symbol = el.value; markStarted(); updateProgress(); });
+      el.addEventListener("change", () => renderMode());
+      const tk = wrap.querySelector("#pfTicker");
+      tk.addEventListener("input", () => { prep.ticker = tk.value.trim().toUpperCase(); persistPrep(); });
+      return wrap;
+    }
+
+    /* ---- 指标卡 ---- */
+    function buildMetrics() {
+      const m = metrics();
+      const wrap = document.createElement("div");
+      wrap.className = "metrics";
+      const card = (val, label, cls) =>
+        '<div class="metric ' + (cls || "") + '"><div class="mt-val">' + val + '</div><div class="mt-label">' + label + '</div></div>';
+      const ratioCls = !m.cap || !m.total ? "" : (m.ratio > account.maxSingleRatio ? "bad" : "ok");
+      wrap.innerHTML =
+        card(m.total ? fmtMoney(m.total) : "—", (currentMode === "buy_add" ? "加仓后总投入" : "计划投入") + "（" + cur().label + "）") +
+        card(m.cap && m.total ? (m.ratio * 100).toFixed(1) + "%" : "—", "占该账户（上限 " + (account.maxSingleRatio * 100).toFixed(0) + "%）", ratioCls) +
+        card(prep.noStop ? "不设" : (m.stopPct ? "-" + m.stopPct.toFixed(1) + "%" : "—"), "止损幅度") +
+        card(m.maxLoss ? fmtMoney(m.maxLoss) : "—", prep.noStop ? "最大风险（全额）" : "最大亏损额", m.maxLoss ? "bad" : "") +
+        card(m.lossOfAcct ? (m.lossOfAcct * 100).toFixed(2) + "%" : "—", "占该账户");
+      return wrap;
+    }
+
+    /* ---- 建仓准备的数字表单 ---- */
+    function buildPrepForm() {
+      const m = metrics();
+      const isAdd = currentMode === "buy_add";
+      const c = cur();
+      const wrap = document.createElement("div");
+      wrap.className = "pf-grid";
+      const acc = prepAccount();
+      const fundH = horizonBy(HORIZON_FUND, acc.horizonFund);
+      const thIdx = horizonIdx(HORIZON_THESIS, prep.horizonThesis);
+      const thLabel = thIdx < 0 ? "未选" : HORIZON_THESIS[thIdx].label;
+      const clash = fundH && thIdx >= 0 && HORIZON_THESIS[thIdx].months > fundH.months;
+      const amt = isAdd ? num(prep.addAmount) : num(prep.amount);
+      // 新建仓沿用币种金额步长；加仓按账户资金基数切成 1% 一格，并允许拖到 100% 让越线风险可见。
+      const amtMax = Math.max(m.cap || c.max, amt);
+      const addPct = m.cap ? Math.max(0, Math.min(100, Math.round(amt / m.cap * 100))) : 0;
+      const onePctAmount = m.cap / 100;
+      const amountControl = isAdd
+        ? '<div class="slider-row"><input class="pf-range" type="range" min="0" max="100" step="1" value="' + addPct + '" id="pfAmtRange" />' +
+          '<span class="slider-val' + (!addPct ? ' dim' : '') + '" id="pfAmtVal">' + addPct + '% · ' + fmtMoney(amt) + '</span></div>' +
+          '<div class="slider-ticks"><span>0</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>'
+        : '<div class="slider-row"><input class="pf-range" type="range" min="0" max="' + amtMax + '" step="' + c.step + '" value="' + amt + '" id="pfAmtRange" />' +
+          '<input class="pf-input num" type="number" step="' + c.step + '" id="pfAmt" value="' + (amt || "") + '" placeholder="0" /></div>';
+      const amountHint = isAdd && m.cap
+        ? '每格 = 账户资金基数的 <b>1%</b>（' + fmtMoney(onePctAmount) + '）；本次加仓 <b>' + addPct + '% · ' + fmtMoney(amt) + '</b>。'
+        : '';
+
+      wrap.innerHTML =
+        '<div class="pf-row wide"><div class="pf-label">用哪个账户 <span class="pf-unit">分市场记账，占比只跟这个账户比</span></div>' +
+        '<div class="pf-opts" data-g="account">' +
+        Object.keys(CURRENCY).map(k => {
+          const a = account.accounts[k], ready = num(a.capital) > 0;
+          return '<button class="pf-opt' + (prep.account === k ? " on" : "") + '" data-v="' + k + '">' + CURRENCY[k].sym + ' ' + CURRENCY[k].label +
+            '<span class="opt-sub">' + (ready ? fmtMoney(a.capital, k) : "未设置") + '</span></button>';
+        }).join("") + '</div>' +
+        (m.cap ? '' : '<div class="pf-hint bad">这个账户还没在「账户参数」里填资金基数 —— 占比和期限都算不出来。</div>') + '</div>' +
+
+        '<div class="pf-row wide"><div class="pf-label">论点兑现周期 <span class="pf-unit">这个逻辑要跑多久</span></div>' +
+        '<div class="slider-row"><input class="pf-range" type="range" min="0" max="' + (HORIZON_THESIS.length - 1) + '" step="1" value="' + (thIdx < 0 ? 0 : thIdx) + '" id="pfTh" />' +
+        '<span class="slider-val' + (thIdx < 0 ? " dim" : "") + '" id="pfThVal">' + thLabel + '</span></div>' +
+        '<div class="slider-ticks">' + HORIZON_THESIS.map(h => '<span>' + h.label + '</span>').join("") + '</div>' +
+        '<div class="pf-hint' + (clash ? " bad" : (fundH && thIdx >= 0 ? " ok" : "")) + '">' +
+        (!fundH ? '这个账户还没定资金可用期限 —— 定了才能比对。'
+          : thIdx < 0 ? '拖一下选周期，会立刻跟该账户的「资金可用 ' + fundH.label + '」比对。'
+            : clash ? '⚠️ 期限错配：这个账户的钱只能放 ' + fundH.label + '，论点却要跑 ' + HORIZON_THESIS[thIdx].label + ' —— 方向对不对都不影响它爆。'
+              : '✓ 资金可用 ' + fundH.label + ' ≥ 论点要跑 ' + HORIZON_THESIS[thIdx].label) + '</div></div>' +
+
+        '<div class="pf-row wide"><div class="pf-label">' + (isAdd ? "本次加仓金额" : "计划投入金额") + ' <span class="pf-unit">' + c.sym + ' ' + c.label + '</span></div>' +
+        amountControl +
+        '<div class="pf-hint' + (m.cap && m.total && m.ratio > account.maxSingleRatio ? " bad" : "") + '">' +
+        (m.cap ? amountHint + (amountHint ? '<br>' : '') + '单笔上限 <b>' + fmtMoney(m.cap * account.maxSingleRatio) + '</b>（该账户 ' + (account.maxSingleRatio * 100).toFixed(0) + '%）' +
+          (m.total ? '　·　当前 <b>' + (m.ratio * 100).toFixed(1) + '%</b>' : '')
+          : '先去账户参数填这个账户的资金基数') + '</div></div>' +
+
+        '<div class="pf-row wide"><div class="pf-label">止损幅度 <span class="pf-unit">买入价是买的时候才知道的，这里只定幅度</span></div>' +
+        '<div class="slider-row"><input class="pf-range" type="range" min="0" max="50" step="0.5" value="' + num(prep.stopPct) + '" id="pfStopPct"' + (prep.noStop ? " disabled" : "") + ' />' +
+        '<span class="slider-val' + (prep.noStop || !num(prep.stopPct) ? " dim" : "") + '" id="pfStopVal">' + (prep.noStop ? "不设" : (num(prep.stopPct) ? "-" + num(prep.stopPct).toFixed(1) + "%" : "未定")) + '</span></div>' +
+        '<div class="slider-ticks"><span>0</span><span>10%</span><span>20%</span><span>30%</span><span>40%</span><span>50%</span></div>' +
+        '<label class="pf-check"><input type="checkbox" id="pfNoStop"' + (prep.noStop ? " checked" : "") + ' />' +
+        '<span>本策略<b>不设价格止损</b>（长期持有 / 左侧建仓）</span></label>' +
+        '<div class="pf-hint' + (prep.noStop ? " bad" : "") + '">' +
+        (prep.noStop
+          ? '不设价格止损 = <b>出局条件换成逻辑证伪</b>。那么最大风险就是这笔投入的<b>全部 ' + (m.total ? fmtMoney(m.total) : '金额') + '</b> —— 下面的「退出逻辑」必须写出<b>可观测的证伪信号</b>，否则这笔就没有出局条件了。'
+          : (m.stopPct && m.total ? '打到止损亏 <b>' + fmtMoney(m.maxLoss) + '</b>，占该账户 <b>' + (m.lossOfAcct * 100).toFixed(2) + '%</b>' : '拖动定幅度；长期 / 左侧建仓可以勾上面那个不设。')) + '</div></div>' +
+
+        '<div class="pf-row wide"><div class="pf-label">出局权归属 <span class="pf-unit">谁有权强制我平仓</span></div>' +
+        '<div class="pf-opts" data-g="exitControl">' +
+        Object.keys(EXIT_CONTROL).map(k => '<button class="pf-opt' + (prep.exitControl === k ? " on" + (EXIT_CONTROL[k].ok ? "" : " neg") : "") + '" data-v="' + k + '">' +
+          EXIT_CONTROL[k].label + '<span class="opt-sub">' + EXIT_CONTROL[k].sub + '</span></button>').join("") + '</div>' +
+        '<div class="pf-hint">出局条件必须<b>内生</b>。把「什么时候必须认输」签给一个跟你利益不一致的人，是结构性缺陷 —— 跟你看多看空对不对无关。</div></div>';
+
+      const th = wrap.querySelector("#pfTh");
+      th.addEventListener("input", () => {
+        const i = parseInt(th.value, 10);
+        prep.horizonThesis = HORIZON_THESIS[i].key;
+        const v = wrap.querySelector("#pfThVal");
+        v.textContent = HORIZON_THESIS[i].label; v.classList.remove("dim");
+        markStarted();
+      });
+      th.addEventListener("change", () => renderMode());
+
+      const amtRange = wrap.querySelector("#pfAmtRange"), amtNum = wrap.querySelector("#pfAmt"), amtVal = wrap.querySelector("#pfAmtVal");
+      const setAmt = v => { if (isAdd) prep.addAmount = v; else prep.amount = v; markStarted(); updateProgress(); };
+      amtRange.addEventListener("input", () => {
+        if (isAdd) {
+          const pct = num(amtRange.value);
+          const value = Math.round(m.cap * pct) / 100;
+          setAmt(value);
+          amtVal.textContent = pct.toFixed(0) + "% · " + fmtMoney(value);
+          amtVal.classList.toggle("dim", !pct);
+        } else {
+          setAmt(num(amtRange.value)); amtNum.value = num(amtRange.value) || "";
+        }
+      });
+      amtRange.addEventListener("change", () => renderMode());
+      if (amtNum) {
+        amtNum.addEventListener("input", () => { setAmt(num(amtNum.value)); amtRange.value = Math.min(num(amtNum.value), amtMax); });
+        amtNum.addEventListener("change", () => renderMode());
+      }
+
+      const sp = wrap.querySelector("#pfStopPct");
+      sp.addEventListener("input", () => {
+        prep.stopPct = num(sp.value);
+        const v = wrap.querySelector("#pfStopVal");
+        v.textContent = num(sp.value) ? "-" + num(sp.value).toFixed(1) + "%" : "未定";
+        v.classList.toggle("dim", !num(sp.value));
+        markStarted(); updateProgress();
+      });
+      sp.addEventListener("change", () => renderMode());
+      wrap.querySelector("#pfNoStop").addEventListener("change", e => { prep.noStop = e.target.checked; markStarted(); renderMode(); });
+
+      wrap.querySelectorAll('.pf-opts[data-g="account"] .pf-opt').forEach(b => {
+        b.onclick = () => { prep.account = b.dataset.v; markStarted(); renderMode(); };
+      });
+      wrap.querySelectorAll('.pf-opts[data-g="exitControl"] .pf-opt').forEach(b => {
+        b.onclick = () => { prep.exitControl = (prep.exitControl === b.dataset.v ? "" : b.dataset.v); markStarted(); renderMode(); };
+      });
+      return wrap;
+    }
+
+    /* ---- 持仓事实：卖出 / 调整止损都必须先看到当前实际仓位 ---- */
+    function buildPositionContext(purpose) {
+      const p = activePosition(), el = document.createElement("div");
+      el.className = "section";
+      if (!p || !p.shares) {
+        el.innerHTML = '<div class="section-title"><span class="s-name">当前持仓事实</span><span class="s-rule any">缺股数</span></div>' +
+          '<div class="empty-note">这份老决策文件没有记录持仓股数。先去「确认建仓」补齐成交价和股数，才能算卖出后剩余仓位与止损风险。</div>';
+        return el;
+      }
+      const code = p.plan.account || p.plan.currency || "CNY";
+      const risk = p.plan.noStop ? "逻辑证伪退出" : (p.plan.stopPct ? "-" + num(p.plan.stopPct).toFixed(1) + "%" : "未定");
+      const rows = [
+        ["当前股数 / 份额", fmtShares(p.shares)],
+        ["成本价", p.costPrice ? fmtMoney(p.costPrice, code) : "—"],
+        ["持仓成本", p.costAmount ? fmtMoney(p.costAmount, code) : "—"],
+        ["当前生效退出规则", risk],
+      ];
+      if (p.currentPrice) rows.splice(2, 0,
+        ["现价", fmtMoney(p.currentPrice, code)],
+        ["当前市值", fmtMoney(p.marketValue, code)],
+        ["浮动盈亏", (p.pnl >= 0 ? "+" : "") + fmtMoney(p.pnl, code) + "（" + (p.pnlPct >= 0 ? "+" : "") + p.pnlPct.toFixed(1) + "%）"]
+      );
+      el.innerHTML = '<div class="section-title"><span class="s-name">当前持仓事实</span><span class="s-rule all">' +
+        (purpose === "sell" ? "卖出前" : "调整前") + '</span></div>' +
+        '<div class="tbl-scroll"><table class="m-tbl arch">' + rows.map(r => '<tr><td>' + r[0] + '</td><td><b>' + escapeHTML(String(r[1])) + '</b></td></tr>').join("") + '</table></div>' +
+        (!p.currentPrice ? '<div class="empty-note">未拉取行情，所以只显示成本口径。去持仓总览拉一次价格后，这里会同时显示现价、市值和浮动盈亏。</div>' : '');
+      return el;
+    }
+
+    function buildAdjustForm() {
+      const p = activePosition(), plan = p ? p.plan : {}, code = plan.account || plan.currency || "CNY";
+      const oldNoStop = !!plan.noStop, oldPct = num(plan.stopPct);
+      const oldRule = oldNoStop
+        ? "无价格止损 · " + (plan.exitRule || activeTexts.x4 || "按论点失效证据执行退出")
+        : (oldPct ? "价格止损 -" + oldPct.toFixed(1) + "%" + (p && p.costPrice ? "（约 " + fmtMoney(p.costPrice * (1 - oldPct / 100), code) + "）" : "") : "未定义");
+      const wrap = document.createElement("div");
+      wrap.className = "pf-grid";
+      wrap.innerHTML =
+        '<div class="pf-row wide"><div class="pf-label">当前生效规则 <span class="pf-unit">只读 · 来自建仓准备 / 最近一次调整</span></div>' +
+        '<div class="fill-sum">' + escapeHTML(oldRule) + '</div></div>' +
+        '<div class="pf-row wide"><div class="pf-label">新的退出方式</div><div class="pf-opts" id="adjMode">' +
+        '<button class="pf-opt' + (prep.adjustMode === "price" ? " on" : "") + '" data-v="price">价格止损<span class="opt-sub">按成本价的回撤幅度</span></button>' +
+        '<button class="pf-opt' + (prep.adjustMode === "logic" ? " on" : "") + '" data-v="logic">不设价格止损<span class="opt-sub">改为论点证伪 / 退出策略</span></button></div></div>' +
+        (prep.adjustMode === "price"
+          ? '<div class="pf-row wide"><div class="pf-label">新止损幅度</div><div class="slider-row"><input class="pf-range" type="range" min="0" max="50" step="0.5" value="' + num(prep.adjustStopPct) + '" id="adjStop" />' +
+            '<span class="slider-val">' + (num(prep.adjustStopPct) ? "-" + num(prep.adjustStopPct).toFixed(1) + "%" : "未定") + '</span></div>' +
+            '<div class="pf-hint">' + (p && p.costPrice && num(prep.adjustStopPct) ? '对应价位约 <b>' + fmtMoney(p.costPrice * (1 - num(prep.adjustStopPct) / 100), code) + '</b>；全部剩余仓位触发时约亏 <b>' + fmtMoney(p.costAmount * num(prep.adjustStopPct) / 100, code) + '</b>。' : '选定幅度后，会按当前成本价和剩余股数计算风险。') + '</div></div>'
+          : prep.adjustMode === "logic"
+            ? '<div class="pf-row wide"><div class="pf-label">新的退出策略 <span class="pf-unit">必须可执行</span></div><textarea class="i-text" id="adjRule" rows="3" placeholder="例：收盘跌破关键位且 3 日无承接则全部退出；若两个季度未兑现则重新审查。">' + escapeHTML(prep.adjustExitRule || "") + '</textarea></div>'
+            : '');
+      wrap.querySelectorAll("#adjMode .pf-opt").forEach(b => { b.onclick = () => { prep.adjustMode = b.dataset.v; markStarted(); renderMode(); }; });
+      const stop = wrap.querySelector("#adjStop");
+      if (stop) {
+        stop.addEventListener("input", () => {
+          prep.adjustStopPct = num(stop.value);
+          markStarted();
+          stop.nextElementSibling.textContent = prep.adjustStopPct ? "-" + prep.adjustStopPct.toFixed(1) + "%" : "未定";
+          updateProgress();
+        });
+        stop.addEventListener("change", () => renderMode());
+      }
+      const rule = wrap.querySelector("#adjRule");
+      if (rule) rule.addEventListener("input", () => { prep.adjustExitRule = rule.value; markStarted(); updateProgress(); });
+      return wrap;
+    }
+
+    /* ---- 卖出表单（降低风险不设闸门，但把卖前 / 卖后仓位算清楚） ---- */
+    function buildSellForm() {
+      const pos = sellPositionPreview();
+      const wrap = document.createElement("div");
+      wrap.className = "pf-grid";
+      wrap.innerHTML =
+        '<div class="pf-row"><div class="pf-label">卖出比例</div><div class="pf-opts" id="spOpts">' +
+        Object.keys(SELL_PORTION).map(k =>
+          '<button class="pf-opt' + (prep.sellPortion === k ? " on" + (k === "all" ? " neg" : "") : "") + '" data-k="' + k + '">' + SELL_PORTION[k].label + '</button>').join("") +
+        '</div><div class="pf-hint">本次计划卖 <b>' + fmtShares(pos.sell) + '</b>，卖后剩 <b>' + fmtShares(pos.remain) + '</b>。选「全部清仓」会把决策文件归档；部分卖出会把剩余股数写回文件头。</div></div>' +
+        '<div class="pf-row"><div class="pf-label">成交价 <span class="pf-unit">选填</span></div>' +
+        '<input class="pf-input" type="number" step="0.01" id="spPrice" value="' + (prep.sellPrice || "") + '" placeholder="0.00" /></div>' +
+        '<div class="pf-row wide"><div class="pf-label">补充说明 <span class="pf-unit">选填</span></div>' +
+        '<textarea class="i-text" id="spNote" rows="2" placeholder="当时的盘面、犹豫、执行偏差 —— 写一句，以后复盘时这句最值钱。">' + escapeHTML(prep.sellNote || "") + '</textarea></div>';
+      wrap.querySelectorAll("#spOpts .pf-opt").forEach(b => {
+        b.onclick = () => { prep.sellPortion = b.dataset.k; renderMode(); };
+      });
+      wrap.querySelector("#spPrice").addEventListener("input", e => { prep.sellPrice = num(e.target.value); });
+      wrap.querySelector("#spNote").addEventListener("input", e => { prep.sellNote = e.target.value; });
+      return wrap;
+    }
+
+    /* ---- section / item 渲染（支持 check / calc / text 三种条目） ---- */
+    function buildSection(sec) {
+      const secEl = document.createElement("div");
+      secEl.className = "section";
+      const ruleLabel = sec.rule === "any" ? (isGated() ? "至少 1 条" : "记录用 · 可空") : "全部必填";
+      secEl.innerHTML =
+        '<div class="section-title">' +
+        '<span class="s-name">' + sec.name + '</span>' +
+        '<span class="s-rule ' + sec.rule + '">' + ruleLabel + '</span>' +
+        '<span class="s-prog" data-sec="' + escapeHTML(sec.name) + '"></span>' +
+        '</div>' + (sec.note ? '<div class="i-note" style="margin:-4px 0 12px">' + sec.note + '</div>' : '');
+      for (const it of sec.items) {
+        if (it.type === "calc") secEl.appendChild(buildCalcItem(it));
+        else if (it.type === "text") secEl.appendChild(buildTextItem(it));
+        else secEl.appendChild(buildCheckItem(it));
+      }
+      return secEl;
+    }
+
+    function buildCheckItem(it) {
+      const row = document.createElement("div");
+      const on = cget(it);
+      row.className = "item" + (it.redline ? " redline" : "") + (on ? " checked" : "");
+      row.dataset.itemId = it.id;
+      if (viewing()) row.classList.add("ro");
+      else row.onclick = () => toggle(it);
+      row.innerHTML =
+        '<div class="cbox">' + CHECK_SVG + '</div>' +
+        '<div class="i-body">' +
+        '<div class="i-label">' + it.label + (it.redline ? '<span class="rl-tag">红线</span>' : '') + '</div>' +
+        '<div class="i-note">' + it.note + '</div>' +
+        '</div>';
+      return row;
+    }
+
+    /* 计算型闸门：没有 onclick —— 界面上就没有「点一下变绿」的入口。 */
+    function buildCalcItem(it) {
+      const r = it.calc();
+      const row = document.createElement("div");
+      row.className = "item calc " + r.state + (it.redline ? " redline" : "");
+      row.dataset.itemId = it.id;
+      row.innerHTML =
+        '<div class="cbox">' + (r.state === "pass" ? "✓" : r.state === "fail" ? "✕" : "?") + '</div>' +
+        '<div class="i-body">' +
+        '<div class="i-label">' + it.label + '<span class="req-tag">' + (r.state === "idle" && it.idleOk ? "未校验" : "计算型") + '</span>' +
+        (it.redline ? '<span class="rl-tag">红线</span>' : '') + '</div>' +
+        '<div class="i-note">' + it.note + '</div>' +
+        '<div class="calc-detail">' + escapeHTML(r.detail) +
+        (it.skippable && !prep.coolSkipped && r.state !== "pass" ? ' <button class="skip-btn" data-skip="1">跳过冷却期 →</button>' : '') +
+        (it.skippable && prep.coolSkipped ? ' <button class="skip-btn undo" data-skip="0">撤销跳过</button>' : '') +
+        '</div>' +
+        '</div>';
+      const sk = row.querySelector("[data-skip]");
+      if (sk) sk.onclick = e => { e.stopPropagation(); prep.coolSkipped = sk.dataset.skip === "1"; persistPrep(); renderMode(); renderNav(); };
+      return row;
+    }
+
+    function buildTextItem(it) {
+      const val = tget(it);
+      const row = document.createElement("div");
+      row.className = "item txt " + (val.trim() ? "filled" : (it.required ? "empty" : ""));
+      row.dataset.itemId = it.id;
+      row.innerHTML =
+        '<div class="i-label">' + it.label + (it.required ? '<span class="req-tag">必填</span>' : '') + '</div>' +
+        '<div class="i-note">' + (it.note || "") + '</div>' +
+        '<textarea class="i-text" rows="' + (it.rows || 2) + '" placeholder="' + escapeHTML(it.placeholder || "") + '"></textarea>';
+      const ta = row.querySelector("textarea");
+      ta.value = val;
+      if (viewing()) { ta.readOnly = true; row.classList.add("ro"); return row; }
+      ta.addEventListener("input", () => {
+        tset(it, ta.value);
+        markStarted();
+        row.classList.toggle("filled", !!ta.value.trim());
+        row.classList.toggle("empty", it.required && !ta.value.trim());
+        updateProgress();
+        if (currentMode === "buy_new") renderNav();   // 逻辑一通过，建仓准备立刻解锁
+      });
+      return row;
+    }
+
+    /* =====================================================================
+       渲染 · 账户参数（独立 tab · 存状态机文件）
+       ===================================================================== */
+    function applyAccountChange(type, rawValue, note) {
+      const a = account.accounts[accountEditCode], before = num(a.capital), value = num(rawValue);
+      if (value < 0 || (type !== "set" && !value)) { toast("先填有效金额"); return; }
+      const after = type === "add" ? before + value : type === "subtract" ? Math.max(0, before - value) : value;
+      if (after === before) { toast("金额没有变化"); return; }
+      a.capital = after;
+      const labels = { add: "增加资金", subtract: "减少资金", set: "直接设定" };
+      account.changes.push({
+        ts: nowStamp(), account: accountEditCode, type, label: labels[type],
+        amount: Math.abs(after - before), before, after, note: (note || "").trim(),
+      });
+      account.changes = account.changes.slice(-200);
+      persistAccountLocal();
+      renderMode();
+      toast(labels[type] + "已记录，记得点底部保存写入 Obsidian");
+    }
+
+    function renderAccount(scroll) {
+      if (!account.accounts[accountEditCode]) accountEditCode = "CNY";
+      const a = account.accounts[accountEditCode], c = CURRENCY[accountEditCode];
+      const fundIdx = horizonIdx(HORIZON_FUND, a.horizonFund);
+
+      const overview = document.createElement("div");
+      overview.className = "section";
+      overview.innerHTML = '<div class="section-title"><span class="s-name">账户总览</span><span class="s-rule all">初始资金口径</span></div>' +
+        '<div class="tbl-scroll"><table class="m-tbl dash"><tr><th>账户</th><th>当前资金基数</th><th>资金可用期限</th><th>单笔上限</th></tr>' +
+        Object.keys(CURRENCY).map(code => {
+          const ac = account.accounts[code], h = horizonBy(HORIZON_FUND, ac.horizonFund);
+          return '<tr><td><b>' + CURRENCY[code].sym + ' ' + CURRENCY[code].label + '</b></td><td>' + (num(ac.capital) ? fmtMoney(ac.capital, code) : '未启用') + '</td><td>' + (h ? h.label : '—') + '</td><td>' + (num(ac.capital) ? fmtMoney(ac.capital * account.maxSingleRatio, code) : '—') + '</td></tr>';
+        }).join("") + '</table></div>';
+      scroll.appendChild(overview);
+
+      const g = document.createElement("div");
+      g.className = "pf-grid";
+      g.innerHTML =
+        '<div class="pf-row wide"><div class="pf-label">选择要设置的账户</div><div class="pf-opts" id="accountPick">' +
+        Object.keys(CURRENCY).map(code => '<button class="pf-opt' + (code === accountEditCode ? ' on' : '') + '" data-v="' + code + '">' + CURRENCY[code].sym + ' ' + CURRENCY[code].label + '<span class="opt-sub">' + (num(account.accounts[code].capital) ? fmtMoney(account.accounts[code].capital, code) : '未启用') + '</span></button>').join("") + '</div></div>' +
+
+        '<div class="pf-row wide"><div class="pf-label acct-head"><span>' + c.sym + ' ' + c.label + '账户·当前资金基数</span><span class="pf-unit">单笔上限 ' + fmtMoney(num(a.capital) * account.maxSingleRatio, accountEditCode) + '</span></div>' +
+        '<div class="fill-sum">' + fmtMoney(num(a.capital), accountEditCode) + '</div><div class="pf-hint">这是账户的资金起点，只在增资、减资或你主动重设时改变；不跟着行情涨跌。</div></div>' +
+
+        '<div class="pf-row wide"><div class="pf-label">资金变动 <span class="pf-unit">每次留痕</span></div>' +
+        '<div class="slider-row"><input class="pf-input num" type="number" id="acDelta" step="' + c.step + '" placeholder="本次增加 / 减少多少" />' +
+        '<button class="new-btn" id="acAdd">+增加资金</button><button class="new-btn" id="acSub">−减少资金</button></div>' +
+        '<input class="pf-input" type="text" id="acNote" placeholder="备注（选填）：转入、取出、账户调仓…" /></div>' +
+
+        '<div class="pf-row wide"><div class="pf-label">直接设定 <span class="pf-unit">适合首次建账 / 校正历史金额</span></div>' +
+        '<div class="slider-row"><input class="pf-input num" type="number" id="acSet" step="' + c.step + '" value="' + (a.capital || "") + '" placeholder="0" /><button class="new-btn" id="acSetBtn">设为此金额</button></div>' +
+        '<div class="pf-hint">直接设定也会写一条「变更前 → 变更后」记录，不会静默覆盖。</div></div>' +
+
+        '<div class="pf-row wide"><div class="pf-label">资金可用期限 <span class="pf-unit">这笔钱多久不会被动用</span></div>' +
+        '<div class="slider-row"><input class="pf-range" type="range" min="0" max="' + (HORIZON_FUND.length - 1) + '" step="1" value="' + (fundIdx < 0 ? 0 : fundIdx) + '" id="acFund" />' +
+        '<span class="slider-val' + (fundIdx < 0 ? ' dim' : '') + '" id="acFundVal">' + (fundIdx < 0 ? '未选' : HORIZON_FUND[fundIdx].label) + '</span></div>' +
+        '<div class="slider-ticks">' + FUND_TICKS.map(h => '<span>' + h + '</span>').join("") + '</div>' +
+        '<div class="pf-hint">按 <b>1 个月</b>为颗粒度；整年显示为「2 年」，非整年显示为「1 年 5 个月」。</div></div>' +
+
+        '<div class="pf-row wide"><div class="pf-label">单笔上限 <span class="pf-unit">全局纪律</span></div><div class="slider-row"><input class="pf-range" type="range" min="10" max="100" step="1" value="' + Math.round(account.maxSingleRatio * 100) + '" id="acRatio" /><span class="slider-val" id="acRatioVal">' + (account.maxSingleRatio * 100).toFixed(0) + '%</span></div></div>';
+
+      g.querySelectorAll("#accountPick .pf-opt").forEach(b => { b.onclick = () => { accountEditCode = b.dataset.v; renderMode(); }; });
+      const delta = g.querySelector("#acDelta"), note = g.querySelector("#acNote");
+      g.querySelector("#acAdd").onclick = () => applyAccountChange("add", delta.value, note.value);
+      g.querySelector("#acSub").onclick = () => applyAccountChange("subtract", delta.value, note.value);
+      g.querySelector("#acSetBtn").onclick = () => applyAccountChange("set", g.querySelector("#acSet").value, note.value);
+      const fund = g.querySelector("#acFund"), fundVal = g.querySelector("#acFundVal");
+      fund.addEventListener("input", () => { const i = parseInt(fund.value, 10); a.horizonFund = HORIZON_FUND[i].key; fundVal.textContent = HORIZON_FUND[i].label; fundVal.classList.remove("dim"); persistAccountLocal(); updateProgress(); });
+      fund.addEventListener("change", () => renderMode());
+      const ratio = g.querySelector("#acRatio");
+      ratio.addEventListener("input", () => {
+        account.maxSingleRatio = parseInt(ratio.value, 10) / 100;
+        g.querySelector("#acRatioVal").textContent = ratio.value + "%";
+        persistAccountLocal(); updateProgress();
+      });
+      ratio.addEventListener("change", () => renderMode());
+      scroll.appendChild(g);
+
+      const history = document.createElement("div");
+      history.className = "section";
+      const changes = (account.changes || []).slice().reverse().slice(0, 12);
+      history.innerHTML = '<div class="section-title"><span class="s-name">资金变动记录</span><span class="s-rule all">' + (account.changes || []).length + ' 条</span></div>' +
+        (changes.length ? '<div class="tbl-scroll"><table class="m-tbl dash"><tr><th>时间</th><th>账户</th><th>动作</th><th>变动</th><th>变更前</th><th>变更后</th><th>备注</th></tr>' + changes.map(x => '<tr><td>' + escapeHTML(x.ts) + '</td><td>' + escapeHTML(CURRENCY[x.account] ? CURRENCY[x.account].label : x.account) + '</td><td>' + escapeHTML(x.label || x.type) + '</td><td>' + fmtMoney(num(x.amount), x.account) + '</td><td>' + fmtMoney(num(x.before), x.account) + '</td><td><b>' + fmtMoney(num(x.after), x.account) + '</b></td><td>' + escapeHTML(x.note || '—') + '</td></tr>').join("") + '</table></div>' : '<div class="empty-note">还没有资金变动记录。首次设定金额后，这里会开始留痕。</div>');
+      scroll.appendChild(history);
+
+      const foot = document.createElement("div");
+      foot.className = "tips";
+      foot.innerHTML =
+        '<div class="tip"><span class="tip-icon">🗄</span><div>保存后写进 <em>Brain/买入卖出决策/买卖决策_状态机.md</em>。浏览器也留一份缓存，但<em>文件才是真相源</em> —— 换浏览器、清缓存都不丢。' +
+        (account.updated ? '<br>上次保存：<em>' + escapeHTML(account.updated) + '</em>' : '') + '</div></div>' +
+        '<div class="tip"><span class="tip-icon">🧭</span><div>这一页<em>不属于任何一笔交易</em>。每次建仓时，所选账户的数值会被<em>快照</em>进那一笔的决策文件 —— 以后回看能知道「当时的资金状况」。只填你真在用的账户就行，空着的不会挡路。</div></div>';
+      scroll.appendChild(foot);
+    }
+
+    function accountMarkdown() {
+      const L = [];
+      const mdCell = value => String(value == null || value === "" ? "—" : value).replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
+      L.push("# 买卖决策 · 状态机");
+      L.push("");
+      L.push("> 买卖决策台的账户级参数。在决策台「账户参数」页修改并保存，会覆盖本文件。");
+      L.push("> 它不属于任何一笔交易 —— 每次建仓时，所选账户的数值会被**快照**进那一笔的决策文件。");
+      L.push("> 文件中的「持仓总览快照」只是最近一次行情刷新结果；单笔交易 Markdown 仍是持仓事实源。");
+      L.push("");
+      L.push("## 分市场账户");
+      L.push("");
+      L.push("| 账户 | 初始资金 | 资金可用期限 | 单笔上限 |");
+      L.push("| --- | --- | --- | --- |");
+      for (const code of Object.keys(CURRENCY)) {
+        const c = CURRENCY[code], a = account.accounts[code], f = horizonBy(HORIZON_FUND, a.horizonFund);
+        L.push("| " + c.sym + " " + c.label + " | " + (num(a.capital) ? fmtMoney(a.capital, code) : "未启用") + " | " +
+          (f ? f.label : "—") + " | " + (num(a.capital) ? fmtMoney(num(a.capital) * account.maxSingleRatio, code) : "—") + " |");
+      }
+      L.push("");
+      L.push("## 资金变动记录");
+      L.push("");
+      L.push("| 时间 | 账户 | 动作 | 变动金额 | 变更前 | 变更后 | 备注 |");
+      L.push("| --- | --- | --- | --- | --- | --- | --- |");
+      if ((account.changes || []).length) {
+        for (const x of account.changes) {
+          const code = CURRENCY[x.account] ? x.account : "CNY";
+          L.push("| " + (x.ts || "—") + " | " + CURRENCY[code].label + " | " + (x.label || x.type || "—") + " | " + fmtMoney(num(x.amount), code) + " | " + fmtMoney(num(x.before), code) + " | " + fmtMoney(num(x.after), code) + " | " + String(x.note || "—").replace(/\|/g, "\\|") + " |");
+        }
+      } else {
+        L.push("| — | — | 暂无记录 | — | — | — | — |");
+      }
+      L.push("");
+      L.push("## 持仓总览快照");
+      L.push("");
+      const snap = account.portfolioSnapshot;
+      if (snap && snap.asOf) {
+        L.push("> 行情时间：**" + mdCell(snap.asOf) + "** · 快照写入：" + mdCell(snap.savedAt));
+        L.push("");
+        L.push("| 账户 | 资金基数 | 账户净值 | 持仓成本 | 持仓市值 | 待建计划 | 剩余可开 | 持仓数 |");
+        L.push("| --- | --- | --- | --- | --- | --- | --- | --- |");
+        for (const code of Object.keys(CURRENCY)) {
+          const s = (snap.accounts || {})[code] || {};
+          if (!num(s.capital) && !num(s.heldCount) && !num(s.plannedCount)) continue;
+          L.push("| " + CURRENCY[code].label + " | " + fmtMoney(num(s.capital), code) + " | " + fmtMoney(num(s.nav), code) + " | " + fmtMoney(num(s.costBasis), code) + " | " + fmtMoney(num(s.marketValue), code) + " | " + fmtMoney(num(s.pending), code) + " | " + fmtMoney(num(s.available), code) + " | " + num(s.heldCount) + " |");
+        }
+        L.push("");
+        const health = snap.health || { status: "unknown", summary: {}, alerts: [], suggestedRuns: [] };
+        const statusLabel = { critical: "🛑 有紧急项", attention: "⚠️ 需关注", normal: "✅ 正常", unknown: "— 未检查" }[health.status] || health.status;
+        L.push("### Agent 日常体检入口");
+        L.push("");
+        L.push("> 总体状态：**" + statusLabel + "** · 紧急 " + num(health.summary.criticalCount) + " 项 · 关注 " + num(health.summary.warningCount) + " 项 · 行情覆盖 " + num(health.summary.pricedCount) + "/" + num(health.summary.heldCount));
+        L.push("");
+        L.push("| 级别 | 类型 | 标的 | 体检结果 | 建议调用 | 源文件 |");
+        L.push("| --- | --- | --- | --- | --- | --- |");
+        if ((health.alerts || []).length) {
+          for (const alert of health.alerts) {
+            L.push("| " + (alert.severity === "critical" ? "🛑 紧急" : "⚠️ 关注") + " | " + mdCell(alert.type) + " | " + mdCell(alert.ticker || alert.name) + " | " + mdCell(alert.message) + " | " + mdCell((alert.suggestedPrompts || []).join(" → ")) + " | " + mdCell(alert.file) + " |");
+          }
+        } else {
+          L.push("| ✅ | normal | 全部 | 未发现可由当前数据判定的结构或止损异常 | 日常组合检查可按需跑 P7 | — |");
+        }
+        L.push("");
+        L.push("### 持仓明细与退出上下文");
+        L.push("");
+        L.push("| 标的 | Ticker | 账户 | 股数 | 成本 / 现价 | 市值 / 浮动盈亏 | 止损状态 | 失效信号 | 退出动作 | 建议调用 |");
+        L.push("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+        if ((snap.positions || []).length) {
+          for (const p of snap.positions) {
+            const code = CURRENCY[p.account] ? p.account : "CNY";
+            const pnl = p.unrealizedPnl == null ? "—" : fmtMoney(num(p.unrealizedPnl), code) + " / " + num(p.pnlPct).toFixed(1) + "%";
+            const stopLabel = { breached: "🛑 已跌破", near: "⚠️ 临近", within_limit: "✅ 未触发", logic_exit: "🧠 逻辑退出", price_unavailable: "— 缺价格" }[p.stopStatus] || p.stopStatus || "—";
+            const stopDetail = p.distanceToStopPct == null ? stopLabel : stopLabel + " / " + num(p.distanceToStopPct).toFixed(1) + "%";
+            L.push("| " + mdCell(p.name) + " | " + mdCell(p.ticker) + " | " + CURRENCY[code].label + " | " + mdCell(p.shares) + " | " + mdCell(p.costPrice) + " / " + mdCell(p.lastPrice) + " | " + fmtMoney(num(p.marketValue), code) + " / " + pnl + " | " + mdCell(stopDetail) + " | " + mdCell(p.invalidationSignal) + " | " + mdCell(p.exitAction) + " | " + mdCell((p.suggestedPrompts || []).join(" → ")) + " |");
+          }
+        } else {
+          L.push("| — | — | — | — | — | 暂无持仓 | — | — | — | — |");
+        }
+      } else {
+        L.push("暂无快照。在「持仓总览」成功拉取一次行情后，会自动写入这里。");
+      }
+      L.push("");
+      L.push("| 全局参数 | 值 |");
+      L.push("| --- | --- |");
+      L.push("| 单笔上限比例 | " + (account.maxSingleRatio * 100).toFixed(0) + "% |");
+      L.push("| 更新时间 | " + account.updated + " |");
+      L.push("");
+      L.push("**资金可用期限为什么要按账户分开填**：港股账户可能是短钱、美股账户可能是十年不动的长钱 —— 它们能承载的论点周期本来就不同。这一项唯一的用途，是和每笔交易的「论点兑现周期」比对：用一笔半年内要用的钱，去承载一个要跑三年才兑现的叙事，就是期限错配，方向对不对都不影响它爆。");
+      L.push("");
+      L.push("<!-- ymos-trade-account：买卖决策台结构化数据，请勿手动修改 -->");
+      L.push("```json");
+      L.push(JSON.stringify(account, null, 2));
+      L.push("```");
+      L.push("");
+      return L.join("\n");
+    }
+
+    async function writeAccountState() {
+      const markdown = accountMarkdown();
+      return api("/api/trade/account", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ markdown }) });
+    }
+
+    async function saveAccount() {
+      account.updated = nowStamp();
+      persistAccountLocal();
+      try {
+        await writeAccountState();
+        await loadAccount();
+        await loadTrades();
+        restoreQuotes();
+        renderAll();
+        toast("账户参数已存入并刷新全局状态");
+      } catch (e) {
+        toast(location.protocol === "file:"
+          ? "未写入 Markdown：当前只是页面草稿，请从本地服务地址打开"
+          : "保存失败：本地服务未启动？");
+      }
+      if (!serverOk) renderMode();
+    }
+
+    /* =====================================================================
+       切换 / 勾选 / 进度
+       ===================================================================== */
+    function switchStrategy(key) {
+      if (key === currentStrategy) return;
+      currentStrategy = key;
+      renderAll();
+    }
+    function seedPrepareFromLogic() {
+      for (const it of THESIS_GATE.items) {
+        if (it.type !== "text") continue;
+        const src = bank(texts, it, "buy_new")[it.id];
+        const dst = bank(texts, it, "prepare");
+        if (src != null && dst[it.id] == null) dst[it.id] = src;
+      }
+    }
+    function switchMode(key) {
+      if (key === currentMode) return;
+      if (modeLocked(key)) { toast(key === "fill" ? "先完成并保存「② 建仓准备」" : "先在「① 买入逻辑」完成论点建档"); return; }
+      if (key === "prepare" && !activeFile) seedPrepareFromLogic();
+      currentMode = key;
+      // 每次进模式清空重勾 —— 不留旧勾避免自欺。
+      // 买入逻辑与建仓准备是同一笔的两个审视时点，共享论点输入。
+      if (key !== "buy_new" && key !== "prepare") checks[currentStrategy + "/" + key] = {};
+      renderNav(); renderMode();
+    }
+    function toggle(it) {
+      const on = !cget(it);
+      cset(it, on);
+      const row = document.querySelector('#bodyScroll .item[data-item-id="' + it.id + '"]');
+      if (row) row.classList.toggle("checked", on);
+      markStarted();
+      updateProgress();
+      if (currentMode === "buy_new") renderNav();
+    }
+
+    function itemSatisfied(it) {
+      if (it.type === "calc") {
+        const s = it.calc().state;
+        return s === "pass" || (s === "idle" && it.idleOk);
+      }
+      if (it.type === "text") return !it.required || !!tget(it).trim();
+      return cget(it);
+    }
+    function sectionSatisfied(sec) {
+      const done = sec.items.filter(itemSatisfied).length;
+      return sec.rule === "any" ? done >= 1 : done === sec.items.length;
+    }
+    function allSatisfied() {
+      if (currentMode === "buy_new") return !!(prep.symbol || "").trim() && currentSections().every(sectionSatisfied);
+      return currentSections().every(sectionSatisfied);
+    }
+
+    /* 数字 / 文本变化时，计算型闸门也要同步重绘；只更新进度条会让结果已通过、卡片却仍停在旧颜色。 */
+    function refreshCalcItems() {
+      for (const sec of currentSections()) {
+        for (const it of sec.items) {
+          if (it.type !== "calc") continue;
+          const row = document.querySelector('#bodyScroll .item.calc[data-item-id="' + CSS.escape(it.id) + '"]');
+          if (row) row.replaceWith(buildCalcItem(it));
+        }
+      }
+    }
+
+    function updateProgress() {
+      const meta = MODE_META[currentMode];
+      const def = currentModeDef();
+      const bar = document.getElementById("actionBar");
+      const btn = document.getElementById("fireBtn");
+      const hint = document.getElementById("progHint");
+      bar.className = "action-bar " + (meta.kind === "prep" || meta.kind === "admin" ? "stance" : meta.kind);
+
+      if (currentMode === "account") {
+        const codes = Object.keys(account.accounts);
+        const fields = [codes.some(k => num(account.accounts[k].capital) > 0), codes.some(k => !!account.accounts[k].horizonFund)];
+        const done = fields.filter(Boolean).length;
+        document.getElementById("progFill").style.width = (done / fields.length * 100) + "%";
+        document.getElementById("progText").textContent = done + " / " + fields.length;
+        hint.textContent = "账户参数已定";
+        const ready = done === fields.length;
+        btn.textContent = ready ? "💾 保存账户参数" : "填完资金与可用期限";
+        btn.className = "fire-btn " + (ready ? "ready" : "locked");
+        return;
+      }
+
+      if (currentMode === "buy_new" && activeFile) {
+        document.getElementById("progFill").style.width = "100%";
+        document.getElementById("progText").textContent = "回看";
+        hint.textContent = "已保存的买入逻辑";
+        btn.textContent = "＋ 新建一笔";
+        btn.className = "fire-btn ready";
+        return;
+      }
+
+      if (currentMode === "dash") {
+        const held = trades.open.filter(x => (x.front["状态"] || ST_PLAN) === ST_HELD).length;
+        document.getElementById("progFill").style.width = "100%";
+        document.getElementById("progText").textContent = held + " / " + trades.open.length;
+        hint.textContent = "已成交 / 全部在途";
+        btn.textContent = quotes.loading ? "拉取中…" : "🔄 刷新 + 拉行情";
+        btn.className = "fire-btn ready";
+        return;
+      }
+
+      if (currentMode === "fill") {
+        const ok = num(prep.fillPrice) > 0 && num(prep.fillShares) > 0 && activeFile && needsFill() && activePrepared();
+        document.getElementById("progFill").style.width = (ok ? 100 : 0) + "%";
+        document.getElementById("progText").textContent = (num(prep.fillPrice) > 0 ? 1 : 0) + (num(prep.fillShares) > 0 ? 1 : 0) + " / 2";
+        hint.textContent = "成交价 · 股数";
+        btn.textContent = ok ? FILL_MODE.fireIdle : "填成交价与股数";
+        btn.className = "fire-btn " + (ok ? "ready" : "locked");
+        return;
+      }
+
+      // 已成交：只读档案；还在计划中：可以改计划
+      if (currentMode === "prepare" && activeFile && !activeIsPlan()) {
+        document.getElementById("progFill").style.width = "100%";
+        document.getElementById("progText").textContent = "档案";
+        hint.textContent = "只读回看";
+        btn.textContent = "⚖️ 要改止损 · 去「调整止损」";
+        btn.className = "fire-btn ready";
+        return;
+      }
+      if (currentMode === "prepare" && !activeFile && !logicPassed()) {
+        document.getElementById("progFill").style.width = "0%";
+        document.getElementById("progText").textContent = "0 / 0";
+        hint.textContent = "逻辑未通过";
+        btn.textContent = "🔒 先去「① 买入逻辑」";
+        btn.className = "fire-btn locked";
+        return;
+      }
+
+      refreshCalcItems();
+      const secs = currentSections();
+      for (const sec of secs) {
+        const c = sec.items.filter(itemSatisfied).length;
+        const label = document.querySelector('.s-prog[data-sec="' + CSS.escape(sec.name) + '"]');
+        if (label) label.textContent = c + " / " + sec.items.length + (sectionSatisfied(sec) ? " ✓" : "");
+      }
+      let done = 0, total = 0;
+      for (const sec of secs) {
+        if (sec.rule === "any") { total += 1; done += sectionSatisfied(sec) ? 1 : 0; }
+        else { total += sec.items.length; done += sec.items.filter(itemSatisfied).length; }
+      }
+      document.getElementById("progFill").style.width = (total ? Math.round(done / total * 100) : 0) + "%";
+      document.getElementById("progText").textContent = done + " / " + total;
+
+      if (!isGated()) {
+        // 非对称摩擦：降低风险的方向永远可执行，进度条只是留痕的提示
+        hint.textContent = "理由已记录（可空）";
+        btn.textContent = def ? def.fireIdle : "确认";
+        btn.className = "fire-btn ready";
+        return;
+      }
+      hint.textContent = "条件已确认";
+      const ready = allSatisfied();
+      btn.textContent = ready ? (def ? def.fireIdle : "确认") : "还差几步 · 点我检查";
+      btn.className = "fire-btn " + (ready ? "ready" : "locked");
+    }
+
+    /* =====================================================================
+       Modal
+       ===================================================================== */
+    function missingItems() {
+      const miss = [];
+      if (currentMode === "buy_new" && !(prep.symbol || "").trim()) miss.push({ label: "还没填标的", sec: "标的" });
+      for (const sec of currentSections()) {
+        if (sectionSatisfied(sec)) continue;
+        if (sec.rule === "any") { miss.push({ label: "至少满足一条", sec: sec.name }); continue; }
+        for (const it of sec.items) {
+          if (itemSatisfied(it)) continue;
+          const extra = it.type === "calc" ? "（" + it.calc().detail + "）" : it.type === "text" ? "（未填写）" : "";
+          miss.push({ label: it.label + extra, sec: sec.name });
+        }
+      }
+      return miss;
+    }
+
+    function decisionAuditPayload(passed, tradeFile) {
+      const file = tradeFile || activeFile || "";
+      const item = trades.open.concat(trades.closed).find(x => x.file === file) || null;
+      const front = item ? (item.front || {}) : {};
+      const def = currentModeDef();
+      const gates = currentSections().map(sec => ({
+        label: sec.name,
+        items: sec.items.map(it => ({
+          label: stripTags(it.label || it.id || ""),
+          checked: it.type === "calc"
+            ? it.calc().state === "pass"
+            : it.type === "text" ? !!tget(it, currentMode).trim() : !!cget(it, currentMode),
+          redline: !!it.redline,
+        })),
+      }));
+      return {
+        schemaVersion: 1,
+        date: todayStr(),
+        mode: currentMode,
+        modeLabel: def ? def.title : (MODE_META[currentMode] || {}).navLabel,
+        passed: !!passed,
+        target: front["标的"] || (prep.symbol || "").trim() || file,
+        ticker: front.Ticker || (prep.ticker || "").trim().toUpperCase(),
+        tradeFile: file,
+        gates: gates,
+        missing: passed ? [] : missingItems().map(x => stripTags(x.label)),
+      };
+    }
+
+    async function saveDecisionAudit(passed, tradeFile) {
+      if (!serverOk) return;
+      await api("/api/audit/save", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(decisionAuditPayload(passed, tradeFile)),
+      });
+    }
+
+    function showWarn() {
+      saveDecisionAudit(false).catch(() => toast("未能写入本次拦截审计，请检查本地服务"));
+      const def = currentModeDef();
+      const modal = document.getElementById("modal");
+      modal.className = "modal warn shake";
+      document.getElementById("mBadge").textContent = "⚠️";
+      document.getElementById("mTitle").textContent = "先别动手 —— 你忘了吃过的亏了吗？";
+      document.getElementById("mSub").textContent = "下面这些条件还没成立。跳过它们扣扳机，就是在重复上一次的错误。";
+      const q = document.getElementById("mQuote");
+      q.style.display = "block";
+      q.innerHTML = (def && def.warnQuote) || "计算型的红线点不绿 —— 回去改数字，别在这里说服自己。";
+
+      const miss = missingItems();
+      const list = document.getElementById("mList");
+      list.style.display = "block";
+      list.innerHTML = '<div class="ml-head">还没成立 · ' + miss.length + ' 项</div><ul>' +
+        miss.map(x => '<li>' + escapeHTML(stripTags(x.label)) + '<span class="li-sec">· ' + escapeHTML(x.sec) + '</span></li>').join("") + '</ul>';
+
+      document.getElementById("mActions").innerHTML =
+        '<button class="m-btn danger" id="mPass">我确实不满足 · 放弃这笔</button>' +
+        '<button class="m-btn solid" id="mBack">回去补齐</button>';
+      document.getElementById("mBack").onclick = closeModal;
+      document.getElementById("mPass").onclick = closeModal;
+      openOverlay();
+    }
+
+    /* 加仓不弹「确认」，弹压力测试 —— 信念峰值即风险峰值。 */
+    function stressHTML() {
+      const m = metrics();
+      const after = m.total * (1 - STRESS_DROP);
+      const loss = m.total * STRESS_DROP;
+      const lossPct = m.cap ? (loss / m.cap * 100).toFixed(2) + "%" : "—";
+      const stopGap = m.stopPct ? (m.stopPct - STRESS_DROP * 100).toFixed(1) : null;
+      return '<table class="m-tbl">' +
+        '<tr><th>项目</th><th>现在</th><th>再跌 ' + (STRESS_DROP * 100) + '% 之后</th></tr>' +
+        '<tr><td>持仓市值</td><td>' + fmtMoney(m.total) + '</td><td><b>' + fmtMoney(after) + '</b></td></tr>' +
+        '<tr class="bad"><td>浮亏金额</td><td>—</td><td><b>' + fmtMoney(loss) + '</b></td></tr>' +
+        '<tr class="bad"><td>占账户</td><td>' + (m.cap ? (m.ratio * 100).toFixed(1) + '%' : '—') + '</td><td><b>亏掉账户 ' + lossPct + '</b></td></tr>' +
+        '<tr><td>距止损位</td><td>' + (m.stopPct ? '-' + m.stopPct.toFixed(1) + '%' : '未设') + '</td><td><b>' +
+        (stopGap === null ? '未设止损' : (stopGap > 0 ? '还差 ' + stopGap + '%' : '已击穿止损 ' + Math.abs(stopGap) + '%')) + '</b></td></tr>' +
+        '</table>';
+    }
+
+    function showPass() {
+      const def = currentModeDef();
+      const meta = MODE_META[currentMode];
+      const modal = document.getElementById("modal");
+      modal.className = "modal pass";
+      document.getElementById("mBadge").textContent = meta.kind === "sell" ? "✅" : meta.kind === "admin" ? "⚖️" : "🚀";
+      document.getElementById("mTitle").textContent = def.passTitle;
+      document.getElementById("mSub").textContent = def.passSub;
+      const q = document.getElementById("mQuote");
+      q.style.display = "block";
+      q.innerHTML = "💡 " + def.passQuote;
+
+      const list = document.getElementById("mList");
+      if (currentMode === "fill") {
+        const o = effectivePlan(), code = o.account || o.currency || "CNY";
+        const planned = num(o.amount), actual = num(prep.fillPrice) * num(prep.fillShares);
+        const diff = planned ? (actual - planned) / planned * 100 : 0;
+        list.style.display = "block";
+        list.innerHTML = '<div class="ml-head">计划 vs 实际</div><table class="m-tbl">' +
+          '<tr><td>计划投入</td><td><b>' + fmtMoney(planned, code) + '</b></td></tr>' +
+          '<tr><td>实际投入</td><td><b>' + fmtMoney(actual, code) + '</b></td></tr>' +
+          '<tr' + (Math.abs(diff) > 10 ? ' class="bad"' : '') + '><td>偏差</td><td><b>' + (diff >= 0 ? "+" : "") + diff.toFixed(1) + '%</b></td></tr>' +
+          '<tr><td>成交价 × 股数</td><td><b>' + num(prep.fillPrice) + ' × ' + num(prep.fillShares) + '</b></td></tr></table>';
+      } else if (currentMode === "buy_add") {
+        list.style.display = "block";
+        list.innerHTML = '<div class="ml-head">压力测试 · 加完之后如果再跌 ' + (STRESS_DROP * 100) + '%</div>' + stressHTML();
+      } else if (currentMode === "prepare") {
+        const mins = prep.startedAt ? Math.floor((Date.now() - prep.startedAt) / 60000) : 0;
+        list.style.display = "block";
+        list.innerHTML = '<div class="ml-head">决策用时 · ' + mins + ' 分钟</div>' +
+          '<div class="i-note" style="padding:2px 0">' +
+          (mins < COOL_MIN * 2
+            ? '决策创建到扣扳机的间隔越短，这套流程越接近<em>事后合法化</em>。这个数字会写进决策文件，以后能看出系统有没有在腐化。'
+            : '想得够久。这个数字会写进决策文件 —— 它是系统有没有腐化的观测点。') + '</div>';
+      } else {
+        list.style.display = "none";
+      }
+
+      // 买入逻辑一通过就建档；建仓准备是同一文件的第二个审视时点。
+      if (currentMode === "buy_new") {
+        document.getElementById("mActions").innerHTML =
+          '<button class="m-btn" id="mReview">再看一眼</button>' +
+          '<button class="m-btn go" id="mGo">' + (serverOk ? '确认保存 · 去建仓准备 →' : '去建仓准备 →') + '</button>';
+        document.getElementById("mReview").onclick = closeModal;
+        document.getElementById("mGo").onclick = () => {
+          if (serverOk) commit();
+          else { closeModal(); switchMode("prepare"); }
+        };
+        openOverlay();
+        return;
+      }
+
+      const closing = meta.kind === "sell" && prep.sellPortion === "all";
+      document.getElementById("mActions").innerHTML =
+        '<button class="m-btn" id="mReview">再看一眼</button>' +
+        '<button class="m-btn go" id="mGo">' + (serverOk
+          ? (closing ? "确认 · 填结果验证并归档" : "确认 · 写入决策文件")
+          : "确认（当前无法保存）") + '</button>';
+      document.getElementById("mReview").onclick = closeModal;
+      document.getElementById("mGo").onclick = () => {
+        if (!serverOk) { closeModal(); resetMode(); toast("已确认（未连本地服务，未写盘）"); return; }
+        if (closing) showCloseForm(); else commit();
+      };
+      openOverlay();
+    }
+
+    /* 平仓：先填结果验证，再归档。这是整套系统里唯一一次「回头对账」的机会。 */
+    function showCloseForm() {
+      const modal = document.getElementById("modal");
+      modal.className = "modal pass";
+      document.getElementById("mBadge").textContent = "🧾";
+      document.getElementById("mTitle").textContent = "结果验证 · 这笔交易的收口";
+      document.getElementById("mSub").textContent = "填完就归档到 已平仓/。这几栏是以后唯一能拿来审判今天这个判断的东西。";
+      const q = document.getElementById("mQuote");
+      q.style.display = "block";
+      q.innerHTML = "💡 结构层的教训是可以从别人的尸体上免费学会的，但只有你自己的这份记录，能告诉你该在哪一步装闸门。";
+
+      const list = document.getElementById("mList");
+      list.style.display = "block";
+      list.innerHTML =
+        '<div class="m-form">' +
+        '<div><div class="m-field-label">实际盈亏</div><input id="cfPnl" placeholder="例：-8.2%，亏 ' + cur().sym + '12,300" /></div>' +
+        '<div><div class="m-field-label">建仓时的假设 vs 实际发生</div><textarea id="cfDiff" rows="3" placeholder="当时以为会怎样，实际怎样。哪条失效信号被触发了？还是根本没触发、我自己走的？"></textarea></div>' +
+        '<div><div class="m-field-label">这笔错在哪一层</div><div class="pf-opts" id="cfLayer">' +
+        ["策略内核（看错方向）", "结构约束（仓位·期限·出局权）", "操盘执行（没按纪律走）", "没错（正常概率）"]
+          .map(l => '<button class="pf-opt" data-v="' + l + '">' + l + '</button>').join("") +
+        '</div></div>' +
+        '<div><div class="m-field-label">该在哪里加拦截点</div><textarea id="cfGate" rows="2" placeholder="下次同类情况，系统应该在哪一步拦住我？"></textarea></div>' +
+        '</div>';
+      let layer = "";
+      list.querySelectorAll("#cfLayer .pf-opt").forEach(b => {
+        b.onclick = () => {
+          layer = b.dataset.v;
+          list.querySelectorAll("#cfLayer .pf-opt").forEach(x => x.classList.toggle("on", x === b));
+        };
+      });
+
+      document.getElementById("mActions").innerHTML =
+        '<button class="m-btn" id="mBack2">先不归档</button>' +
+        '<button class="m-btn go" id="mArchive">归档这笔交易</button>';
+      document.getElementById("mBack2").onclick = closeModal;
+      document.getElementById("mArchive").onclick = () => commit({
+        pnl: (list.querySelector("#cfPnl").value || "").trim(),
+        diff: (list.querySelector("#cfDiff").value || "").trim(),
+        layer: layer,
+        gate: (list.querySelector("#cfGate").value || "").trim(),
+      });
+    }
+
+    function openOverlay() {
+      document.getElementById("overlay").classList.add("show");
+    }
+    function closeModal() {
+      document.getElementById("overlay").classList.remove("show");
+      document.getElementById("modal").classList.remove("shake");
+    }
+
+    /* =====================================================================
+       写盘：把当前动作变成决策文件里的一段
+       ===================================================================== */
+    const KIND_ICON = { open: "🧠", prepare: "🧱", revise: "✏️", fill: "✅", add: "➕", tp: "🟢", sl: "🔻", adjust: "⚖️", close: "🧾" };
+    const KIND_LABEL = { open: "买入逻辑建档", prepare: "建仓准备", revise: "建仓准备修订", fill: "确认建仓", add: "加仓计划 / 压力测试", tp: "止盈 / 减仓", sl: "止损", adjust: "调整止损", close: "全部平仓" };
+    function modeKind() {
+      if (currentMode === "buy_new") return "open";
+      if (currentMode === "prepare") return activePrepared() ? "revise" : "prepare";
+      if (currentMode === "fill") return "fill";
+      return currentMode === "buy_add" ? "add"
+        : currentMode === "sell_tp" ? "tp" : currentMode === "sell_sl" ? "sl" : "adjust";
+    }
+
+    /* 每个事件只记当下审视的内容：open 记买入逻辑，prepare 记复核后的论点与结构参数。 */
+    function summarySections() { return currentSections(); }
+    function modeOf() { return currentMode; }
+    function pickedSummary() {
+      const out = [];
+      for (const sec of summarySections()) {
+        const md = modeOf(sec);
+        const ok = it => it.type === "calc" ? (it.calc().state === "pass" || (it.calc().state === "idle" && it.idleOk)) : cget(it, md);
+        // 未校验的计算型闸门要如实标出来 —— 记录里不能让「没数据」看起来像「已通过」
+        const picked = sec.items.filter(it => it.type !== "text" && ok(it))
+          .map(it => it.label + (it.type === "calc" && it.calc().state === "idle" ? "（未校验）" : ""));
+        if (picked.length) out.push("- **" + sec.name + "**：" + picked.join("、"));
+      }
+      return out;
+    }
+    function textSummary() {
+      const out = [];
+      for (const sec of summarySections()) {
+        const md = modeOf(sec);
+        for (const it of sec.items) {
+          if (it.type !== "text") continue;
+          const v = tget(it, md).trim();
+          if (v) out.push("**" + it.label + "：** " + v);
+        }
+      }
+      return out;
+    }
+
+    function eventJSON(kind, extra) {
+      const m = metrics();
+      const c = {}, x = {};
+      for (const sec of summarySections()) {
+        const md = modeOf(sec);
+        for (const it of sec.items) {
+          if (it.type === "text") { const v = tget(it, md); if (v) x[it.id] = v; }
+          else if (it.type !== "calc" && cget(it, md)) c[it.id] = true;
+        }
+      }
+      const j = {
+        schemaVersion: 1, ts: nowStamp(), kind: kind, strategy: currentStrategy, checks: c, texts: x,
+        metrics: {
+          account: prep.account, capital: m.cap, amount: m.total, ratio: +m.ratio.toFixed(4),
+          horizonFund: prepAccount().horizonFund || "", horizonThesis: prep.horizonThesis || "",
+          maxSingleRatio: account.maxSingleRatio, exitControl: prep.exitControl || "",
+          noStop: !!prep.noStop, stopPct: prep.noStop ? null : +m.stopPct.toFixed(2), maxLoss: Math.round(m.maxLoss),
+        },
+      };
+      if (kind === "add") {
+        j.planOnly = true;
+        j.changesPositionFacts = false;
+      }
+      if (kind === "fill") {
+        const o = effectivePlan();
+        j.fill = {
+          price: num(prep.fillPrice), shares: num(prep.fillShares),
+          actualAmount: Math.round(num(prep.fillPrice) * num(prep.fillShares)),
+          plannedAmount: num(o.amount), note: prep.fillNote || "",
+        };
+        j.fill.deviationPct = j.fill.plannedAmount ? +(((j.fill.actualAmount - j.fill.plannedAmount) / j.fill.plannedAmount) * 100).toFixed(2) : null;
+      }
+      if (prep.startedAt) j.deliberationMin = Math.floor((Date.now() - prep.startedAt) / 60000);
+      // 冷却期跳没跳过要如实记录 —— 事后能把「跳过的交易」和「等满的交易」分开算胜率
+      j.coolSkipped = !!prep.coolSkipped;
+      if (MODE_META[currentMode].kind === "sell") {
+        const p = activePosition(), pos = sellPositionPreview(), sellPrice = num(prep.sellPrice);
+        j.sell = {
+          portion: prep.sellPortion, ratio: SELL_PORTION[prep.sellPortion].ratio,
+          beforeShares: pos.before, sellShares: pos.sell, remainingShares: pos.remain,
+          costPrice: p ? p.costPrice : null, price: sellPrice || null,
+          realizedPnl: sellPrice && p && p.costPrice ? +((sellPrice - p.costPrice) * pos.sell).toFixed(2) : null,
+          note: prep.sellNote || "",
+        };
+      }
+      if (kind === "adjust") {
+        const p = activePosition(), old = p ? p.plan : {};
+        j.adjust = {
+          previous: { noStop: !!old.noStop, stopPct: old.noStop ? null : num(old.stopPct), exitRule: old.exitRule || activeTexts.x4 || "" },
+          mode: prep.adjustMode,
+          noStop: prep.adjustMode === "logic",
+          stopPct: prep.adjustMode === "price" ? num(prep.adjustStopPct) : null,
+          exitRule: prep.adjustMode === "logic" ? (prep.adjustExitRule || "").trim() : "",
+          shares: p ? p.shares : null,
+          costPrice: p ? p.costPrice : null,
+          stopPrice: p && p.costPrice && prep.adjustMode === "price" ? +(p.costPrice * (1 - num(prep.adjustStopPct) / 100)).toFixed(4) : null,
+          maxLoss: p && prep.adjustMode === "price" ? +(p.costAmount * num(prep.adjustStopPct) / 100).toFixed(2) : null,
+        };
+      }
+      return Object.assign(j, extra || {});
+    }
+
+    function buildEventBlock(kind, extra) {
+      const L = [];
+      L.push("### " + nowStamp() + " · " + KIND_ICON[kind] + " " + KIND_LABEL[kind] +
+        (kind === "tp" || kind === "sl" ? " · " + SELL_PORTION[prep.sellPortion].label : ""));
+      L.push("");
+      const picked = pickedSummary();
+      if (picked.length) { L.push.apply(L, picked); L.push(""); }
+      else if (MODE_META[currentMode].kind === "sell") { L.push("- **未勾选任何触发条件** —— 如实记录：这次卖出没有对上预设条件。"); L.push(""); }
+      const txts = textSummary();
+      if (txts.length) { txts.forEach(t => { L.push(t); L.push(""); }); }
+      if (MODE_META[currentMode].kind === "sell") {
+        const pos = sellPositionPreview();
+        const bits = ["比例 " + SELL_PORTION[prep.sellPortion].label, "卖出 " + fmtShares(pos.sell), "剩余 " + fmtShares(pos.remain)];
+        if (num(prep.sellPrice)) bits.push("成交价 " + prep.sellPrice);
+        L.push("执行：" + bits.join(" · "));
+        if ((prep.sellNote || "").trim()) { L.push(""); L.push("> " + prep.sellNote.trim()); }
+        L.push("");
+      }
+      if (kind === "adjust") {
+        const p = activePosition(), old = p ? p.plan : {}, code = old.account || old.currency || "CNY";
+        const oldRule = old.noStop ? "逻辑退出：" + (old.exitRule || activeTexts.x4 || "按原论点失效信号") : (num(old.stopPct) ? "价格止损 -" + num(old.stopPct).toFixed(1) + "%" : "未定义");
+        const newRule = prep.adjustMode === "logic" ? "逻辑退出：" + prep.adjustExitRule.trim() : "价格止损 -" + num(prep.adjustStopPct).toFixed(1) + "%";
+        L.push("| 调整项 | 调整前 | 调整后 |");
+        L.push("| --- | --- | --- |");
+        L.push("| 生效退出规则 | " + String(oldRule).replace(/\|/g, "\\|") + " | **" + String(newRule).replace(/\|/g, "\\|") + "** |");
+        if (p && p.costPrice && prep.adjustMode === "price") {
+          L.push("| 对应价位 | — | " + fmtMoney(p.costPrice * (1 - num(prep.adjustStopPct) / 100), code) + " |");
+          L.push("| 全仓最大亏损 | — | " + fmtMoney(p.costAmount * num(prep.adjustStopPct) / 100, code) + " |");
+        }
+        L.push("");
+      }
+      if (kind === "fill") {
+        const o = effectivePlan(), code = o.account || o.currency || "CNY";
+        const planned = num(o.amount), actual = num(prep.fillPrice) * num(prep.fillShares);
+        const diff = planned ? (actual - planned) / planned * 100 : 0;
+        L.push("| 项目 | 计划 | 实际 |");
+        L.push("| --- | --- | --- |");
+        L.push("| 投入金额 | " + fmtMoney(planned, code) + " | **" + fmtMoney(actual, code) + "**" + (planned ? "（偏差 " + (diff >= 0 ? "+" : "") + diff.toFixed(1) + "%）" : "") + " |");
+        L.push("| 成交价 / 股数 | — | " + num(prep.fillPrice) + " × " + num(prep.fillShares) + " |");
+        L.push("");
+        if ((prep.fillNote || "").trim()) { L.push("> " + prep.fillNote.trim()); L.push(""); }
+      }
+      if (kind === "add") {
+        const m = metrics();
+        L.push("加仓计划（未成交，不改持仓事实）：若执行，预计总投入 " + fmtMoney(m.total) + "（占账户 " + (m.ratio * 100).toFixed(1) + "%）；" +
+          "压力测试 —— 再跌 " + (STRESS_DROP * 100) + "% 则浮亏 " + fmtMoney(m.total * STRESS_DROP) +
+          "，占账户 " + (m.cap ? (m.total * STRESS_DROP / m.cap * 100).toFixed(2) : "—") + "%。");
+        L.push("");
+      }
+      if (prep.startedAt) {
+        L.push("_决策用时 " + Math.floor((Date.now() - prep.startedAt) / 60000) + " 分钟_");
+        L.push("");
+      }
+      L.push("<!-- ymos-trade-event -->");
+      L.push("```json");
+      L.push(JSON.stringify(eventJSON(kind, extra), null, 2));
+      L.push("```");
+      return L.join("\n");
+    }
+
+    function buildOpenMarkdown() {
+      const strat = STRATEGIES[currentStrategy];
+      const symbol = (prep.symbol || "").trim();
+      const openJSON = {
+        schemaVersion: 1, version: 3, kind: "open", stage: "buy_logic", symbol: symbol,
+        ticker: (prep.ticker || "").trim().toUpperCase(), strategy: currentStrategy, openDate: todayStr(),
+        coolSkipped: !!prep.coolSkipped,
+      };
+      const L = [];
+      L.push("---");
+      L.push("ymos_trade: v1");
+      L.push("标的: " + (symbol || "—"));
+      if ((prep.ticker || "").trim()) L.push("Ticker: " + prep.ticker.trim().toUpperCase());
+      L.push("策略: " + strat.label);
+      L.push("建仓决策日: " + todayStr());
+      L.push("状态: " + ST_PLAN);
+      L.push("---");
+      L.push("");
+      L.push("# " + (symbol || "未命名") + " · 买卖决策记录");
+      L.push("");
+      L.push("> 本文件 **append-only**：买入逻辑已建档；建仓准备的复核与修改都以新事件追加，不覆盖当时的判断。");
+      L.push("");
+      L.push("## 买入逻辑档案");
+      L.push("");
+      L.push("| 项目 | 值 |");
+      L.push("| --- | --- |");
+      L.push("| 冷却期 | " + (prep.coolSkipped ? "⚠️ 已跳过（短线 / 补录）" : "已等满 " + COOL_MIN + " 分钟") + " |");
+      L.push("| 策略 | " + strat.label + " |");
+      if (symbol) L.push("| 关联备忘录 | [[持仓与关注/持仓/" + symbol + "/买入卖出备忘录]] |");
+      L.push("");
+      const txts = textSummary();
+      if (txts.length) { txts.forEach(t => { L.push(t); L.push(""); }); }
+      L.push("<!-- ymos-trade-open -->");
+      L.push("```json");
+      L.push(JSON.stringify(openJSON, null, 2));
+      L.push("```");
+      L.push("");
+      L.push("---");
+      L.push("");
+      L.push("## 决策事件流");
+      L.push("");
+      L.push(buildEventBlock("open"));
+      L.push("");
+      return L.join("\n");
+    }
+
+    function buildCloseBlock(result) {
+      const L = [];
+      L.push(buildEventBlock("close", { closing: true, exitKind: modeKind(), result: result }));
+      L.push("");
+      L.push("---");
+      L.push("");
+      L.push("## 结果验证");
+      L.push("");
+      L.push("| 项目 | 内容 |");
+      L.push("| --- | --- |");
+      L.push("| 平仓日 | " + todayStr() + " |");
+      L.push("| 实际盈亏 | " + (result.pnl || "—") + " |");
+      L.push("| 错在哪一层 | " + (result.layer || "—") + " |");
+      L.push("");
+      if (result.diff) { L.push("**建仓假设 vs 实际发生：** " + result.diff); L.push(""); }
+      if (result.gate) { L.push("**该在哪里加拦截点：** " + result.gate); L.push(""); }
+      return L.join("\n");
+    }
+
+    async function commit(result) {
+      const kind = modeKind();
+      let savedFile = activeFile;
+      try {
+        if (kind === "open") {
+          const j = await api("/api/trade/open", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: (prep.symbol || "").trim(), code: (prep.ticker || "").trim().toUpperCase(), date: todayStr(), markdown: buildOpenMarkdown() }),
+          });
+          activeFile = j.file;
+          savedFile = j.file;
+          toast("已写入 " + j.rel);
+        } else if (!activeFile) {
+          toast("没选持仓 —— 先在顶部选一笔决策文件"); return;
+        } else if (kind === "fill") {
+          const j = await api("/api/trade/fill", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              file: activeFile, fillDate: todayStr(), block: buildEventBlock("fill"),
+              shares: num(prep.fillShares) || "", costPrice: num(prep.fillPrice) || "",
+              actualAmount: Math.round(num(prep.fillPrice) * num(prep.fillShares)) || "",
+            }),
+          });
+          toast("建仓已确认 · " + j.rel);
+        } else if (result) {
+          const j = await api("/api/trade/close", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ file: activeFile, closeDate: todayStr(), block: buildCloseBlock(result) }),
+          });
+          activeFile = "";
+          toast("已归档 " + j.rel);
+        } else if ((kind === "tp" || kind === "sl") && prep.sellPortion !== "all") {
+          const p = activePosition(), pos = sellPositionPreview();
+          const j = await api("/api/trade/sell", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              file: activeFile, block: buildEventBlock(kind),
+              remainingShares: pos.remain,
+              costPrice: p ? p.costPrice : "",
+            }),
+          });
+          toast("已减仓并更新剩余股数 · " + j.rel);
+        } else {
+          const j = await api("/api/trade/append", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ file: activeFile, block: buildEventBlock(kind) }),
+          });
+          toast("已追加进 " + j.rel);
+        }
+      } catch (e) {
+        if (e.status === 409) { toast("这个标的今天已有决策文件 —— 用「加仓」往那份文件追加"); }
+        else {
+          toast(location.protocol === "file:"
+            ? "未写入 Markdown：请启动 Console/server.py 后从本地地址打开"
+            : "写入失败：" + (e.message || "服务未启动？"));
+          serverOk = false;
+        }
+        closeModal();
+        return;
+      }
+      try {
+        await saveDecisionAudit(true, savedFile);
+      } catch (e) {
+        toast("动作已写盘，但决策审计留痕失败");
+      }
+      closeModal();
+      // 每次写入后立即重读全局列表与当前文件：下一环节直接拿到最新参数，不再依赖手动点「重读文件」。
+      if (kind === "open") {
+        clearBuckets("buy_new");
+        currentMode = "prepare";
+        await loadTrades();
+        await selectTrade(savedFile);
+        toast("买入逻辑已建档 · 请完成建仓准备");
+        return;
+      }
+      resetMode();
+      await loadTrades();
+      if (activeFile) await selectTrade(activeFile);
+      else renderAll();
+    }
+
+    function clearBuckets(mode) {
+      for (const pre of ["shared", "generic"]) { delete checks[pre + "/" + mode]; delete texts[pre + "/" + mode]; }
+    }
+    function resetMode() {
+      if (currentMode === "fill") { prep.fillPrice = 0; prep.fillShares = 0; prep.fillNote = ""; persistPrep(); return; }
+      if (currentMode === "prepare" && activeFile) return;   // 改计划：留在原地，接着看
+      clearBuckets(currentMode);
+      if (currentMode === "prepare") {
+        // 一笔走完：逻辑那一步也清掉，下一笔从头审
+        clearBuckets("buy_new");
+        const keepAccount = prep.account;
+        prep = blankPrep();
+        prep.account = keepAccount;
+        currentMode = "buy_new";
+      }
+      if (currentMode === "buy_add") prep.addAmount = 0;
+      prep.sellPrice = 0; prep.sellNote = ""; prep.sellPortion = "all";
+      persistPrep();
+    }
+
+    document.getElementById("fireBtn").onclick = () => {
+      if (currentMode === "account") { if (accountReady()) saveAccount(); return; }
+      if (currentMode === "buy_new" && activeFile) { selectTrade(""); return; }
+      if (currentMode === "dash") {
+        (async () => {
+          await Promise.all([loadTrades(), loadAccount()]);
+          renderAll();
+          await loadQuotes(true);
+        })();
+        return;
+      }
+      if (currentMode === "fill") {
+        if (!activePrepared()) toast("先完成并保存「② 建仓准备」");
+        else if (num(prep.fillPrice) > 0 && num(prep.fillShares) > 0) showPass();
+        else toast("先填实际成交价和股数");
+        return;
+      }
+      if (currentMode === "prepare" && activeFile && !activeIsPlan()) { switchMode("adjust"); return; }
+      if (currentMode === "prepare" && !activeFile && !logicPassed()) { switchMode("buy_new"); return; }
+      if (viewing() && currentMode === "buy_new") { toast("回看模式 —— 想建新的一笔，点上面「＋ 新建一笔」"); return; }
+      if (!isGated() || allSatisfied()) showPass();
+      else showWarn();
+    };
+    document.getElementById("overlay").addEventListener("click", e => {
+      if (e.target === document.getElementById("overlay")) closeModal();
+    });
+    window.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+    /* ============ Toast ============ */
+    let toastTimer = null;
+    function toast(msg) {
+      let t = document.querySelector(".toast");
+      if (!t) { t = document.createElement("div"); t.className = "toast"; document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+    }
+
+    function renderAll() { renderCtxBar(); renderNav(); renderMode(); }
+
+    /* ============ 正文宽度拖拽（参考 reader） ============ */
+    const SIDEBAR_W = 300;
+    const MIN_W = 620;
+    const DEFAULT_RATIO = 0.75;
+    const WIDTH_KEY = "sop-main-w";
+    let mainWPref = localStorage.getItem(WIDTH_KEY); // null | 旧版 "full" | 数字字符串
+    function maxMainW() { return Math.max(MIN_W, window.innerWidth - SIDEBAR_W); }
+    function defaultMainW() { return Math.max(MIN_W, Math.round(maxMainW() * DEFAULT_RATIO)); }
+    function applyMainW() {
+      let w;
+      if (mainWPref === null || mainWPref === "full") w = defaultMainW();
+      else w = Math.max(MIN_W, Math.min(parseInt(mainWPref, 10) || defaultMainW(), maxMainW()));
+      document.documentElement.style.setProperty("--main-w", w + "px");
+    }
+    (function initResize() {
+      const handle = document.getElementById("resizeRight");
+      const col = document.getElementById("mainCol");
+      handle.addEventListener("mousedown", e => {
+        e.preventDefault();
+        const startX = e.clientX;
+        const startW = col.getBoundingClientRect().width;
+        handle.classList.add("dragging");
+        document.body.classList.add("dragging-col");
+        function move(ev) {
+          let w = startW + (ev.clientX - startX);
+          w = Math.max(MIN_W, Math.min(maxMainW(), w));
+          document.documentElement.style.setProperty("--main-w", w + "px");
+          mainWPref = String(Math.round(w));
+        }
+        function up() {
+          handle.classList.remove("dragging");
+          document.body.classList.remove("dragging-col");
+          localStorage.setItem(WIDTH_KEY, mainWPref);
+          window.removeEventListener("mousemove", move);
+          window.removeEventListener("mouseup", up);
+        }
+        window.addEventListener("mousemove", move);
+        window.addEventListener("mouseup", up);
+      });
+      handle.addEventListener("dblclick", () => {
+        mainWPref = null; localStorage.removeItem(WIDTH_KEY); applyMainW();
+        toast("正文宽度已恢复为 75%");
+      });
+      window.addEventListener("resize", applyMainW);
+      applyMainW();
+      const hintKey = "ymos-decide-resize-hint-seen";
+      if (!localStorage.getItem(hintKey) && window.innerWidth > 860) {
+        const hint = document.getElementById("resizeHint");
+        requestAnimationFrame(() => hint.classList.add("show"));
+        setTimeout(() => hint.classList.remove("show"), 5000);
+        localStorage.setItem(hintKey, "1");
+      }
+    })();
+
+    /* ============ 键盘：数字键切模式 ============ */
+    window.addEventListener("keydown", e => {
+      const tag = e.target.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= ORDER.length) switchMode(ORDER[n - 1]);
+    });
+
+    /* ============ 启动 ============ */
+    try { const raw = localStorage.getItem(PREP_KEY); if (raw) prep = Object.assign(blankPrep(), JSON.parse(raw)); } catch (e) { }
+    if (location.protocol === "file:") {
+      for (const link of document.querySelectorAll("[data-file-href]")) link.href = link.dataset.fileHref;
+    }
+    (async function bootstrap() {
+      await loadExternalRules();
+      await Promise.all([loadAccount(), loadTrades()]);
+      restoreQuotes();
+      // 账户已设好就先看总览，新建时从「买入逻辑」开始
+      if (accountReady() && currentMode === "account") currentMode = "dash";   // 有账户就先看总览
+      renderAll();
+    })();
+  </script>
+</body>
+
+</html>

@@ -296,7 +296,7 @@
   <div class="sop-launch">
     <button class="btn-sop alt" id="homeBtn" title="回到 YMOS Console 首页">⌂ Console 首页</button>
     <button class="btn-sop" id="planBtn" title="打开交易计划台（盘后动态管理：定调 / 持仓审计 / 观察审计 / 明日动作）">📋 交易计划台</button>
-    <button class="btn-sop alt" id="sopBtn" title="打开新高买卖决策台（勾选式买卖 SOP）">🎯 新高买卖决策台</button>
+    <button class="btn-sop alt" id="sopBtn" title="打开买卖决策台（通用策略与交易留痕）">🎯 买卖决策台</button>
   </div>
   <div class="custom-note"><b>这是一份可修改的样板。</b><br>目录分组、显示内容和阅读习惯都可以写进 <code>config.json</code>，也可以直接让你的 Agent / 编程工具按偏好调整页面。</div>
   <div class="search"><input id="search" placeholder="过滤文件名 / 日期…  ⌘K" /></div>
@@ -617,7 +617,7 @@ function openConsole(route, fileName) {
   window.location.href = location.protocol === "file:" ? fileName : route;
 }
 document.getElementById("homeBtn").onclick = () => openConsole("/", "index.html");
-document.getElementById("sopBtn").onclick = () => openConsole("/sop", "新高买卖决策台.html");
+document.getElementById("sopBtn").onclick = () => openConsole("/decide", "买卖决策台.html");
 document.getElementById("planBtn").onclick = () => openConsole("/plan", "交易计划台.html");
 document.getElementById("reloadListBtn").onclick = async () => {
   await fetchList();

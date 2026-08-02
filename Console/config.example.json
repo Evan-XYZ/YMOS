@@ -4,16 +4,26 @@
   "_vault_root": "你的 Obsidian vault 里 YMOS 所在的绝对路径。留空 = 用 Console/ 的上级目录（即本仓库根），开箱即可跑。",
   "vault_root": "",
 
-  "_plan_dir": "交易计划的归档目录，相对 vault_root。决策台保存时写到 <plan_dir>/YYYY-MM/YYYY-MM-DD日交易计划.md",
+  "_plan_dir": "交易计划的归档目录，相对 vault_root。文件日期代表计划执行日；盘前计划与盘中实际写到 <plan_dir>/YYYY-MM/YYYY-MM-DD日交易计划.md",
   "plan_dir": "Brain/交易计划",
 
   "_audit_dir": "决策留痕的归档目录，相对 vault_root。每次扣扳机/被拦截追加到 <audit_dir>/YYYY-MM/YYYY-MM-DD决策记录.md",
   "audit_dir": "Brain/决策审计",
 
+  "_trade_dir": "买入卖出决策的生命周期档案目录，相对 vault_root。计划中/持仓中文件平铺在根目录，平仓后移入 已平仓/。",
+  "trade_dir": "Brain/买入卖出决策",
+
   "_reader_roots": "Reader 可读取的根目录。相对路径以 vault_root 为基准；也可以写绝对路径（支持 ~）。",
   "reader_roots": {
     "ymos": "."
   },
+
+  "_reader_custom_paths": "最简单的扩展入口：登记一个产出目录后，Reader 会自动追加“自定义工作区”。相对路径基于 vault_root；绝对路径支持 ~。目录可暂时不存在，后续创建文件夹或任意层级子目录后会自动呈现；修改本配置后需重启 Console。",
+  "_reader_custom_paths示例": [
+    { "label": "我的专项研究", "path": "Brain/专项研究", "mode": "tree" },
+    { "label": "外部投研笔记", "path": "~/Documents/Research", "mode": "tree-text" }
+  ],
+  "reader_custom_paths": [],
 
   "_reader_pages": "Reader 顶部可切换的页面。每页由 section 和 category 组成；可按自己的目录与阅读习惯增删。",
   "_reader_mode说明": {
@@ -45,17 +55,9 @@
           "defaultOpen": false,
           "categories": [
             { "label": "交易计划", "root": "ymos", "rel": "Brain/交易计划", "mode": "tree" },
-            { "label": "决策审计", "root": "ymos", "rel": "Brain/决策审计", "mode": "tree" }
-          ]
-        },
-        {
-          "label": "热门追踪",
-          "icon": "🔥",
-          "defaultOpen": false,
-          "categories": [
-            { "label": "A股 What's Hot", "root": "ymos", "rel": "Eyes/Whats_Hot", "mode": "tree" },
-            { "label": "美股热门追踪", "root": "ymos", "rel": "Eyes/美股热门追踪", "mode": "tree" },
-            { "label": "核心资产动态判定表", "root": "ymos", "rel": "Eyes/核心资产动态判定表", "mode": "tree" }
+            { "label": "买入卖出决策", "root": "ymos", "rel": "Brain/买入卖出决策", "mode": "tree" },
+            { "label": "决策审计", "root": "ymos", "rel": "Brain/决策审计", "mode": "tree" },
+            { "label": "内核优化建议", "root": "ymos", "rel": "Brain/内核审计/优化建议", "mode": "tree" }
           ]
         },
         {
@@ -71,11 +73,7 @@
               "whitelist": [
                 "持仓_状态机.md",
                 "Watchlist_状态机.md",
-                "当前关注方向与投资偏好.md",
-                "账户资金曲线.md",
-                "击球区注册表.md",
-                "主线首发信号跟踪.md",
-                "持仓备忘录_视图.md"
+                "当前关注方向与投资偏好.md"
               ]
             },
             { "label": "持仓个股", "root": "ymos", "rel": "持仓与关注/持仓", "mode": "tree" },
@@ -104,7 +102,7 @@
               "root": "ymos",
               "rel": ".",
               "mode": "flat-whitelist",
-              "whitelist": ["README.md", "总入口暗号.md", "AGENT_GUIDE.md", "进阶指南.md", "CHANGELOG.md", "UPGRADE.md"]
+              "whitelist": ["README.md", "ARCHITECTURE.md", "总入口暗号.md", "AGENT_GUIDE.md", "进阶指南.md", "CHANGELOG.md", "UPGRADE.md"]
             }
           ]
         }

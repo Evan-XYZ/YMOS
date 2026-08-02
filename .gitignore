@@ -6,6 +6,8 @@ skills/
 
 # Local-only files & directories (not part of the open-source repo)
 wordpress-docs/
+# WordPress public demo is maintained outside the YMOS release package.
+Console/wordpress/
 # 内部开发交接文档：含商业渠道 / 定价、自用环境凭据状态、自用版与公开版对比
 PROJECT_STATE.md
 
@@ -34,8 +36,23 @@ Eyes/投资雷达/20[0-9][0-9]-*/
 Eyes/投资雷达/Raw_Data/
 Brain/策略分析/20[0-9][0-9]-*/
 Brain/策略分析/Raw_Data/
-Brain/交易计划/
-Brain/决策审计/
+Brain/策略配置/当前策略_Profile.md
+Brain/策略配置/驱动清单.md
+Brain/策略配置/模块清单.md
+Brain/内核审计/诊断记录/*
+Brain/交易计划/*
+!Brain/交易计划/README.md
+Brain/决策审计/*
+!Brain/决策审计/README.md
+Brain/内核审计/优化建议/*
+!Brain/内核审计/优化建议/README.md
+!Brain/内核审计/优化建议/_模板_平仓复盘.md
+Brain/买入卖出决策/*
+!Brain/买入卖出决策/README.md
+!Brain/买入卖出决策/_模板_买卖决策_状态机.md
+!Brain/买入卖出决策/已平仓/
+Brain/买入卖出决策/已平仓/*
+!Brain/买入卖出决策/已平仓/.gitkeep
 持仓与关注/dashboard/
 
 # Personal stock folders (created during onboarding)
@@ -51,3 +68,11 @@ BrainStorm/Summarized_Insights/20[0-9][0-9]-*/
 BrainStorm/状态机/20[0-9][0-9]-*/
 BrainStorm/投资感悟归档/*/*.md
 !BrainStorm/投资感悟归档/*/_模板_*.md
+
+# 历史投资资料：只跟踪说明、模板和空目录，不提交用户原件或整理结果
+BrainStorm/历史投资资料/资料索引.md
+BrainStorm/历史投资资料/原始资料/*
+!BrainStorm/历史投资资料/原始资料/.gitkeep
+BrainStorm/历史投资资料/索引与梳理/*.md
+!BrainStorm/历史投资资料/索引与梳理/_模板_*.md
+!BrainStorm/历史投资资料/索引与梳理/.gitkeep

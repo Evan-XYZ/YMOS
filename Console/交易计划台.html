@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>交易计划台 · 盘后动态管理</title>
+  <title>交易计划台 · 盘前定调 / 盘中执行</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#faf9f5" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -229,7 +229,7 @@
     .stance-ctx.contract { background: var(--green-soft); border-color: rgba(79,122,82,0.28); }
     .stance-ctx.watch { background: var(--stance-soft); border-color: rgba(95,125,149,0.28); }
 
-    /* 今日执行偏差回顾（收盘定调顶部） */
+    /* 最近执行偏差回顾（盘前定调顶部） */
     .dash-dev { margin-bottom: 20px; padding: 12px 15px; border-radius: 10px; display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.55; border: 1px solid var(--line-strong); background: var(--bg-elev); color: var(--ink-2); }
     .dash-dev .dd-icon { flex: 0 0 auto; font-size: 15px; }
     .dash-dev b { color: var(--ink); font-weight: 600; }
@@ -274,6 +274,31 @@
       font-size: 13px; line-height: 1.6; color: var(--ink-2);
     }
     .stance-note em { color: var(--stance); font-style: normal; font-weight: 600; }
+
+    /* 买卖决策台候选：只读共享，用户点选后才进入计划名单。 */
+    .cand-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+    .cand-btn {
+      font: inherit; font-size: 12px; font-weight: 600; text-align: left;
+      color: var(--accent-ink); background: var(--bg-elev);
+      border: 1px solid rgba(204, 120, 92, .32); border-radius: 8px;
+      padding: 6px 11px; cursor: pointer; line-height: 1.35;
+    }
+    .cand-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .cand-btn .cand-sub { display: block; font-size: 10.5px; font-weight: 400; opacity: .72; }
+
+    /* 账户层敞口纪律：跟资金曲线状态联动，但不硬编码个人手数或比例。 */
+    .tips { margin-top: 22px; display: flex; flex-direction: column; gap: 10px; }
+    .tips-head { font-size: 12px; font-weight: 600; color: var(--ink-3); letter-spacing: .02em; }
+    .tip {
+      display: flex; gap: 10px; align-items: flex-start; padding: 12px 15px;
+      border: 1px solid var(--line-strong); border-left: 3px solid var(--line-strong);
+      border-radius: 10px; background: var(--bg-elev); color: var(--ink-3);
+      font-size: 13px; line-height: 1.6;
+    }
+    .tip.on { border-color: rgba(176, 72, 59, .22); border-left-color: var(--red); background: var(--red-soft); color: var(--ink-2); }
+    .tip .tip-icon { flex: 0 0 auto; font-size: 14px; line-height: 1.5; }
+    .tip em { font-style: normal; font-weight: 600; }
+    .tip.on em { color: var(--red); }
 
     .field-note {
       width: 100%; box-sizing: border-box; margin-top: 22px;
@@ -390,7 +415,7 @@
     .scenario input { flex: 1; min-width: 0; font-family: inherit; font-size: 13px; padding: 8px 11px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--bg-elev); color: var(--ink); }
     .scenario input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 
-    /* ========== 明日动作汇总 ========== */
+    /* ========== 盘中动作汇总 ========== */
     .summary-stance {
       padding: 16px 18px; border-radius: 12px; margin-bottom: 22px;
       background: var(--bg-elev); border: 1px solid var(--line-strong);
@@ -669,19 +694,19 @@
     <div class="brand">
       <span class="dot"></span>
       <span>交易计划台</span>
-      <span class="sub">盘后</span>
+      <span class="sub">盘前 / 盘中</span>
     </div>
     <div class="datepick">
-      <label>复盘日期</label>
+      <label>计划执行日</label>
       <input type="date" id="dateInput" />
     </div>
     <div class="mode-nav" id="modeNav"></div>
     <div class="side-foot">
-      决策全在 <b>盘后冷静期</b> 做完；开盘只执行、不改逻辑。<br>
+      定调在 <b>上一交易日收盘后或当日开盘前</b> 做完；开盘后只执行、不改逻辑。<br>
       标的是 <b>常驻名单</b>，跨天保留；每天只更新趋势 / 计划 / 动作。<br>
       <b>这是一份可修改样板</b>：可让你的 Agent / 编程工具按自己的周期、偏好和目录继续改。<br>
       <a class="side-link" href="/reader" data-file-href="reader.html">Reader</a> ·
-      <a class="side-link" id="openSop" href="/sop" data-file-href="新高买卖决策台.html" target="_blank" rel="noopener">新高决策台</a> ·
+      <a class="side-link" id="openSop" href="/decide" data-file-href="买卖决策台.html" target="_blank" rel="noopener">买卖决策台</a> ·
       <a class="side-link" href="/" data-file-href="index.html">Console 首页</a>
     </div>
   </aside>
@@ -703,7 +728,7 @@
       </div>
       <div class="body-scroll" id="bodyScroll"></div>
       <div class="vault-bar" id="vaultBar">
-        <span>⚪️ <b>未连接 vault</b> —— 当前只在浏览器本地暂存。想让计划写回你自己的 Obsidian：在 Console 目录跑
+        <span>⚪️ <b>未连接 vault</b> —— 当前只是页面草稿，不会形成可复盘的 Markdown 真相源。想让计划写回你自己的 Obsidian：在 Console 目录跑
           <code>python3 server.py</code>，然后从 <code>http://localhost:5273</code> 打开本页。</span>
       </div>
       <div class="action-bar">
@@ -714,7 +739,7 @@
           <button class="exp-btn" id="expJson" title="导出结构化 JSON，给其他工具或 Agent 消费">{ } JSON</button>
           <button class="exp-btn" id="expPrint" title="打印 / 存为 PDF">🖨️</button>
         </div>
-        <button class="save-btn" id="saveBtn">💾 保存今日收盘复盘</button>
+        <button class="save-btn" id="saveBtn">💾 保存盘前计划</button>
       </div>
       <div class="resize-handle" id="resizeRight" title="拖动调整正文宽度 · 双击复位"></div>
       <div class="resize-grip"></div>
@@ -728,15 +753,30 @@
     /* ============ 选项字典 ============ */
     const TREND3 = { up: "🔺 上涨", down: "🔻 下跌", range: "◼ 震荡" };        // 大盘 / 板块大趋势
     const SMALL = { up: "🔺 上涨", down: "🔻 下跌", chaos: "🌀 混沌" };         // 当前小趋势
-    const MOOD = { on: "🟢 Risk-on", chaos: "🟡 Chaos", off: "🔴 Risk-off" };  // 明日情绪预演
+    const MOOD = { on: "🟢 Risk-on", chaos: "🟡 Chaos", off: "🔴 Risk-off" };  // 盘中情绪预演
     const STANCE = {
       expand: { main: "扩张 · 盯买点", sub: "按计划买 / 加", icon: "🚀", cls: "pos" },
       watch: { main: "观望 · 少动", sub: "只做预设的 T", icon: "🕊", cls: "" },
       contract: { main: "收缩 · 盯卖点", sub: "止盈 / 止损", icon: "🛡", cls: "neg" },
     };
+    const CURVE = {
+      smooth: { main: "🟢 曲线顺", sub: "按既定上限 · 不临时加本金", cls: "pos" },
+      chaos: { main: "🟡 震荡", sub: "降低单笔风险 · 少做", cls: "" },
+      drawdown: { main: "🔴 回撤中", sub: "暂停开新仓 · 先止血", cls: "neg" },
+    };
+    const SIZE_CAP = {
+      smooth: "沿用账户参数里的既定单笔上限",
+      chaos: "主动低于既定上限，减少出手次数",
+      drawdown: "暂停开新仓；恢复条件由自己的规则定义",
+    };
+    const CURVE_TIPS = [
+      { curve: "smooth", text: "资金曲线顺畅时也<em>不临时追加本金、不扩大既定总敞口</em>；重点是保护利润垫，不把顺风期变成风险暴露峰值。" },
+      { curve: "chaos", text: "震荡阶段主动<em>降低单笔风险、减少出手次数</em>；具体比例沿用你在账户参数与自定义规则里写下的口径。" },
+      { curve: "drawdown", text: "出现回撤或连续失误时，先<em>暂停开新仓、降低敞口</em>；恢复交易要满足事先定义的条件，不在盘中为扳回损失改规则。" },
+    ];
 
-    const BIG_TREND = { newhigh: "新高", pullback: "回调", range: "震荡", down: "下跌" };       // 持仓/观察 大趋势
-    const SMALL_TREND = { newhigh: "新高上涨", rebound: "反弹", down: "下跌" };                 // 小趋势
+    const BIG_TREND = { up: "上涨趋势", pullback: "回调", range: "震荡", down: "下跌" };
+    const SMALL_TREND = { up: "短期上涨", rebound: "反弹", down: "下跌" };
     const HOLD_PLAN = { hold: "持有", add: "开仓/加仓", tp: "止盈", sl: "止损", reduce: "减仓" };
     const WATCH_PLAN = { watchbuy: "盯买点", watchonly: "只观察" };
 
@@ -755,10 +795,10 @@
     let state = null;
     let currentTab = "today";
     let dateManual = false;     // 用户本次会话是否手动选过日期（选过就不自动跳到今天）
-    let dashDev = null;         // 收盘定调顶部「今日执行偏差」缓存 { fetched, planDate, mismatches[] }
-    // 执行台缓存：从服务端载入的「上一交易日计划」（只读）
+    let dashDev = null;         // 盘前定调顶部「上一执行日偏差」缓存 { fetched, planDate, mismatches[] }
+    // 执行台缓存：从服务端载入的「执行日计划」（只读；兼容回退到上一交易日）
     let execPlan = null, execDate = null, execFetched = false;
-    let execMode = "auto";      // "auto"（上一交易日）| "YYYY-MM-DD"（手动选）
+    let execMode = "auto";      // "auto"（执行日当天优先、旧计划回退）| "YYYY-MM-DD"（手动选）
     let execDates = null;       // 已存计划日期列表（缓存）
     let execRec = null;         // 今日实际执行记录（写回被执行的那份计划文件）
     const EXEC_SECTION_MARK_JS = "<!-- ymos-exec-section -->";
@@ -773,15 +813,15 @@
     function blankState(date) {
       return {
         version: 1, date: date || todayStr(),
-        dashboard: { marketBig: "", sectorBig: "", smallTrend: "", tomorrowMood: "", stance: "", note: "" },
+        dashboard: { marketBig: "", sectorBig: "", smallTrend: "", tomorrowMood: "", stance: "", curve: "", note: "" },
         holdings: [], watch: [],
       };
     }
     function newHolding(name) {
-      return { id: uid(), name: name || "", funds: false, slot: false, perf: false, sizeOk: true, bigTrend: "newhigh", smallTrend: "newhigh", plan: "hold", action: "", scHigh: "", scLow: "" };
+      return { id: uid(), name: name || "", funds: false, slot: false, perf: false, sizeOk: true, bigTrend: "up", smallTrend: "up", plan: "hold", action: "", scHigh: "", scLow: "", fromTrade: "" };
     }
     function newWatch(name) {
-      return { id: uid(), name: name || "", funds: false, slot: false, perf: false, bigTrend: "newhigh", smallTrend: "newhigh", plan: "watchbuy", action: "" };
+      return { id: uid(), name: name || "", funds: false, slot: false, perf: false, bigTrend: "up", smallTrend: "up", plan: "watchbuy", action: "", fromTrade: "" };
     }
 
     function load() {
@@ -811,18 +851,18 @@
 
     // 开盘三步（盘中执行台的默念/确认清单）
     const OPEN_STEPS = [
-      { id: "s1", main: "不临时起意开新仓", sub: "今天的买入必须是昨晚计划里定好的，不看盘中涨跌临时冲。" },
-      { id: "s2", main: "盘中新机会只进观察名单，今晚再审", sub: "冒出来的新票不下手，先记下，收盘后走审计流程。" },
-      { id: "s3", main: "盘面与预期不符时，默认防守只卖不买", sub: "看不懂 / 走反了就降敞口，别加仓扛，别为扳回加本金。" },
+      { id: "s1", main: "确认当前使用的计划版本", sub: "核对执行日、Strategy Profile 版本和数据截至时间。" },
+      { id: "s2", main: "计划外信息先记录后审", sub: "新事实进入观察或事件审计，不在盘中静默改写交易逻辑。" },
+      { id: "s3", main: "动作前复核触发条件", sub: "核对论点、失效信号、退出规则和 Human 确认是否仍有效。" },
     ];
 
     /* ============ Tab 定义 ============ */
     const TABS = [
-      { key: "today", icon: "🌅", label: "今日交易计划", desc: "盘中执行 · 上一交易日定", kicker: "盘中 · 只执行不决策", title: "今日交易计划", tagline: "这是上一交易日收盘后定的计划，今天照着执行。盘中只勾执行进度、不改计划——要改，等收盘复盘。手只是执行昨晚计划的机器人。" },
-      { key: "dashboard", icon: "🧭", label: "收盘定调", desc: "大盘 / 板块 / 明日情绪", kicker: "收盘后 · 大势定调", title: "收盘定调 · 明日大势", tagline: "先给大盘、板块、小趋势定性，再定明日情绪与动作。方向在盘后想清楚，盘中只照着执行——上涨才加敞口，下跌加现金。" },
-      { key: "holdings", icon: "💼", label: "持仓审计", desc: "逐个体检 · 定明日动作", kicker: "持仓 · 逐个审计", title: "持仓审计", tagline: "每个持仓都要过「资金表达、卡位、业绩」三关；单一标的不重仓，持仓数量控制在自己能持续跟踪的范围内。缺关的考虑清理，别自欺。" },
-      { key: "watch", icon: "🔭", label: "观察审计", desc: "盯买点 · 潜在计划", kicker: "观察 · 潜在机会", title: "观察审计", tagline: "同样的三关标准审视候选。达标且趋势对，才升级为「盯买点」；否则只观察，等右侧确认，绝不盘中冲动。" },
-      { key: "tomorrow", icon: "📋", label: "明日动作", desc: "微观动作汇总 · 保存", kicker: "明日 · 微观动作", title: "明日动作清单", tagline: "把定调与逐个标的的计划汇总成一份可执行清单。明天盘中照着做，不临时决策。确认无误后保存到 Obsidian 归档。" },
+      { key: "today", icon: "🌅", label: "今日交易计划", desc: "盘中执行 · 开盘前已定", kicker: "盘中 · 只执行不决策", title: "今日交易计划", tagline: "这是开盘前已经定好的计划，盘中只勾执行进度、不改交易逻辑。若盘面偏离预案，优先降低风险，并把偏差留给下一次盘前复核。" },
+      { key: "dashboard", icon: "🧭", label: "盘前定调", desc: "收盘后 / 开盘前均可", kicker: "盘前 · 大势定调", title: "盘前定调 · 盘中大势", tagline: "这一步可在上一交易日收盘后完成，也可在执行日开盘前完成。先给大盘、板块、小趋势定性，再定盘中情绪与总动作。" },
+      { key: "holdings", icon: "💼", label: "持仓审计", desc: "逐个体检 · 定盘中动作", kicker: "持仓 · 逐个审计", title: "持仓审计", tagline: "复现每个持仓的论点、失效信号和已确认计划，再记录盘中允许执行的动作。所有判断标准来自你的 Strategy Profile。" },
+      { key: "watch", icon: "🔭", label: "观察审计", desc: "条件确认 · 潜在计划", kicker: "观察 · 潜在机会", title: "观察审计", tagline: "检查研究证据、失效信号和动作条件是否完整。未满足条件的对象继续观察，不把盘中变化临时改写成交易逻辑。" },
+      { key: "tomorrow", icon: "📋", label: "盘中动作", desc: "开盘后动作汇总 · 保存", kicker: "盘中 · 微观动作", title: "盘中动作清单", tagline: "把盘前定调与逐个标的计划汇总成一份开盘后可直接执行的清单。盘中只按触发条件应对，不临时重写交易逻辑。" },
     ];
 
     /* ============ 渲染导航 ============ */
@@ -859,13 +899,14 @@
         state.date = t;
         const di = document.getElementById("dateInput"); if (di) di.value = t;
         persist();
-        toast("已切到今天 " + t + "（常驻名单保留，做今天的收盘复盘）", "");
+        toast("已切到今天 " + t + "（常驻名单保留，准备今天的盘前计划）", "");
       }
     }
     function switchTab(key) {
       currentTab = key;
       if (key !== "today") maybeAdvanceDate();
-      if (key === "dashboard") dashDev = null;   // 每次进收盘定调都刷新今日执行偏差
+      if (key === "dashboard") dashDev = null;   // 每次进盘前定调都刷新最近执行偏差
+      if (key === "watch" || key === "holdings") tradeCands = null;
       renderNav(); renderTab(); document.getElementById("bodyScroll").scrollTop = 0;
     }
 
@@ -898,16 +939,16 @@
           info.innerHTML = '执行进度：<b>' + done + ' / ' + total + '</b> 已处理' + extra + '　·　存回 <b>' + (execDate || "—") + '</b>日交易计划.md（计划+实际一体）';
         } else {
           saveBtn.style.display = "none";
-          info.innerHTML = '盘中只执行、不改计划 —— 要改，切到「收盘定调」等收盘后再动。';
+          info.innerHTML = '盘中只执行、不改计划 —— 要改，留到下一次「盘前定调」。';
         }
         return;
       }
       saveBtn.style.display = "";
-      saveBtn.textContent = "💾 保存今日收盘复盘";
+      saveBtn.textContent = "💾 保存盘前计划";
       const d = state.dashboard;
       const st = d.stance ? STANCE[d.stance].main : "未定调";
       info.innerHTML =
-        '定调：<b>' + st + '</b>　持仓 <b>' + state.holdings.length + '</b> · 观察 <b>' + state.watch.length + '</b>　—— 保存到 ' + state.date + '日交易计划.md';
+        '执行日：<b>' + state.date + '</b>　·　定调：<b>' + st + '</b>　持仓 <b>' + state.holdings.length + '</b> · 观察 <b>' + state.watch.length + '</b>　—— 保存到该执行日的交易计划.md';
     }
 
     /* ---- Dashboard ---- */
@@ -917,11 +958,11 @@
       return '<button class="stance-opt' + (on ? " on" + semantic : "") + '" data-g="' + group + '" data-v="' + val + '">' +
         '<span class="so-main">' + main + '</span>' + (sub ? '<span class="so-sub">' + sub + '</span>' : '') + '</button>';
     }
-    // 今日执行偏差：读「上一交易日计划」的执行块，对比预估 vs 实际
+    // 最近执行偏差：读最近一份已有执行块的计划，对比预估 vs 实际
     async function fetchDashDev() {
       let result = { fetched: true, has: null };
       try {
-        const res = await fetch("/api/plan/latest?before=" + encodeURIComponent(todayStr()));
+        const res = await fetch("/api/plan/current?date=" + encodeURIComponent(todayStr()));
         const j = await res.json();
         if (res.ok && j.found) {
           if (j.exec) {
@@ -954,7 +995,7 @@
       el.className = "dash-dev warn";
       const items = dashDev.mismatches.map(m => m.label + '（预估 ' + m.pred + ' → 实际 ' + m.act + '）').join("、");
       el.innerHTML = '<span class="dd-icon">📊</span><div>今日执行回顾：<b>' + dashDev.mismatches.length + ' 处</b>与昨日预估不符 —— ' + items +
-        '。<br>把这个偏差的教训写进今晚计划，尤其是相关持仓的<b>情景预案</b>（高开 / 低走两手准备）。</div>';
+        '。<br>把这个偏差的教训写进本次盘前计划，尤其是相关持仓的<b>情景预案</b>（高开 / 低走两手准备）。</div>';
       return el;
     }
 
@@ -963,16 +1004,24 @@
       const d = state.dashboard;
       const wrap = document.createElement("div");
       const trendOpts = (g, dict, cur) => Object.keys(dict).map(k =>
-        optBtn(g, k, dict[k], "", cur, k === "up" || k === "on" || k === "newhigh" ? "pos" : (k === "down" || k === "off" ? "neg" : ""))).join("");
+        optBtn(g, k, dict[k], "", cur, k === "up" || k === "on" ? "pos" : (k === "down" || k === "off" ? "neg" : ""))).join("");
       wrap.innerHTML =
         '<div class="stance-q"><div class="stance-q-title">① 大盘大趋势 <span class="qh">大级别</span></div><div class="stance-opts">' + trendOpts("marketBig", TREND3, d.marketBig) + '</div></div>' +
         '<div class="stance-q"><div class="stance-q-title">② 板块大趋势 <span class="qh">主线板块</span></div><div class="stance-opts">' + trendOpts("sectorBig", TREND3, d.sectorBig) + '</div></div>' +
         '<div class="stance-q"><div class="stance-q-title">③ 当前小趋势 <span class="qh">小级别</span></div><div class="stance-opts">' + trendOpts("smallTrend", SMALL, d.smallTrend) + '</div></div>' +
-        '<div class="stance-q"><div class="stance-q-title">④ 明日情绪预演</div><div class="stance-opts">' + trendOpts("tomorrowMood", MOOD, d.tomorrowMood) + '</div></div>' +
-        '<div class="stance-q"><div class="stance-q-title">⑤ 明日动作定调 <span class="qh">总基调</span></div><div class="stance-opts">' +
+        '<div class="stance-q"><div class="stance-q-title">④ 盘中情绪预演</div><div class="stance-opts">' + trendOpts("tomorrowMood", MOOD, d.tomorrowMood) + '</div></div>' +
+        '<div class="stance-q"><div class="stance-q-title">⑤ 盘中动作定调 <span class="qh">总基调</span></div><div class="stance-opts">' +
         Object.keys(STANCE).map(k => optBtn("stance", k, STANCE[k].main, STANCE[k].sub, d.stance, STANCE[k].cls)).join("") + '</div></div>' +
+        '<div class="stance-q"><div class="stance-q-title">⑥ 最近的资金曲线 <span class="qh">账户层敞口闸门</span></div><div class="stance-opts">' +
+        Object.keys(CURVE).map(k => optBtn("curve", k, CURVE[k].main, CURVE[k].sub, d.curve, CURVE[k].cls)).join("") + '</div>' +
+        (d.curve
+          ? '<div class="dash-dev ' + (d.curve === "drawdown" ? "warn" : d.curve === "smooth" ? "ok" : "") + '" style="margin:12px 0 0"><span class="dd-icon">' + (d.curve === "drawdown" ? "🛑" : "⚠️") + '</span><div>明日敞口原则：<b>' + SIZE_CAP[d.curve] + '</b></div></div>'
+          : '<div class="dash-dev none" style="margin:12px 0 0"><span class="dd-icon">📉</span><div>还没给资金曲线定性 —— 这会决定本执行日是否继续增加风险。</div></div>') +
+        '</div>' +
         '<textarea class="field-note" id="dashNote" placeholder="今日复盘一句话 / 明日总纲（选填）：例，大盘缩量震荡，只守不攻，等主线放量再加敞口。">' + escapeHTML(d.note || "") + '</textarea>' +
-        '<div class="stance-note">开盘三不：<em>不临时起意开新仓</em>、盘中新机会<em>只进观察名单今晚再审</em>、盘面与预期不符时<em>默认防守只卖不买</em>。手只是执行昨晚计划的机器人。</div>';
+        '<div class="stance-note">开盘三不：<em>不临时起意开新仓</em>、盘中新机会<em>只进观察名单下次盘前再审</em>、盘面与预期不符时<em>默认防守只卖不买</em>。盘中只执行开盘前已经确认的计划。</div>' +
+        '<div class="tips"><div class="tips-head">敞口纪律 · 每天收盘再看一遍</div>' +
+        CURVE_TIPS.map(t => '<div class="tip' + (t.curve === d.curve ? " on" : "") + '"><span class="tip-icon">' + (t.curve === d.curve ? "⚠️" : "▫️") + '</span><div>' + t.text + '</div></div>').join("") + '</div>';
       wrap.querySelectorAll(".stance-opt").forEach(el => {
         el.onclick = () => { const g = el.dataset.g, v = el.dataset.v; d[g] = (d[g] === v ? "" : v); persist(); renderDashboard(clearAndGet(scroll)); renderAbInfo(); };
       });
@@ -987,14 +1036,55 @@
       const d = state.dashboard;
       const el = document.createElement("div");
       el.onclick = () => switchTab("dashboard");
-      if (!d.stance) { el.className = "stance-ctx none"; el.innerHTML = '<span class="sc-icon">📋</span><div>还没定调 —— 先去「收盘定调」定好大势与明日动作，审计才有方向。</div>'; return el; }
+      if (!d.stance) { el.className = "stance-ctx none"; el.innerHTML = '<span class="sc-icon">📋</span><div>还没定调 —— 先去「盘前定调」定好大势与盘中动作，审计才有方向。</div>'; return el; }
       const s = STANCE[d.stance];
       const parts = [];
       if (d.marketBig) parts.push("大盘 " + TREND3[d.marketBig]);
       if (d.sectorBig) parts.push("板块 " + TREND3[d.sectorBig]);
       if (d.tomorrowMood) parts.push(MOOD[d.tomorrowMood]);
+      if (d.curve) parts.push(CURVE[d.curve].main + "（" + SIZE_CAP[d.curve] + "）");
       el.className = "stance-ctx " + d.stance;
       el.innerHTML = '<span class="sc-icon">' + s.icon + '</span><div>今日定调：<b>' + s.main + '</b>（' + s.sub + '）' + (parts.length ? '　·　' + parts.join(" / ") : '') + '</div>';
+      return el;
+    }
+
+    /* 决策台 → 计划台只读候选：人点一下才加入，避免两个台子自动耦合。 */
+    let tradeCands = null;
+    async function fetchTradeCands() {
+      try {
+        const res = await fetch("/api/trade/list");
+        const j = await res.json();
+        tradeCands = (j.open || []).map(x => ({
+          file: x.file,
+          name: (x.front || {})["标的"] || x.file.replace(/\.md$/, ""),
+          status: (x.front || {})["状态"] || "计划中",
+          strategy: (x.front || {})["策略"] || "通用策略",
+        }));
+      } catch (e) { tradeCands = []; }
+      if (currentTab === "watch" || currentTab === "holdings") renderTab();
+    }
+    function buildTradeCands(kind) {
+      if (tradeCands === null) { fetchTradeCands(); return null; }
+      const want = kind === "holdings" ? "持仓中" : "计划中";
+      const list = state[kind];
+      const cands = tradeCands.filter(c => c.status === want && !list.some(x => (x.name || "").trim() === c.name));
+      if (!cands.length) return null;
+      const el = document.createElement("div");
+      el.className = "dash-dev";
+      el.style.marginBottom = "14px";
+      el.innerHTML = '<span class="dd-icon">🎯</span><div>买卖决策台有 <b>' + cands.length + '</b> 个<b>' + want + '</b>标的尚未进入这份名单：' +
+        '<div class="cand-row">' + cands.map((c, i) => '<button class="cand-btn" data-i="' + i + '">＋ ' + escapeHTML(c.name) + '<span class="cand-sub">' + escapeHTML(c.strategy) + ' · ' + escapeHTML(c.status) + '</span></button>').join("") + '</div></div>';
+      el.querySelectorAll(".cand-btn").forEach(button => {
+        button.onclick = () => {
+          const c = cands[parseInt(button.dataset.i, 10)];
+          const item = kind === "holdings" ? newHolding(c.name) : newWatch(c.name);
+          item.fromTrade = c.file;
+          if (kind === "watch") item.plan = "watchbuy";
+          state[kind].push(item);
+          persist(); renderNav(); renderTab(); renderAbInfo();
+          toast("已从买卖决策台加入：" + c.name, "ok");
+        };
+      });
       return el;
     }
 
@@ -1018,6 +1108,9 @@
       };
       toolbar.querySelector("#addBtn").onclick = doAdd;
       addName.addEventListener("keydown", e => { if (e.key === "Enter") doAdd(); });
+
+      const cands = buildTradeCands(kind);
+      if (cands) scroll.appendChild(cands);
 
       if (isHold && list.length > 3) {
         const w = document.createElement("div");
@@ -1072,7 +1165,7 @@
         const on = item[field];
         return '<div class="qchk' + (redline ? " redline" : "") + (on ? " on" : "") + '" data-f="' + field + '"><div class="box">' + CHECK_SVG + '</div>' + label + '</div>';
       };
-      let qHtml = qchk("funds", "资金表达强 · 新高附近") + qchk("slot", "卡位") + qchk("perf", "业绩");
+      let qHtml = qchk("funds", "论点与证据仍有效") + qchk("slot", "失效信号未触发") + qchk("perf", "计划动作条件已满足");
       if (isHold) qHtml += qchk("sizeOk", "单一标的未超过我的上限", true);
       qWrap.innerHTML = qHtml;
       qWrap.querySelectorAll(".qchk").forEach(el => {
@@ -1112,7 +1205,7 @@
       if (isHold) {
         const sc = document.createElement("div");
         sc.className = "scenario";
-        sc.innerHTML = '<div class="sc-title">情景预案 <span class="sc-hint">明天不管怎么开都有预设动作，不被动</span></div>' +
+        sc.innerHTML = '<div class="sc-title">情景预案 <span class="sc-hint">开盘后不管怎么走都有预设动作，不被动</span></div>' +
           '<div class="sc-row"><span class="sc-tag high">↗ 若高开</span><input class="sc-high" placeholder="例：冲高到 XX 先止盈一半，回不来就清" value="' + escapeHTML(item.scHigh || "") + '" /></div>' +
           '<div class="sc-row"><span class="sc-tag low">↘ 若低走</span><input class="sc-low" placeholder="例：开盘就跌破 XX 直接减，反抽不上就清" value="' + escapeHTML(item.scLow || "") + '" /></div>';
         sc.querySelector(".sc-high").addEventListener("input", e => { item.scHigh = e.target.value; persist(); });
@@ -1124,7 +1217,7 @@
       return card;
     }
 
-    /* ---- 明日动作汇总 ---- */
+    /* ---- 盘中动作汇总 ---- */
     function renderTomorrow(scroll) {
       const d = state.dashboard;
       const ss = document.createElement("div");
@@ -1135,7 +1228,7 @@
           (d.marketBig ? '　·　大盘 ' + TREND3[d.marketBig] : '') + (d.tomorrowMood ? '　·　' + MOOD[d.tomorrowMood] : '') + '</div></div>';
       } else {
         ss.className = "summary-stance"; ss.style.cursor = "pointer"; ss.onclick = () => switchTab("dashboard");
-        ss.innerHTML = '<span class="ss-icon">📋</span><div><div class="ss-main">还没定调</div><div class="ss-sub">点我去「收盘定调」先定明日总基调</div></div>';
+        ss.innerHTML = '<span class="ss-icon">📋</span><div><div class="ss-main">还没定调</div><div class="ss-sub">点我去「盘前定调」先定盘中总基调</div></div>';
       }
       scroll.appendChild(ss);
 
@@ -1166,11 +1259,11 @@
         });
         scroll.appendChild(g);
       };
-      renderGroup("持仓 · 明日微观动作", state.holdings, "holdings");
-      renderGroup("观察 · 明日微观动作", state.watch, "watch");
+      renderGroup("持仓 · 盘中微观动作", state.holdings, "holdings");
+      renderGroup("观察 · 盘中微观动作", state.watch, "watch");
     }
 
-    /* ============ 今日交易计划（执行台：读上一交易日计划 + 记今日实际）============ */
+    /* ============ 今日交易计划（执行台：读执行日计划 + 记盘中实际）============ */
     function ritualKey() { return "ymos-open-ritual-" + todayStr(); }
     function getMap(key) { try { return JSON.parse(localStorage.getItem(key) || "{}") || {}; } catch (e) { return {}; } }
     function setMap(key, m) { try { localStorage.setItem(key, JSON.stringify(m)); } catch (e) { } }
@@ -1191,10 +1284,10 @@
         try { const r = await fetch("/api/plan/dates"); const jj = await r.json(); execDates = jj.dates || []; }
         catch (e) { execDates = []; }
       }
-      // 按 execMode 载入计划：auto=上一交易日；否则=指定日期
+      // 按 execMode 载入计划：auto=执行日当天优先、旧版上一交易日回退；否则=指定日期
       try {
         let url;
-        if (execMode === "auto") url = "/api/plan/latest?before=" + encodeURIComponent(todayStr());
+        if (execMode === "auto") url = "/api/plan/current?date=" + encodeURIComponent(todayStr());
         else url = "/api/plan/load?date=" + encodeURIComponent(execMode);
         const res = await fetch(url);
         const j = await res.json();
@@ -1213,7 +1306,7 @@
 
     function renderToday(scroll) {
       if (!execFetched) {
-        const l = document.createElement("div"); l.className = "empty"; l.textContent = "载入收盘计划…";
+        const l = document.createElement("div"); l.className = "empty"; l.textContent = "载入盘前计划…";
         scroll.appendChild(l);
         loadExec();
         return;
@@ -1222,7 +1315,7 @@
       // 工具栏：标题 + 数据源选择 + 刷新
       const bar = document.createElement("div");
       bar.className = "toolbar";
-      const srcOpts = ['<option value="auto"' + (execMode === "auto" ? " selected" : "") + '>自动 · 上一交易日</option>']
+      const srcOpts = ['<option value="auto"' + (execMode === "auto" ? " selected" : "") + '>自动 · 今日执行日优先</option>']
         .concat((execDates || []).map(dt =>
           '<option value="' + dt + '"' + (execMode === dt ? " selected" : "") + '>' + dt + ' 收盘</option>')).join("");
       bar.innerHTML = '<span class="tb-title">' + (execDate ? execDate + " → 今日执行" : "今日执行") + '</span>' +
@@ -1236,11 +1329,11 @@
       if (!execPlan) {
         const e = document.createElement("div"); e.className = "empty";
         e.innerHTML = execMode === "auto"
-          ? "还没有上一交易日的收盘计划。<br>先去「收盘定调 → 持仓/观察审计 → 明日动作」把今晚的计划做完并保存，明天这里就会显示今日要执行的动作。"
-          : execMode + " 没有可读取的计划文件。换个数据源，或先去做那天的收盘复盘。";
+          ? "还没有今天可执行的盘前计划。<br>先去「盘前定调 → 持仓/观察审计 → 盘中动作」，把计划执行日设为今天并保存；若使用旧版计划，系统也会兼容读取最近一份更早的归档。"
+          : execMode + " 没有可读取的计划文件。换个数据源，或先去做该执行日的盘前计划。";
         scroll.appendChild(e);
         const cta = document.createElement("div"); cta.className = "exec-cta";
-        cta.innerHTML = '<a id="gotoPlan">去做收盘复盘 →</a>';
+        cta.innerHTML = '<a id="gotoPlan">去做盘前定调 →</a>';
         cta.querySelector("#gotoPlan").onclick = () => switchTab("dashboard");
         scroll.appendChild(cta);
         return;
@@ -1258,16 +1351,16 @@
       // ① 动作定调 hero
       const hero = document.createElement("div");
       const ago = daysAgo(execDate);
-      const agoTxt = ago <= 0 ? "今日收盘定" : ago === 1 ? "上一交易日" : ago + " 天前";
+      const agoTxt = ago <= 0 ? "今日盘前定" : ago === 1 ? "上一交易日兼容计划" : ago + " 天前的兼容计划";
       if (d.stance) {
         const s = STANCE[d.stance];
         hero.className = "summary-stance " + d.stance;
         hero.innerHTML = '<span class="ss-icon">' + s.icon + '</span><div><div class="ss-main">' + s.main + '</div>' +
           '<div class="ss-sub">' + s.sub + '</div>' +
-          '<div class="exec-src">📋 基于 <b>' + execDate + '</b>（' + agoTxt + '）收盘定的计划' + (d.note ? '　·　' + escapeHTML(d.note) : '') + '</div></div>';
+          '<div class="exec-src">📋 基于 <b>' + execDate + '</b>（' + agoTxt + '）盘前确认的计划' + (d.note ? '　·　' + escapeHTML(d.note) : '') + '</div></div>';
       } else {
         hero.className = "summary-stance";
-        hero.innerHTML = '<span class="ss-icon">📋</span><div><div class="ss-main">未定调</div><div class="exec-src">来自 ' + execDate + ' 收盘计划</div></div>';
+        hero.innerHTML = '<span class="ss-icon">📋</span><div><div class="ss-main">未定调</div><div class="exec-src">来自 ' + execDate + ' 盘前计划</div></div>';
       }
       const metas = [];
       if (d.marketBig) metas.push("大盘 " + TREND3[d.marketBig]);
@@ -1359,7 +1452,7 @@
 
       // ③.5 计划外动作（板块走弱临时卖了可卖可不卖的仓位等）
       const extraG = document.createElement("div"); extraG.className = "micro-group";
-      extraG.innerHTML = '<h3>计划外动作（' + execRec.extras.length + '）<span style="font-weight:500;color:var(--ink-3);text-transform:none;letter-spacing:0"> · 计划外的买卖都记这，收盘复盘时反思</span></h3>';
+      extraG.innerHTML = '<h3>计划外动作（' + execRec.extras.length + '）<span style="font-weight:500;color:var(--ink-3);text-transform:none;letter-spacing:0"> · 计划外的买卖都记这，下一次盘前复核时反思</span></h3>';
       const extraList = document.createElement("div");
       const renderExtras = () => {
         extraList.innerHTML = "";
@@ -1392,7 +1485,7 @@
           '<div class="rs-box">' + CHECK_SVG + '</div>' +
           '<div class="rs-txt"><div class="rs-main">' + (i + 1) + '. ' + st.main + '</div><div class="rs-sub">' + st.sub + '</div></div></div>').join("") +
         '</div>' +
-        '<div class="ritual-foot">手只是执行昨晚计划的机器人。今天的决策昨晚已经做完了——盘中只<b>应对</b>，不<b>新做</b>交易逻辑。</div>';
+        '<div class="ritual-foot">盘中只执行开盘前确认的计划——只<b>应对</b>触发条件，不<b>新做</b>交易逻辑。</div>';
       ritual.querySelectorAll(".ritual-step").forEach(el => {
         el.onclick = () => {
           const id = el.dataset.id; const m = getMap(ritualKey());
@@ -1406,17 +1499,16 @@
       const rem = document.createElement("div");
       rem.className = "reminders";
       rem.innerHTML = '<h3>盘中纪律 · 常驻提醒</h3><ul>' +
-        '<li>单一标的不重仓；持仓数量不超过自己能持续跟踪的范围。</li>' +
-        '<li><em>上涨才加敞口，下跌加现金</em>；抄底也要等右侧确认、梯度进入。</li>' +
-        '<li>只做<em>计划内</em>的动作，非计划标的一律不碰——想买先进观察名单。</li>' +
-        '<li>止盈 / 止损按昨晚定的执行，触发就走，<em>不盘中改数</em>。</li>' +
-        '<li>A 股 <em>T+1</em>：今天开的仓当天撤不出，动作要留提前量。</li>' +
+        '<li>只执行已由 Human 确认、且符合当前 Strategy Profile 的动作。</li>' +
+        '<li>计划外变化先记录为新事实，不在盘中静默改写论点或规则。</li>' +
+        '<li>触发退出条件时回到原决策文件核对；需要改规则就追加变更记录。</li>' +
+        '<li>注意所用市场与工具的结算、流动性、交易时段和账户权限。</li>' +
         '</ul>';
       side.appendChild(rem);
 
       // 收盘后回到计划（整幅底部）
       const cta = document.createElement("div"); cta.className = "exec-cta";
-      cta.innerHTML = '收盘了？<a id="gotoPlan">去做今日收盘复盘，定明天 →</a>';
+      cta.innerHTML = '需要准备下一执行日？<a id="gotoPlan">去做下一次盘前定调 →</a>';
       cta.querySelector("#gotoPlan").onclick = () => switchTab("dashboard");
       scroll.appendChild(cta);
     }
@@ -1433,7 +1525,7 @@
       const L = [];
       L.push("# " + st.date + " 日交易计划");
       L.push("");
-      L.push("> 盘后复盘定调 · 明日只执行不决策。");
+      L.push("> 盘前定调 · 可在上一交易日收盘后或执行日开盘前完成；盘中只执行不临时重写逻辑。");
       L.push("");
       L.push("## 🧭 大势定调");
       L.push("");
@@ -1442,14 +1534,15 @@
       L.push("| 大盘大趋势 | " + (TREND3[d.marketBig] || "—") + " |");
       L.push("| 板块大趋势 | " + (TREND3[d.sectorBig] || "—") + " |");
       L.push("| 当前小趋势 | " + (SMALL[d.smallTrend] || "—") + " |");
-      L.push("| 明日情绪预演 | " + (MOOD[d.tomorrowMood] || "—") + " |");
-      L.push("| **明日动作定调** | **" + (d.stance ? STANCE[d.stance].main + "（" + STANCE[d.stance].sub + "）" : "—") + "** |");
+      L.push("| 盘中情绪预演 | " + (MOOD[d.tomorrowMood] || "—") + " |");
+      L.push("| **盘中动作定调** | **" + (d.stance ? STANCE[d.stance].main + "（" + STANCE[d.stance].sub + "）" : "—") + "** |");
+      L.push("| 资金曲线 / 敞口原则 | " + (d.curve ? CURVE[d.curve].main + " → " + SIZE_CAP[d.curve] : "—") + " |");
       L.push("");
       if (d.note && d.note.trim()) { L.push("**复盘纲要：** " + d.note.trim()); L.push(""); }
 
       const auditTable = (list, isHold) => {
         if (!list.length) { L.push("_（空）_"); L.push(""); return; }
-        L.push("| 标的 | 资金 | 卡位 | 业绩 |" + (isHold ? " 仓位合规 |" : "") + " 大趋势 | 小趋势 | 计划 | 明日动作 |");
+        L.push("| 标的 | 资金 | 卡位 | 业绩 |" + (isHold ? " 仓位合规 |" : "") + " 大趋势 | 小趋势 | 计划 | 盘中动作 |");
         L.push("| --- | :-: | :-: | :-: |" + (isHold ? " :-: |" : "") + " --- | --- | --- | --- |");
         const yn = b => b ? "✅" : "❌";
         list.forEach(it => {
@@ -1467,7 +1560,7 @@
       L.push("");
       auditTable(st.watch, false);
 
-      L.push("## 📋 明日微观动作");
+      L.push("## 📋 盘中微观动作");
       L.push("");
       const microList = (list, isHold, head) => {
         L.push("**" + head + "**");
@@ -1499,7 +1592,7 @@
     }
 
     /* ============ 执行记录：数据结构 / 生成 / 保存 ============
-     * 一份计划 md = 计划块（收盘定的预期）+ 执行块（次日盘中记的实际）。
+     * 一份计划 md = 计划块（开盘前定的预期）+ 执行块（盘中记的实际）。
      * execRec 存进「被执行的那份计划文件」，形成「计划 + 实际」一体的可回顾单元。
      */
     function execDraftKey(planDate) { return "ymos-exec-" + planDate; }
@@ -1613,7 +1706,7 @@
       } catch (e) {
         toast("保存失败：服务未启动？请先跑 server.py", "warn");
       } finally {
-        btn.classList.remove("busy"); btn.textContent = "💾 保存今日收盘复盘";
+        btn.classList.remove("busy"); btn.textContent = "💾 保存盘前计划";
       }
     }
 
@@ -1643,8 +1736,18 @@
     function normalize(s) {
       const b = blankState(s.date);
       b.dashboard = Object.assign(b.dashboard, s.dashboard || {});
-      b.holdings = (s.holdings || []).map(h => Object.assign(newHolding(), h));
-      b.watch = (s.watch || []).map(w => Object.assign(newWatch(), w));
+      const trend = v => v === "newhigh" ? "up" : v;
+      b.dashboard.smallTrend = trend(b.dashboard.smallTrend);
+      b.holdings = (s.holdings || []).map(h => {
+        const item = Object.assign(newHolding(), h);
+        item.bigTrend = trend(item.bigTrend); item.smallTrend = trend(item.smallTrend);
+        return item;
+      });
+      b.watch = (s.watch || []).map(w => {
+        const item = Object.assign(newWatch(), w);
+        item.bigTrend = trend(item.bigTrend); item.smallTrend = trend(item.smallTrend);
+        return item;
+      });
       return b;
     }
 
@@ -1746,7 +1849,7 @@
     };
     document.getElementById("expPrint").onclick = () => window.print();
 
-    /* ============ 正文宽度拖拽（参考新高决策台）============ */
+    /* ============ 正文宽度拖拽（参考买卖决策台）============ */
     const SIDEBAR_W = 268, MIN_W = 560, DEFAULT_RATIO = 0.75, WIDTH_KEY = "ymos-plan-main-w";
     let mainWPref = localStorage.getItem(WIDTH_KEY); // null | 数字字符串
     function maxMainW() { return Math.max(MIN_W, window.innerWidth - SIDEBAR_W); }

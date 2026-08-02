@@ -61,19 +61,32 @@ CRYPTO_MAP_YAHOO = {
 }
 
 
+def crypto_base(symbol: str) -> str | None:
+    """接受状态机裸符号，也兼容常见 Yahoo / Finnhub 写法。"""
+    upper = symbol.upper()
+    if upper in CRYPTO_SYMBOLS:
+        return upper
+    if upper.endswith("-USD") and upper[:-4] in CRYPTO_SYMBOLS:
+        return upper[:-4]
+    if upper.startswith("BINANCE:") and upper.endswith("USDT"):
+        base = upper[len("BINANCE:"):-len("USDT")]
+        return base if base in CRYPTO_SYMBOLS else None
+    return None
+
+
 def is_crypto(symbol: str) -> bool:
-    return symbol.upper() in CRYPTO_SYMBOLS
+    return crypto_base(symbol) is not None
 
 
 def normalize_for_source(symbol: str, source: str) -> str:
     """将状态机中的 crypto 裸符号转换为数据源需要的格式。非 crypto 原样返回。"""
-    upper = symbol.upper()
-    if upper not in CRYPTO_SYMBOLS:
+    base = crypto_base(symbol)
+    if base is None:
         return symbol
     if source == "finnhub":
-        return CRYPTO_MAP_FINNHUB.get(upper, f"BINANCE:{upper}USDT")
+        return CRYPTO_MAP_FINNHUB.get(base, f"BINANCE:{base}USDT")
     if source == "yahoo":
-        return CRYPTO_MAP_YAHOO.get(upper, f"{upper}-USD")
+        return CRYPTO_MAP_YAHOO.get(base, f"{base}-USD")
     return symbol
 
 
@@ -94,6 +107,8 @@ def classify(symbol: str) -> str:
         return "tushare"
     if symbol.endswith(".HK"):
         return "yahoo"
+    if is_crypto(symbol):
+        return "finnhub"
     # BTC/ETH 等 Crypto 及纯字母美股
     return "finnhub"
 

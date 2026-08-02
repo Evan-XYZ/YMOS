@@ -128,18 +128,18 @@
         <span class="tag">日常 · 报告浏览</span>
       </a>
 
+      <a class="card" id="linkSop" href="/decide">
+        <div class="ico">🛑</div>
+        <h2>买卖决策台</h2>
+        <p>开新仓 / 加仓 / 止盈 / 止损，每种都有一组门。全绿才允许扣扳机，漏一条就拦下来。</p>
+        <span class="tag">盘中 · 勾选式门禁</span>
+      </a>
+
       <a class="card" id="linkPlan" href="/plan">
         <div class="ico">🗓️</div>
         <h2>交易计划台</h2>
-        <p>收盘后把明天想清楚：定调、审持仓、审观察、列明日动作。开盘只照着执行，不在盘中现想。</p>
-        <span class="tag">盘后 · 决策与执行解耦</span>
-      </a>
-
-      <a class="card" id="linkSop" href="/sop">
-        <div class="ico">🛑</div>
-        <h2>新高买卖决策台</h2>
-        <p>开新仓 / 加仓 / 止盈 / 止损，每种都有一组门。全绿才允许扣扳机，漏一条就拦下来。</p>
-        <span class="tag">盘中 · 勾选式门禁</span>
+        <p>上一交易日收盘后或执行日开盘前完成定调、持仓/观察审计与盘中动作；开盘后只按计划应对。</p>
+        <span class="tag">盘前定调 · 盘中执行</span>
       </a>
     </div>
 
@@ -157,19 +157,23 @@
     if (location.protocol === "file:") {
       document.getElementById("linkReader").href = "reader.html";
       document.getElementById("linkPlan").href = "交易计划台.html";
-      document.getElementById("linkSop").href = "新高买卖决策台.html";
+      document.getElementById("linkSop").href = "买卖决策台.html";
     }
 
     (async function checkVault() {
       const el = document.getElementById("statusText");
       try {
-        const r = await fetch("/api/health");
+        const filePreview = location.protocol === "file:";
+        const r = await fetch(filePreview ? "http://127.0.0.1:5273/api/ping" : "/api/health");
         if (!r.ok) throw new Error("bad");
         const j = await r.json();
-        el.innerHTML = "🟢 已连接 vault · 计划与决策会写回 <code>" + (j.vaultRoot || "") + "</code>";
+        el.innerHTML = filePreview
+          ? '🟢 本地 Markdown 服务已运行 · <a href="http://127.0.0.1:5273">进入正式 YMOS Console →</a>'
+          : "🟢 已连接 vault · 计划与决策会写回 <code>" + (j.vaultRoot || "") + "</code>";
       } catch (e) {
-        el.innerHTML = "⚪️ 未连接 vault · 仅本地暂存。跑 <code>python3 server.py</code> 后从 " +
-          "<code>http://localhost:5273</code> 打开即可写回 Obsidian。";
+        el.innerHTML = location.protocol === "file:"
+          ? "⚪️ 当前是页面预览，不会写入 Markdown。跑 <code>python3 server.py</code> 后从 <code>http://localhost:5273</code> 进入正式模式。"
+          : "⚪️ 未连接 vault。跑 <code>python3 server.py</code> 后从 <code>http://localhost:5273</code> 打开即可写回 Obsidian。";
       }
     })();
   </script>

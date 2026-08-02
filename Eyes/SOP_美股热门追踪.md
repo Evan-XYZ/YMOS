@@ -1,5 +1,7 @@
 # 🇺🇸 美股热门追踪 SOP（合并 异动 + 新高 + P17 两类机会输出）
 
+> **作者内核扩展｜`disabled_by_default: true`** 本 SOP 公开的是一条真实演化路径，不是公共默认选股器。默认不加入定时任务，所有阈值、资产标签和市场范围需由用户重新确认。
+
 > 暗号：`跑一下美股热门追踪` / `美股热门追踪` / `跑一下美股热门`
 > 模块：Eyes/（眼睛 — **价格事件层**：市场告诉我什么）
 > 配套提示词：`Brain/references/p17-core-asset.md`（v3：资产等级 + 当前机会拆分）+ `Brain/references/p18-daily-mover-scanner.md`

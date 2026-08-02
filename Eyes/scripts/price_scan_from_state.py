@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -42,15 +43,21 @@ def extract_tickers_from_state_machine(filepath: Path) -> list[str]:
             in_table = False
             continue
 
+        # 模板中的示例/灰度行不是用户真实状态，不能触发外部行情请求。
+        normalized_line = line.replace("（", "(").replace("）", ")")
+        if "(示例)" in normalized_line or "demo_only" in normalized_line.lower():
+            continue
+
         cols = [c.strip() for c in line.split("|")]
         # 去掉首尾空列（| 开头和结尾产生的空字符串）
         cols = [c for c in cols if c or c == ""]
 
         if not in_table:
             # 寻找表头行
-            for i, col in enumerate(cols):
-                if col.lower() in ("ticker", "代码", "标的"):
-                    ticker_col_idx = i
+            lowered = [col.lower() for col in cols]
+            for header in ("ticker", "代码", "标的"):
+                if header in lowered:
+                    ticker_col_idx = lowered.index(header)
                     in_table = True
                     break
             continue
@@ -62,7 +69,7 @@ def extract_tickers_from_state_machine(filepath: Path) -> list[str]:
         # 提取 ticker 值
         if 0 <= ticker_col_idx < len(cols):
             val = cols[ticker_col_idx].strip()
-            if val and val != "---" and not val.startswith(":"):
+            if val and val != "---" and not val.startswith(":") and re.fullmatch(r"[A-Z0-9.:-]+", val.upper()):
                 tickers.append(val.upper())
 
     return tickers

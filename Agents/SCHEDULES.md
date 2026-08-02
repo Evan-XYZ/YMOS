@@ -1,103 +1,81 @@
-# YMOS 定时任务编排（Schedules）
+# YMOS 调度依赖
 
-> 基准路径：`<你的 YMOS 根目录>`
-> 当前执行模式：**单主控（main）模拟 4 Agent 编排**
-
-> 📎 **想看一套真实跑过的完整配置？** → [`SCHEDULES_REFERENCE.md`](SCHEDULES_REFERENCE.md)
->
-> **时间只是示例。** 下面的 10:30 / 10:45 / 10:55 / 11:05 是按 A 股盘中节奏排的一组样例。
-> 真正重要的不是几点跑，而是**顺序和依赖**：洞察 → 雷达 → 策略 → 状态写回。
-> 换成你自己的市场和作息（美股盘后、欧股开盘前……），把时间整体平移即可，链路不变。
-
----
-
-## 一、当前定时任务链
-
-### 1. 10:30 — Market Insight Agent
-- **任务名**：YMOS - 每日市场洞察 10:30
-- **职责**：生成当日市场洞察，作为全链路起点
-- **输出**：`Eyes/市场洞察/YYYY-MM/YYYY-MM-DD_市场洞察.md`
-
-### 2. 10:45 — Investment Radar Agent
-- **任务名**：YMOS - 工作日投资雷达 10:45
-- **依赖**：当日市场洞察已完成
-- **职责**：结合市场洞察 + 状态机 + 价格扫描，生成桥接报告
-- **输出**：`Eyes/投资雷达/YYYY-MM/投资雷达_YYYY-MM-DD.md`
-
-### 3. 10:55 — Strategy Agent
-- **任务名**：YMOS - 工作日策略分析 10:55
-- **依赖**：当日投资雷达已完成
-- **职责**：消费雷达建议，推进初始调研 / 持有评估 / 策略判断
-- **输出**：`Brain/策略分析/YYYY-MM/`
-
-### 4. 11:05 — Portfolio State Agent（建议新增）
-- **建议职责**：统一写回状态机 + 生成持仓备忘录视图
-- **输出**：
-  - `持仓与关注/持仓_状态机.md`
-  - `持仓与关注/Watchlist_状态机.md`
-  - `持仓与关注/持仓备忘录_视图.md`
-
----
-
-## 二、当前现实限制
-
-### 可用 Agent 能力
-多数 Agent 宿主（Claude Code / Codex / OpenClaw 等）默认只暴露一个主控会话，可直接调用的 agent 只有：
-- `main`
-
-这意味着：
-- ✅ 可以做 **单主控 + 多角色协议**
-- ✅ 可以做 **顺序编排**
-- ✅ 可以把各角色职责写死到文档与定时任务中
-- ❌ 还不能真正把 Market / Radar / Strategy / State 分别交给独立 subagent 并发运行
-
----
-
-## 三、当前推荐执行模式
-
-### 模式 A：现在就能稳定跑
-由 `main` 统一按以下顺序模拟 4 Agent：
+本文件只描述依赖，不提供作者个人市场、时区或作息参数。用户应按自己的市场日历和数据可用时间配置宿主调度器。
 
 ```text
-10:30 Market Insight Agent
-10:45 Investment Radar Agent
-10:55 Strategy Agent
-11:05 Portfolio State Agent
+市场数据可用
+  → Market Insight
+  → Investment Radar
+  → Strategy（仅处理明确触发项）
+  → Human 确认 / 账户事实变化
+  → Portfolio State（统一 Agent 写回）
 ```
 
-优点：
-- 简单稳定
-- 不需要新增平台能力
-- 已经足够把 YMOS 从“暗号系统”升级成“编排系统”
+## 任务契约
 
----
+每个定时任务必须声明：
 
-## 四、未来升级模式
+- YMOS 工作目录；
+- 使用的角色卡、`EXECUTION_PLAYBOOK.md` 章节与具体 SOP；
+- 上游成功标记或文件；
+- 输入数据的最大允许陈旧度；
+- 唯一允许写入的目录；
+- 幂等键（通常是市场、交易日、任务名）；
+- 失败、重试与“无变化”的记录方式。
 
-### 模式 B：真子 Agent 编排（未来）
-当你的 Agent 宿主支持真正的子 agent 编排后，可升级为：
-- `market-insight-agent`
-- `investment-radar-agent`
-- `strategy-agent`
-- `portfolio-state-agent`
+## 依赖规则
 
-到时主控只负责：
-- 发任务
-- 收结果
-- 写最终状态
+1. Market Insight 只在关键驱动数据齐备后运行。
+2. Investment Radar 必须引用一份已完成且时间有效的市场洞察。
+3. Strategy 只处理 Human 点名或 Radar 明确列入审阅队列的对象；不建议无差别每日全量运行。
+4. Portfolio State 只消费已落盘且已确认的事实，并在写回前重新读取最新状态，避免覆盖并发修改。
+5. 任一上游失败时，下游返回 `blocked_by_dependency`，不得拿旧产物冒充今日产物。
+6. 没有触发项返回 `no_change`，不为了让任务“有产出”而制造结论或状态变化。
 
----
+## 可直接改路径使用的任务文案
 
-## 五、推荐 cron 文案口径
+### Market Insight
 
-### 市场洞察
-> 提醒：现在请运行 Market Insight Agent（对应「跑一下市场洞察」）。请严格读取 Eyes/SOP_市场洞察.md，并只写入 Eyes/市场洞察/；保存后必须做结构校验。
+```text
+工作目录：<你的 YMOS 根目录>
+先读取 Agents/market-insight-agent.md，
+再读取 Agents/EXECUTION_PLAYBOOK.md 的 Market Insight 段落，
+最后执行 Eyes/SOP_市场洞察.md。
+只写 Eyes/市场洞察/；按 SOP 校验日期、结构与来源后才算成功。
+```
 
-### 投资雷达
-> 提醒：现在请运行 Investment Radar Agent（对应「跑一下投资雷达」）。请严格读取 Eyes/SOP_投资雷达.md，依赖当日 Eyes/市场洞察/ 成功产物后执行，只写入 Eyes/投资雷达/。
+### Investment Radar
 
-### 策略分析
-> 提醒：现在请运行 Strategy Agent（对应「跑一下策略分析」）。依赖当日投资雷达完成后执行，负责消费建议并推进策略判断。
+```text
+工作目录：<你的 YMOS 根目录>
+先读取 Agents/investment-radar-agent.md，
+再读取 Agents/EXECUTION_PLAYBOOK.md 的 Investment Radar 段落，
+最后执行 Eyes/SOP_投资雷达.md。
+先核验当日市场洞察；无有效上游则返回 blocked_by_dependency。
+只写 Eyes/投资雷达/，不得迁移标的身份或输出已执行动作。
+```
 
-### 状态写回（建议新增）
-> 提醒：现在请运行 Portfolio State Agent。请严格读取 持仓与关注/SOP_持仓收口.md，统一写回状态机、刷新持仓备忘录视图，并生成当日 dashboard HTML。
+### Strategy
+
+```text
+工作目录：<你的 YMOS 根目录>
+先读取 Agents/strategy-agent.md，
+再读取 Agents/EXECUTION_PLAYBOOK.md 的 Strategy 段落，
+最后执行 Brain/SOP_策略分析.md。
+只处理 Human 点名或最新 Radar 明确列入队列的对象；没有对象返回 no_change。
+不静默修改 Profile，不写真实成交和资金事实。
+```
+
+### Portfolio State
+
+Portfolio State 不应绑定一个“万能收口 SOP”。按任务目的三选一：
+
+```text
+账户体检：portfolio-state-agent.md + EXECUTION_PLAYBOOK + SOP_持仓日常体检.md
+标的身份：portfolio-state-agent.md + EXECUTION_PLAYBOOK + SOP_标的管理.md
+真实动作：由 Human 在 Console 确认，遵守 TRADE_DATA_CONTRACT.md
+```
+
+旧任务如果仍引用 `SOP_持仓收口.md`、`持仓备忘录_视图.md` 或 dashboard 刷新，应先迁移后再启用。
+
+具体时间安排、停用原则与踩坑记录见 `SCHEDULES_REFERENCE.md`。公开仓库不自动注册任务，也不分发真实账户、通知渠道或作者宿主配置。

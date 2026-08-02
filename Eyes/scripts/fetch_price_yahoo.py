@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import ssl
 import time
 import urllib.request
 from datetime import datetime, timezone
@@ -45,16 +44,6 @@ def load_symbols_from_dirs(root_dirs: list[str]) -> list[str]:
                 out.append(child.name.upper())
     return out
 
-
-def _make_ssl_ctx() -> ssl.SSLContext:
-    """创建宽松 SSL 上下文，解决 Yahoo Finance 证书链问题。"""
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-    return ctx
-
-
-_SSL_CTX = _make_ssl_ctx()
 
 _PERIOD_TO_RANGE = {
     "1d": "1d", "5d": "5d", "1mo": "1mo",
@@ -81,7 +70,7 @@ def fetch_one(symbol: str, period: str, interval: str, retries: int) -> dict:
     for attempt in range(retries):
         try:
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=15, context=_SSL_CTX) as resp:
+            with urllib.request.urlopen(req, timeout=15) as resp:
                 payload = json.loads(resp.read().decode())
 
             result = payload.get("chart", {}).get("result")

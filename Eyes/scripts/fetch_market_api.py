@@ -11,7 +11,6 @@ YMOS Market Data API 示例脚本
 import argparse
 import json
 import os
-import ssl
 import sys
 import time
 import urllib.error
@@ -51,11 +50,8 @@ def _do_fetch(api_url, api_key, time_value, categories):
     }
     req = urllib.request.Request(full_url, headers=headers, method="GET")
 
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-
-    with urllib.request.urlopen(req, context=ctx, timeout=30) as response:
+    # 使用系统默认证书链；Bearer Key 不得通过关闭 TLS 校验来换取兼容性。
+    with urllib.request.urlopen(req, timeout=30) as response:
         return json.loads(response.read().decode("utf-8"))
 
 

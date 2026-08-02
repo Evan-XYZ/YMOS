@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+"""作者内核扩展（默认关闭）：为作者维护的产业索引提供价格跟踪。"""
+
 from __future__ import annotations
 
 import argparse

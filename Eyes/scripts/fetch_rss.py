@@ -19,7 +19,6 @@ import urllib.error
 import xml.etree.ElementTree as ET
 import argparse
 import json
-import ssl
 import sys
 import os
 from datetime import datetime, timedelta, timezone
@@ -82,8 +81,22 @@ def load_sources(category_filter=None, config_path=None):
     return sources
 
 
-def fetch_rss(url, days=1):
-    """从单个 RSS 源获取数据"""
+def fetch_rss(url, days=1, with_status=False):
+    """从单个 RSS 源获取数据。
+
+    默认返回条目列表，保持脚本原有调用兼容；``with_status=True`` 时额外返回
+    可落盘的逐源审计信息。TLS 使用系统默认证书链，不允许静默降级。
+    """
+    def finish(status, items=None, error=""):
+        payload = {
+            "status": status,
+            "count": len(items or []),
+            "fetched_at": datetime.now(timezone.utc).isoformat(),
+            "error": error,
+            "items": items or [],
+        }
+        return payload if with_status else payload["items"]
+
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                       "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -92,32 +105,28 @@ def fetch_rss(url, days=1):
     }
 
     req = urllib.request.Request(url, headers=headers, method="GET")
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-
     try:
-        with urllib.request.urlopen(req, context=ctx, timeout=30) as response:
+        with urllib.request.urlopen(req, timeout=30) as response:
             xml_content = response.read().decode("utf-8")
     except urllib.error.HTTPError as e:
         if e.code == 403:
             print("   ⚠️ 源站限制 (403)，跳过")
-            return "BLOCKED_403"
+            return finish("blocked_403", error=f"HTTP {e.code}: {e.reason}")
         else:
             print(f"   ❌ HTTP 错误: {e.code} - {e.reason}")
-        return None
+        return finish("http_error", error=f"HTTP {e.code}: {e.reason}")
     except urllib.error.URLError as e:
         print(f"   ❌ 网络错误: {e.reason}")
-        return None
+        return finish("network_error", error=str(e.reason))
     except Exception as e:
         print(f"   ❌ 未知错误: {e}")
-        return None
+        return finish("unknown_error", error=f"{type(e).__name__}: {e}")
 
     try:
         root = ET.fromstring(xml_content)
     except ET.ParseError as e:
         print(f"   ❌ XML 解析错误: {e}")
-        return None
+        return finish("parse_error", error=str(e))
 
     channel = root.find("channel")
     if channel is None:
@@ -126,7 +135,7 @@ def fetch_rss(url, days=1):
         entries = root.findall("atom:entry", ns)
         if not entries:
             print("   ❌ 未找到 RSS channel 或 Atom entries")
-            return None
+            return finish("parse_error", error="未找到 RSS channel 或 Atom entries")
         # Atom 格式解析
         cutoff_time = datetime.now(timezone.utc) - timedelta(days=days)
         items = []
@@ -151,7 +160,7 @@ def fetch_rss(url, days=1):
                 "title": title, "link": link, "pub_date": pub_date,
                 "categories": categories, "description": summary, "content": summary,
             })
-        return items
+        return finish("ok" if items else "empty", items)
 
     # RSS 2.0 格式解析
     cutoff_time = datetime.now(timezone.utc) - timedelta(days=days)
@@ -189,7 +198,7 @@ def fetch_rss(url, days=1):
             "content": content if content else description,
         })
 
-    return items
+    return finish("ok" if items else "empty", items)
 
 
 def fetch_all_sources(sources, days=1):
@@ -198,6 +207,7 @@ def fetch_all_sources(sources, days=1):
     success_count = 0
     fail_count = 0
     blocked_sources = []
+    source_audit = []
 
     for src in sources:
         name = src["name"]
@@ -206,9 +216,20 @@ def fetch_all_sources(sources, days=1):
         priority = src.get("priority", "medium")
 
         print(f"\n📡 [{name}] ({category})")
-        items = fetch_rss(url, days)
+        fetched = fetch_rss(url, days, with_status=True)
+        items = fetched["items"]
+        source_audit.append({
+            "name": name,
+            "url": url,
+            "category": category,
+            "priority": priority,
+            "status": fetched["status"],
+            "count": fetched["count"],
+            "fetched_at": fetched["fetched_at"],
+            "error": fetched["error"],
+        })
 
-        if items == "BLOCKED_403":
+        if fetched["status"] == "blocked_403":
             blocked_sources.append(name)
             fail_count += 1
         elif items:
@@ -245,6 +266,7 @@ def fetch_all_sources(sources, days=1):
         "sources_ok": success_count,
         "sources_fail": fail_count,
         "sources_blocked_403": len(blocked_sources),
+        "source_audit": source_audit,
         "categories_summary": categories_summary,
         "data": all_items,
     }
@@ -303,7 +325,7 @@ def main():
             sys.exit(1)
         result = fetch_all_sources(sources, args.days)
 
-    if result and result.get("count", 0) > 0:
+    if result is not None:
         # 确保输出目录存在
         output_dir = os.path.dirname(args.output)
         if output_dir:
@@ -330,6 +352,9 @@ def main():
                 print("\n📁 标签统计:")
                 for cat, num in sorted(cats.items()):
                     print(f"   {cat}: {num} 条")
+        if result.get("count", 0) == 0:
+            print("\n⚠️ 未获取到数据；审计信息已保存，请检查逐源状态")
+            sys.exit(1)
     else:
         print("\n⚠️ 未获取到数据，请检查网络连接和 RSS 源地址")
         sys.exit(1)

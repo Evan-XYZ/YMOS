@@ -1,0 +1,6 @@
+interface:
+  display_name: "YMOS Strategy Diagnosis"
+  short_description: "Audit strategy consistency, falsifiability, and execution"
+  default_prompt: "Use $ymos-diagnosis to audit my investment strategy structure without choosing parameters for me."
+policy:
+  allow_implicit_invocation: true

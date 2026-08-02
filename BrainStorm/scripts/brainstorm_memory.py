@@ -2,13 +2,14 @@
 """
 BrainStorm Memory Module — 头脑风暴文件复用与动态上下文加载器
 
-YMOS BrainStorm 模块的上下文加载器。零依赖（标准库 only），路径全部相对推导。
+YMOS BrainStorm 模块的上下文加载器。加载、归档与预览只用标准库，路径全部相对推导；
+可选的 auto_summarize() 需要 OpenAI SDK 或兼容其 chat.completions 接口的客户端。
 
 核心功能：
-  1. load_context()        — 加载 MEMORY.md + 最近 N 天总结，塞进系统提示词
+  1. load_context()        — 加载 MEMORY.md + STATUS + 最近 N 天总结；可选历史资料索引
   2. archive_today()       — 将今日原始对话存入 Raw_Thoughts/YYYY-MM-DD.md
   3. auto_summarize()      — 调用 LLM 生成结构化总结 → 存入 Summarized_Insights/
-  4. append_to_memory()    — 追加新认知到 MEMORY.md
+  4. append_to_memory()    — 经 Human 确认后追加新认知到 MEMORY.md
   5. diagnose()            — 打印路径诊断，调试用
 
 【工作流暗号调用方式】
@@ -46,10 +47,13 @@ class BrainStormMemory:
         self.invest_lt_dir = self.root / "投资感悟归档" / "长期框架"
         self.invest_ck_dir = self.root / "投资感悟归档" / "执行清单"
         self.status_dir    = self.root / "状态机"
+        self.history_dir   = self.root / "历史投资资料"
+        self.history_summary_dir = self.history_dir / "索引与梳理"
 
         # ── 核心文件 ──────────────────────────────────────────────
         self.memory_file   = self.root / "MEMORY.md"
         self.status_file   = self.status_dir / "STATUS.md"
+        self.history_index_file = self.history_dir / "资料索引.md"
         self.readme_file   = self.root / "README.md"
 
         # 确保目录存在
@@ -72,6 +76,8 @@ class BrainStormMemory:
         self,
         days: int = 7,
         max_chars_per_summary: int = 600,
+        include_history: bool = False,
+        max_chars_history: int = 5000,
         base_instruction: str = (
             "你是我专属的头脑风暴伙伴和思维教练。"
             "基于以下所有历史记忆和近期思考脉络，"
@@ -84,6 +90,8 @@ class BrainStormMemory:
         Args:
             days:                 向前追溯总结文件的天数（默认 7 天）
             max_chars_per_summary: 每份总结截取的最大字符数
+            include_history:      是否加载历史资料索引与最近梳理（默认关闭）
+            max_chars_history:    历史资料上下文的总字符上限
             base_instruction:     系统提示词头部的角色指令
 
         Returns:
@@ -98,12 +106,24 @@ class BrainStormMemory:
         else:
             parts.append("## 📚 长期记忆\n（MEMORY.md 文件未找到）\n")
 
+        # 加载当前阶段状态；它回答“我现在在哪”，与长期记忆分开
+        if self.status_file.exists():
+            status_text = self.status_file.read_text(encoding="utf-8").strip()
+            parts.append(f"\n---\n\n## 🧭 当前阶段（STATUS.md）\n{status_text}\n")
+        else:
+            parts.append("\n---\n\n## 🧭 当前阶段\n（STATUS.md 文件未找到）\n")
+
         # 加载最近 N 天总结
         recent = self._load_recent_summaries(days=days, max_chars=max_chars_per_summary)
         if recent:
             parts.append(f"\n---\n\n## 📅 最近 {days} 天思考脉络\n{recent}")
         else:
             parts.append(f"\n---\n\n## 📅 最近 {days} 天思考脉络\n（暂无总结，今天是第一天）\n")
+
+        # 历史资料只在入职、诊断或相关主题复盘时按需加载；日常默认关闭
+        if include_history:
+            history = self._load_historical_context(max_chars=max_chars_history)
+            parts.append(f"\n---\n\n## 🗂️ 历史投资资料导航\n{history}\n")
 
         parts.append("\n\n---\n\n请基于以上所有背景，和我继续今天的对话。")
         return "\n".join(parts)
@@ -129,6 +149,41 @@ class BrainStormMemory:
             preview = content[:max_chars] + ("…（已截断）" if len(content) > max_chars else "")
             found.append(f"### {date_str}\n{preview}\n")
         return "\n".join(found)
+
+    def _load_historical_context(self, max_chars: int = 5000) -> str:
+        """加载历史资料索引与最近梳理，不直接全量读取原始资料。"""
+        parts = []
+        remaining = max(0, max_chars)
+
+        if self.history_index_file.exists() and remaining:
+            index_text = self.history_index_file.read_text(encoding="utf-8").strip()
+            excerpt = index_text[:remaining]
+            if len(index_text) > len(excerpt):
+                excerpt += "\n…（资料索引已截断）"
+            parts.append(f"### 资料索引\n{excerpt}")
+            remaining -= len(excerpt)
+        else:
+            parts.append("### 资料索引\n（尚未生成资料索引；先运行 SOP_历史投资资料入职.md）")
+
+        if self.history_summary_dir.exists() and remaining > 0:
+            summaries = [
+                path
+                for path in self.history_summary_dir.glob("*.md")
+                if not path.name.startswith("_模板_") and path.name.lower() != "readme.md"
+            ]
+            summaries.sort(key=lambda path: path.stat().st_mtime, reverse=True)
+            for path in summaries[:2]:
+                text = path.read_text(encoding="utf-8").strip()
+                excerpt = text[:remaining]
+                if not excerpt:
+                    break
+                if len(text) > len(excerpt):
+                    excerpt += "\n…（梳理报告已截断）"
+                parts.append(f"### 最近梳理：{path.name}\n{excerpt}")
+                remaining -= len(excerpt)
+
+        parts.append("原始资料未自动加载；请按索引只读取与当前问题直接相关的代表文件。")
+        return "\n\n".join(parts)
 
     # ═══════════════════════════════════════════════════════════════
     # 2. 存档今日原始对话
@@ -168,11 +223,11 @@ class BrainStormMemory:
         """
         调用 LLM 将完整对话压缩成结构化 Markdown 总结，
         写入 Summarized_Insights/YYYY-MM-DD_Insight.md，
-        并将值得长期保留的认知追加到 MEMORY.md。
+        MEMORY 候选只写进总结，不自动修改 MEMORY.md。
 
         Args:
             full_conversation: 完整对话文本
-            client:            OpenAI / Anthropic client（None 则自动初始化 OpenAI）
+            client:            OpenAI 兼容 client（None 则自动初始化 OpenAI）
             model:             使用的模型
             date:              对话日期（默认今天）
 
@@ -207,8 +262,12 @@ class BrainStormMemory:
 - （无则写"无"）
 
 ## 🔗 是否该联动 YMOS
-- 触发模块：（无 / P5 买入审计 / P7 组合检查 / P11 复盘 / P13 市场扫描 / 击球区注册表 / 周度复盘）
+- 触发模块：（无 / P2 环境识别 / P3 事件审计 / P5 买入审计 / P6 退出审计 / P7 组合检查 / P11 复盘 / P12 最终裁判 / diagnosis）
 - 触发理由：（如有则说明）
+
+## 🧬 内核演化判断
+- 暂不处理 / 继续积累 / 建议起草变更提案
+- 证据、反例与缺口：
 
 ---
 对话内容：
@@ -226,16 +285,6 @@ class BrainStormMemory:
         summary_path.parent.mkdir(parents=True, exist_ok=True)
         summary_path.write_text(summary, encoding="utf-8")
         print(f"✅ 总结已存档：{summary_path}")
-
-        # 追加到 MEMORY.md（如果有新认知）
-        if "无" not in summary.split("📌 值得写入 MEMORY.md 的新认知")[-1][:50]:
-            with open(self.memory_file, "a", encoding="utf-8") as f:
-                f.write(
-                    f"\n[{date.strftime('%Y-%m-%d')}] 头脑风暴 — "
-                    f"（见 Summarized_Insights/{date.strftime('%Y-%m')}/"
-                    f"{date.strftime('%Y-%m-%d')}_Insight.md）\n"
-                )
-            print("✅ 新认知已追加到 MEMORY.md")
 
         return summary
 
@@ -280,12 +329,20 @@ class BrainStormMemory:
         print()
 
         checks = {
-            "Raw_Thoughts 目录":        self.raw_dir,
-            "Summarized_Insights 目录": self.summary_dir,
-            "MEMORY.md":               self.memory_file,
+            "Raw_Thoughts 目录":        (self.raw_dir, True),
+            "Summarized_Insights 目录": (self.summary_dir, True),
+            "MEMORY.md":               (self.memory_file, True),
+            "STATUS.md":               (self.status_file, True),
+            "历史资料目录":             (self.history_dir, True),
+            "历史资料索引":             (self.history_index_file, False),
         }
-        for label, path in checks.items():
-            status = "✅" if path.exists() else "❌ 未找到"
+        for label, (path, required) in checks.items():
+            if path.exists():
+                status = "✅"
+            elif required:
+                status = "❌ 未找到"
+            else:
+                status = "— 可选未创建"
             print(f"  {status} {label}: {path}")
 
         # 统计总结文件
@@ -314,7 +371,11 @@ class BrainStormMemory:
 # 快捷函数
 # ═══════════════════════════════════════════════════════════════════
 
-def get_brainstorm_prompt(brainstorm_root: str = None, days: int = 7) -> str:
+def get_brainstorm_prompt(
+    brainstorm_root: str = None,
+    days: int = 7,
+    include_history: bool = False,
+) -> str:
     """
     快捷函数：一行获取 BrainStorm 完整系统提示词。
 
@@ -322,7 +383,10 @@ def get_brainstorm_prompt(brainstorm_root: str = None, days: int = 7) -> str:
         from scripts.brainstorm_memory import get_brainstorm_prompt
         system_prompt = get_brainstorm_prompt()
     """
-    return BrainStormMemory(brainstorm_root).load_context(days=days)
+    return BrainStormMemory(brainstorm_root).load_context(
+        days=days,
+        include_history=include_history,
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -338,6 +402,11 @@ if __name__ == "__main__":
     parser.add_argument("--root", default=None, help="BrainStorm 根目录路径（不填则自动定位）")
     parser.add_argument("--days", type=int, default=7, help="历史总结追溯天数（默认 7）")
     parser.add_argument("--preview", action="store_true", help="输出完整系统提示词预览")
+    parser.add_argument(
+        "--include-history",
+        action="store_true",
+        help="额外加载历史投资资料索引与最近梳理，不加载原始资料全文",
+    )
     args = parser.parse_args()
 
     mem = BrainStormMemory(args.root)
@@ -347,7 +416,7 @@ if __name__ == "__main__":
         print("\n" + "─" * 55)
         print("📝 系统提示词预览（前 2000 字）：")
         print("─" * 55)
-        prompt = mem.load_context(days=args.days)
+        prompt = mem.load_context(days=args.days, include_history=args.include_history)
         print(prompt[:2000])
         if len(prompt) > 2000:
             print(f"\n…（已截断，完整 {len(prompt)} 字）")

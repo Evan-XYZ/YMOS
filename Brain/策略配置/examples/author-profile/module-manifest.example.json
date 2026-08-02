@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "profileExample": "author-extension",
+  "disabledByDefault": true,
+  "disclaimer": "真实历史工作流示例，不是收益承诺；启用前必须映射到用户自己的 Strategy Profile。",
+  "modules": [
+    {
+      "id": "p17-core-asset",
+      "type": "profile",
+      "enabled": false,
+      "path": "Brain/references/p17-core-asset.md",
+      "requires": ["P1", "P2", "P9", "user-defined labels and thresholds"]
+    },
+    {
+      "id": "p18-daily-mover",
+      "type": "optional",
+      "enabled": false,
+      "path": "Brain/references/p18-daily-mover-scanner.md",
+      "requires": ["price driver", "market calendar", "P17 mapping"]
+    },
+    {
+      "id": "p9-p17-deep-research",
+      "type": "optional",
+      "enabled": false,
+      "path": "Brain/SOP_单标的P9P17专项调研.md",
+      "requires": ["P9", "P17", "Human-selected target"]
+    },
+    {
+      "id": "hot-trackers",
+      "type": "optional",
+      "enabled": false,
+      "paths": ["Eyes/SOP_Whats_Hot.md", "Eyes/SOP_美股热门追踪.md"],
+      "requires": ["configured market data drivers", "user-defined scan thresholds"]
+    },
+    {
+      "id": "author-watchlist-pipeline",
+      "type": "optional",
+      "enabled": false,
+      "paths": ["Eyes/SOP_Watchlist自动建档.md", "Eyes/SOP_核心资产动态判定表.md", "Eyes/SOP_A股核心资产回踩扫描.md"],
+      "requires": ["P17", "P9", "Human approval before identity changes"]
+    }
+  ],
+  "scheduling": {
+    "enabled": false,
+    "rule": "Configure dependencies and timing for the user's own market and timezone; no author schedule is distributed."
+  }
+}

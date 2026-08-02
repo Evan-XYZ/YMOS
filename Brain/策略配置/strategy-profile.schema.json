@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ymos.example/schema/strategy-profile-v1.json",
+  "title": "YMOS Strategy Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "profileId",
+    "name",
+    "status",
+    "scope",
+    "decision",
+    "risk",
+    "cadence",
+    "execution"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "profileId": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["draft", "active", "paused", "retired"] },
+    "strategyFamilies": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["markets", "instruments", "abilityCircle"],
+      "properties": {
+        "markets": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+        "instruments": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+        "abilityCircle": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "excluded": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entry", "invalidation", "add", "exit"],
+      "properties": {
+        "entry": { "$ref": "#/$defs/ruleBlock" },
+        "invalidation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["signals", "defaultAction"],
+          "properties": {
+            "judgeTypes": {
+              "type": "array",
+              "items": { "enum": ["fundamental", "valuation", "price", "time", "event", "relative", "custom"] },
+              "uniqueItems": true
+            },
+            "signals": { "type": "array", "items": { "$ref": "#/$defs/signal" } },
+            "defaultAction": { "type": "string" }
+          }
+        },
+        "add": { "$ref": "#/$defs/ruleBlock" },
+        "exit": { "$ref": "#/$defs/ruleBlock" },
+        "conflictPolicy": { "type": "string" }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sizingBasis", "positionLimitPct", "lossBudgetPct", "thesisHorizonMonths"],
+      "properties": {
+        "sizingBasis": { "enum": ["account_nav", "capital_base", "risk_budget", "custom"] },
+        "positionLimitPct": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 100 },
+        "lossBudgetPct": { "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 100 },
+        "thesisHorizonMonths": { "type": ["integer", "null"], "minimum": 1 },
+        "fundAvailabilityMonths": { "type": ["integer", "null"], "minimum": 1 },
+        "portfolioConstraints": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requiredSources": { "type": "array", "items": { "type": "string" } },
+        "sourcePriority": { "type": "array", "items": { "type": "string" } },
+        "freshnessRules": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "cadence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["monitor", "decisionWindow", "review"],
+      "properties": {
+        "monitor": { "type": "string" },
+        "decisionWindow": { "type": "string" },
+        "review": { "type": "string" }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["humanConfirmation", "decisionExecutionSeparated", "requiredGates"],
+      "properties": {
+        "humanConfirmation": { "const": true },
+        "decisionExecutionSeparated": { "const": true },
+        "requiredGates": { "type": "array", "items": { "type": "string" } },
+        "allowedDecisionWindows": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "modules": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "disabled": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "replacements": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "approvedByHuman": { "type": "boolean" },
+        "sourceDiagnosis": { "type": "string" }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "active" } }, "required": ["status"] },
+      "then": {
+        "required": ["meta"],
+        "properties": {
+          "scope": {
+            "properties": {
+              "markets": { "minItems": 1 },
+              "instruments": { "minItems": 1 },
+              "abilityCircle": { "minItems": 1 }
+            }
+          },
+          "risk": {
+            "properties": {
+              "positionLimitPct": { "type": "number" },
+              "lossBudgetPct": { "type": "number" },
+              "thesisHorizonMonths": { "type": "integer" }
+            }
+          },
+          "modules": {
+            "required": ["enabled", "disabled", "replacements"]
+          },
+          "meta": {
+            "required": ["approvedByHuman"],
+            "properties": { "approvedByHuman": { "const": true } }
+          }
+        },
+        "required": ["scope", "risk", "modules", "meta"]
+      }
+    }
+  ],
+  "$defs": {
+    "ruleBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["questions", "requiredEvidence"],
+      "properties": {
+        "questions": { "type": "array", "items": { "type": "string" } },
+        "requiredEvidence": { "type": "array", "items": { "type": "string" } },
+        "redlines": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "observable", "action"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "observable": { "type": "string", "minLength": 1 },
+        "action": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

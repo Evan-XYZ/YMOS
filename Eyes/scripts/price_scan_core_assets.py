@@ -2,6 +2,8 @@
 """
 核心资产动态判定表专用价格扫描。
 
+作者内核扩展，默认关闭。它只提供数据，不应脱离用户 Profile 直接生成交易动作。
+
 读取核心资产状态机 + 美股/A股观察状态机 + 持仓/Watchlist 状态机中的 ticker，
 然后复用投资雷达同一套 fetch_price_router.py：
   - 美股 / Crypto → Finnhub（有 FINNHUB_API_KEY）否则 Yahoo

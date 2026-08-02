@@ -15,7 +15,6 @@ import urllib.parse
 import urllib.error
 import argparse
 import json
-import ssl
 import re
 import os
 from datetime import datetime, timedelta, timezone
@@ -106,12 +105,8 @@ def finnhub_get(endpoint, params=None):
         method="GET",
     )
 
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-
     try:
-        with urllib.request.urlopen(req, context=ctx, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=30) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         print(f"   ❌ HTTP {e.code} — {endpoint}")
