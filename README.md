@@ -1,6 +1,6 @@
 # YMOS V4 — 勇麦的投资操作系统（我给大家打个样）
 
-**Yongmai Operating System** · Agent 时代一个会自我进化的投资操作系统：帮你盯市场做投研，把你的策略沉淀成规则、把你的操盘变成流程、把你的决策留成证据，用真实结果反过来迭代自己。**少犯错，活得久。**
+**Yongmai Operating System** · Agent 时代一个支持自我进化的投资操作系统：帮你盯市场做投研，把你的策略沉淀成规则、把你的操盘变成流程、把你的决策留成证据，用真实结果反过来迭代自己。**少犯错，活得久。**
 
 [![Version](https://img.shields.io/badge/version-4.0-blue.svg)](CHANGELOG.md)
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC%20BY--NC%204.0-lightgrey.svg)](LICENSE)
