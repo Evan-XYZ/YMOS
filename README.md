@@ -54,22 +54,72 @@
 “投研层 → 策略内核层 → 操盘层”是用户理解和进阶的主线；下面这张图是同一套系统的**技术实现图**。两者不是两套架构：三层回答“能力属于哪里”，目录图回答“Agent 实际读什么、按什么顺序运行”。
 
 ```mermaid
-flowchart TD
-    A["Agents/ 跨层运行协议<br/>角色 · 依赖 · 权限 · 失败语义"] -.编排.-> E
-    A -.编排.-> B
-    A -.唯一 Agent 写回边界.-> S
+flowchart TB
+    classDef protocol fill:#fcf8f2,stroke:#b8860b,stroke-width:1.5px,stroke-dasharray: 4 4;
+    classDef memory fill:#faf4eb,stroke:#a0522d,stroke-width:2px;
+    classDef mainNode fill:#f0f7f4,stroke:#2d5a40,stroke-width:1.5px;
+    classDef humanGate fill:#fdf2f0,stroke:#c0392b,stroke-width:1.5px;
+    classDef auditLoop fill:#f5effb,stroke:#5e35b1,stroke-width:1.5px;
+    classDef invisible fill:none,stroke:none,color:transparent;
 
-    D["数据源 / Scripts / Skills"] --> E["Eyes/ 投研层<br/>市场洞察 → 投资雷达"]
-    E -->|"研究事实与待分析队列"| B["Brain/ + Strategy Profile<br/>策略判断 · P1–P18 · 专项调研"]
-    S["运行时状态与记忆<br/>持仓 / Watchlist / 组合快照"] <-->|"读取与已确认写回"| B
-    B -->|"判断、计划候选与 Human 待决事项"| C["Console + Human<br/>Reader · 交易计划 · 买卖门禁"]
-    S <-->|"展示、确认与刷新"| C
+    A["⚙️ Agents / 跨层运行协议<br>角色 · 依赖 · 权限 · 失败语义"]:::protocol
 
-    C --> R["操盘证据<br/>交易计划 · 决策审计 · 买卖决策事件流 · 平仓复盘"]
-    BS["BrainStorm 长期思考工作区<br/>旧投资日志 · Raw · Insight · MEMORY"] --> EV["进化审查<br/>区分认知语料与结果证据<br/>寻找歧义、矛盾、重复缺口与反例"]
-    R --> EV
-    EV --> H["Human 审批<br/>试运行 · 证伪条件 · 回滚 · 到期复核"]
-    H -->|"批准后的 Profile / P / SOP 新版本"| B
+    subgraph Container [" "]
+        direction LR
+
+        subgraph LeftCol [" "]
+            direction TB
+
+            subgraph L1 ["1. 投研层 (Perception)"]
+                direction TB
+                D["数据源 / Scripts / Skills"] --> E["👀 Eyes / 投研层<br>市场洞察 → 投资雷达"]:::mainNode
+            end
+
+            subgraph L2 ["2. 策略内核层 (Strategy Core)"]
+                direction TB
+                B["🧠 Brain / Strategy Profile<br>策略判断 · P1–P18 · 专项调研"]:::mainNode
+                S[("💾 运行时状态与记忆<br>持仓 / Watchlist / 组合快照")]:::memory
+                B <-->|"读取与状态写回"| S
+            end
+
+            E -->|"① 研究事实与队列"| B
+        end
+
+        subgraph RightCol [" "]
+            direction TB
+
+            subgraph L3 ["3. 操盘层 (Execution)"]
+                direction TB
+                C["🖥️ Console + Human<br>Reader · 交易计划 · 买卖门禁"]:::humanGate
+                R["🧾 操盘证据<br>交易计划 · 决策审计 · 事件流"]:::auditLoop
+                C --> R
+            end
+
+            subgraph L4 ["4. 认知进化与反馈闭环 (Evolution Loop)"]
+                direction TB
+                BS["🧠⚡ BrainStorm 长期思考工作区<br>旧投资日志 · Raw · Insight"]:::memory
+                EV["🔍 进化审查<br>区分认知语料与结果证据<br>寻找歧义、矛盾、缺口与反例"]:::auditLoop
+                H["👤 Human 审批<br>试运行 · 证伪条件 · 回滚 · 到期复核"]:::humanGate
+                BS --> EV
+                EV --> H
+            end
+
+            R -->|"③ 产生真实操盘证据"| EV
+        end
+    end
+
+    A ~~~ L1
+    A ~~~ L3
+
+    B -->|"② 判断与计划候选"| C
+    C <-->|"展示与刷新"| S
+    H == "④【进化闭环】批准新版本 Profile/SOP" ==> B
+
+    A -. "编排" .-> E
+    A -. "编排" .-> B
+    A -. "写回边界" .-> S
+
+    class Container,LeftCol,RightCol invisible;
 ```
 
 `Agents/` 不是第四个业务层，也不是四个自动常驻的机器人。它是给 Hermes、Claude Code、Codex、OpenClaw 等宿主读取的**跨层运行协议**：规定当前扮演哪个角色、要先读哪份 SOP、允许写到哪里、上游失败时是否必须停止。默认由一个主控 Agent 顺序扮演四个角色；宿主支持子 Agent 时再映射成多个执行体。具体启用方式见 [Agents/README.md](Agents/README.md)。
