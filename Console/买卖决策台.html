@@ -1168,6 +1168,17 @@
       color: #fff;
     }
 
+    .mini-btn.void {
+      margin-left: 6px;
+      border-color: rgba(190, 60, 60, 0.35);
+      color: #b23b3b;
+    }
+
+    .mini-btn.void:hover {
+      background: rgba(190, 60, 60, 0.08);
+      border-color: rgba(190, 60, 60, 0.55);
+    }
+
     .m-btn.go {
       background: var(--green);
       color: #fff;
@@ -2127,11 +2138,11 @@
             tips: ["这套骨架不问你是哪一派。它只保证：无论哪一派，你都有可证伪的论点、写下来的退出逻辑、和一个不由别人决定的出局位。"],
           },
           buy_add: {
-            kicker: "买入 · 加仓计划", title: "加仓计划 · 压力测试",
-            tagline: "这里只记录<em>加仓计划与压力测试</em>，不代表已经成交，也不会改动当前股数和成本。真实加仓成交功能留给后续版本。",
-            fireIdle: "保存加仓计划 · 不改持仓事实",
-            passTitle: "加仓计划压力测试完成",
-            passSub: "本次只追加计划与压力测试记录；当前股数、成本价和实际投入保持不变。",
+            kicker: "买入 · 变更建仓计划", title: "变更建仓计划",
+            tagline: "改的是<em>建仓计划总额</em>，不动已经买进去的仓位。<em>调大 = 加仓</em>，下面的门要全绿；<em>调小 = 缩减敞口</em>，不设门但必须写理由。改完状态回到「建仓中」，实际成交仍然回「③ 确认建仓」分批录。",
+            fireIdle: "保存变更 · 不改持仓事实",
+            passTitle: "建仓计划已变更",
+            passSub: "本次只改计划与留痕；当前股数、成本价和实际投入保持不变。",
             passQuote: "加仓不需要新的理由，需要的是「加完之后我还扛得住吗」这个问题的答案。",
             warnQuote: "加仓前的条件没确认完。原有论点还成立吗？还是只是因为它跌了、或者因为它涨了？",
             sections: [
@@ -2211,14 +2222,15 @@
       account: { kind: "prep", group: "总览", navLabel: "账户参数", navDesc: "资金基数 / 期限 / 变动记录", icon: "🏦" },
       buy_new: { kind: "buy", group: "买入", navLabel: "① 买入逻辑", navDesc: "论点 / 可证伪 · 先建档", icon: "🧠" },
       prepare: { kind: "buy", group: "买入", navLabel: "② 建仓准备", navDesc: "投多少 / 止损 / 冲突检查", icon: "🧱" },
-      fill: { kind: "buy", group: "买入", navLabel: "③ 确认建仓", navDesc: "计划 → 实际成交", icon: "✅" },
-      buy_add: { kind: "buy", group: "买入", navLabel: "加仓计划", navDesc: "压力测试 · 不改持仓事实", icon: "➕" },
+      fill: { kind: "buy", group: "买入", navLabel: "③ 确认建仓", navDesc: "纳入建仓数据 · 可分批", icon: "✅" },
+      buy_add: { kind: "buy", group: "买入", navLabel: "变更建仓计划", navDesc: "调大 = 加仓 · 调小 = 缩减", icon: "⇅" },
       sell_tp: { kind: "sell", group: "卖出", navLabel: "止盈 / 减仓", navDesc: "零摩擦 · 记录理由", icon: "🟢" },
       sell_sl: { kind: "sell", group: "卖出", navLabel: "止损", navDesc: "零摩擦 · 立即离场", icon: "🔻" },
       adjust: { kind: "admin", group: "持仓管理", navLabel: "调整止损", navDesc: "必须写理由 · 留痕", icon: "⚖️" },
     };
     const ORDER = ["dash", "account", "buy_new", "prepare", "fill", "buy_add", "sell_tp", "sell_sl", "adjust"];
-    const ST_PLAN = "计划中", ST_HELD = "持仓中", ST_CLOSED = "已平仓";
+    // 建仓中 = 已经有真实成交、但这笔建仓计划还没建满（或变更后的计划还没执行完）。
+    const ST_PLAN = "计划中", ST_FILLING = "建仓中", ST_HELD = "持仓中", ST_CLOSED = "已平仓", ST_VOID = "已作废";
 
     /* 建仓准备：策略无关的第二步。逻辑成立之后才谈钱。 */
     const PREPARE_MODE = {
@@ -2236,14 +2248,17 @@
        在此之前，建仓准备里的金额与止损都还是计划，改它天经地义；
        在此之后，档案锁死 —— 因为它记录的已经是发生过的事。 */
     const FILL_MODE = {
-      kicker: "买入 · 开新仓 · 第三步", title: "确认建仓 · 计划 → 实际",
-      tagline: "实际成交了才填这一步。填完这笔就从「计划中」变成「持仓中」，建仓档案随之锁死 —— <em>成交前改的是计划，成交后改的是历史</em>。",
-      fireIdle: "确认建仓 · 写回实际成交",
-      passTitle: "建仓已确认", passSub: "计划与实际的偏差已记进决策文件。以后回看，能知道你是不是总在按计划以外的价格和数量下手。",
+      kicker: "买入 · 开新仓 · 第三步", title: "确认建仓 · 纳入建仓数据",
+      tagline: "每买一笔就回来纳入一笔<em>实际成交数据</em>。建仓可以分多次，没建满就停在「建仓中」，首页看得到还差多少 —— <em>只有你勾了「这笔建仓已完成」，才转成持仓中并锁死建仓档案</em>。",
+      fireIdle: "纳入建仓数据 · 写回实际成交",
+      passTitle: "建仓数据已纳入", passSub: "本次成交已累加进这笔的持仓事实，计划与实际的偏差也记进了决策文件。以后回看，能知道你是不是总在按计划以外的价格和数量下手。",
       passQuote: "计划投入和实际投入的长期偏差，比任何一次单笔的对错都更能说明问题。",
       warnQuote: "至少要填成交价和股数 —— 没有这两个数，账户敞口就算不出来，Dashboard 也就是摆设。",
       sections: [],
-      tips: ["实际比计划买得多，是最常见的一种失控 —— 它通常发生在「盘中看着还会涨」的那一刻。这个偏差会被记下来，回头能算出你平均超买多少。"],
+      tips: [
+        "分批建仓不是拖延，是把「一次性判断」拆成「可修正的判断」。但没建满的计划要留在系统里看得见，否则它就等于不存在了。",
+        "实际比计划买得多，是最常见的一种失控 —— 它通常发生在「盘中看着还会涨」的那一刻。这个偏差会被记下来，回头能算出你平均超买多少。",
+      ],
     };
 
     /* 调整止损：放宽止损必须付出留痕的代价 —— 约束的解除如果不需要成本，它就不是约束。 */
@@ -2305,7 +2320,9 @@
       return {
         version: 4,
         accounts: { CNY: { capital: 0, horizonFund: "" }, HKD: { capital: 0, horizonFund: "" }, USD: { capital: 0, horizonFund: "" } },
-        maxSingleRatio: 1 / 3, changes: [], updated: "", portfolioSnapshot: null,
+        // settlements：已平仓并入资金基数的结转台账。有了它，账户净值里的「已实现盈亏」
+        // 才不会和「已经涨进资金基数里的那部分」重复计算。
+        maxSingleRatio: 1 / 3, changes: [], settlements: [], updated: "", portfolioSnapshot: null,
       };
     }
     function migrateAccount(a) {
@@ -2321,6 +2338,7 @@
       }
       if (a.maxSingleRatio) b.maxSingleRatio = a.maxSingleRatio;
       if (Array.isArray(a.changes)) b.changes = a.changes.slice(-200);
+      if (Array.isArray(a.settlements)) b.settlements = a.settlements.slice(-500);
       if (a.updated) b.updated = a.updated;
       if (a.portfolioSnapshot && typeof a.portfolioSnapshot === "object") b.portfolioSnapshot = a.portfolioSnapshot;
       return b;
@@ -2332,11 +2350,13 @@
         account: "CNY",             // 这笔用哪个市场的账户
         horizonThesis: "",
         amount: 0, addAmount: 0,
+        planTarget: 0, planNote: "",   // 调整建仓计划：目标总额 + 理由（调小时必填）
         stopPct: 0,                 // 只留止损幅度 —— 买入价是买的时候才知道的，现在填是假精确
         noStop: false,              // 长期 / 左侧建仓可以不设价格止损，出局条件换成逻辑证伪
         exitControl: "",
         coolSkipped: false,         // 冷却期是否被跳过（会写进决策文件）
-        fillPrice: 0, fillShares: 0, fillNote: "",   // 确认建仓：实际成交价 / 股数 / 备注
+        // 确认建仓：本次这一笔的成交价 / 股数 / 备注；fillComplete = 本笔建仓到此收口
+        fillPrice: 0, fillShares: 0, fillNote: "", fillComplete: false,
         sellPortion: "all", sellPrice: 0, sellNote: "",
         adjustMode: "", adjustStopPct: 0, adjustExitRule: "",
         startedAt: null,
@@ -2381,14 +2401,22 @@
     /* 派生指标：一处算，闸门 / 指标卡 / 压力测试 / 写盘都读它 */
     function metrics() {
       const cap = num(prepAccount().capital);
-      const base = num(prep.amount);
-      const add = num(prep.addAmount);
-      const total = currentMode === "buy_add" ? base + add : base;
+      const base = num(prep.amount);                 // 当前生效的建仓计划
+      // 调整建仓计划时，用户填的是「调整后的总额」；增量由它减出来，可正可负。
+      const target = num(prep.planTarget) || base;
+      const total = currentMode === "buy_add" ? target : base;
+      const add = currentMode === "buy_add" ? total - base : num(prep.addAmount);
       const ratio = cap > 0 ? total / cap : 0;
       const stopPct = prep.noStop ? 0 : num(prep.stopPct);
       // 不设价格止损时，最大风险就是这笔投入的全部 —— 出局条件换成了逻辑证伪
       const maxLoss = prep.noStop ? total : total * stopPct / 100;
-      return { cap, base, add, total, ratio, stopPct, maxLoss, lossOfAcct: cap > 0 ? maxLoss / cap : 0 };
+      // floor = 已建仓金额：计划不能低于已经买进去的钱，那不叫改计划，叫收口。
+      const floor = currentMode === "buy_add" ? tradeFilledTotal(activeTradeItem()).amount : 0;
+      return {
+        cap, base, add, total, ratio, stopPct, maxLoss, floor,
+        trimming: currentMode === "buy_add" && add < 0,
+        lossOfAcct: cap > 0 ? maxLoss / cap : 0,
+      };
     }
 
     function markStarted() { if (!prep.startedAt) prep.startedAt = Date.now(); persistPrep(); }
@@ -2410,11 +2438,16 @@
       // 同一论点在买入逻辑与建仓准备两个时点各审一遍。
       if (currentMode === "prepare") return [THESIS_GATE, RISK_GATE, EXIT_GATE];
       if (currentMode === "fill") return [];
-      if (currentMode === "buy_add") return [RISK_GATE].concat(own);
+      if (currentMode === "buy_add") return metrics().trimming ? [] : [RISK_GATE].concat(own);
       return own;
     }
     /* 非对称摩擦：只有增加风险的方向会被锁。 */
-    function isGated() { return ["buy_new", "prepare", "buy_add", "adjust"].indexOf(currentMode) !== -1; }
+    /* 非对称摩擦：只有增加风险的方向会被锁。
+       缩减建仓计划是降低敞口，跟止损同类 —— 不设门，只要求写清理由。 */
+    function isGated() {
+      if (currentMode === "buy_add") return !metrics().trimming;
+      return ["buy_new", "prepare", "adjust"].indexOf(currentMode) !== -1;
+    }
     // 当前选中的这笔处于什么状态
     function activeStatus() {
       const it = trades.open.find(x => x.file === activeFile);
@@ -2425,8 +2458,10 @@
     function needsFill() {
       const it = trades.open.find(x => x.file === activeFile);
       if (!it) return false;
-      if ((it.front["状态"] || ST_PLAN) === ST_PLAN) return true;
-      return !num(it.front["持仓股数"]);
+      const st = tradeStatus(it);
+      // 计划中 = 一笔都没成交；建仓中 = 建了一部分，还能继续分批录。
+      if (st === ST_PLAN || st === ST_FILLING) return true;
+      return !num(it.front["持仓股数"]);   // 老文件：写着持仓中却从没记过股数
     }
     /* 第一步只是买入逻辑建档；有 prepare/revise 事件后才算完成建仓准备。
        旧版文件把结构参数直接写在 open 里，保留兼容。 */
@@ -2484,7 +2519,8 @@
       try {
         trades = await api("/api/trade/list");
         if (activeFile && !trades.open.some(t => t.file === activeFile)) activeFile = "";
-      } catch (e) { serverOk = false; trades = { open: [], closed: [] }; }
+      } catch (e) { serverOk = false; trades = { open: [], closed: [], voided: [] }; }
+      if (!Array.isArray(trades.voided)) trades.voided = [];
     }
 
     /* 选中一笔持仓：把建仓档案回填进 prep，让结构层用真实数字重算 */
@@ -2500,8 +2536,10 @@
           if (o.strategy && STRATEGIES[o.strategy]) currentStrategy = o.strategy;
           const plan = Object.assign({}, o);
           for (const e of (j.events || [])) {
-            if (["prepare", "revise"].indexOf(e.kind) === -1 || !e.metrics) continue;
-            Object.assign(plan, e.metrics);
+            if (!e.metrics) continue;
+            if (["prepare", "revise"].indexOf(e.kind) !== -1) Object.assign(plan, e.metrics);
+            // 再次加仓时，基数必须是「上次加完之后的计划总额」，不能退回原始计划。
+            else if ((e.kind === "add" || e.kind === "trim") && num(e.metrics.amount)) plan.amount = num(e.metrics.amount);
           }
           prep = Object.assign(blankPrep(), {
             symbol: o.symbol || o.name || "",
@@ -2584,8 +2622,10 @@
       pick.appendChild(sel);
       const tag = document.createElement("span");
       tag.className = "conn-tag ok";
-      const nHeld = trades.open.filter(x => (x.front["状态"] || ST_PLAN) === ST_HELD).length;
-      tag.textContent = "持仓 " + nHeld + " · 计划 " + (trades.open.length - nHeld) + " · 已平 " + trades.closed.length;
+      const nHeld = trades.open.filter(x => tradeStatus(x) === ST_HELD).length;
+      const nFilling = trades.open.filter(x => tradeStatus(x) === ST_FILLING).length;
+      tag.textContent = "持仓 " + nHeld + (nFilling ? " · 建仓中 " + nFilling : "") +
+        " · 计划 " + (trades.open.length - nHeld - nFilling) + " · 已平 " + trades.closed.length;
       pick.appendChild(tag);
       // 重读本地 Markdown 真相源。
       const rf = document.createElement("button");
@@ -2626,11 +2666,14 @@
         const btn = document.createElement("div");
         btn.className = "mode-btn " + m.kind + (key === currentMode ? " on" : "") + (locked ? " locked" : "");
         btn.onclick = () => switchMode(key);
-        if (locked) btn.title = key === "fill" ? "先保存建仓准备，才能确认实际成交" : "先在「① 买入逻辑」完成论点建档";
+        if (locked) btn.title = key === "fill" ? "先保存建仓准备，才能纳入建仓数据（建仓中的可以一直纳入，直到你勾选建仓完成）" : "先在「① 买入逻辑」完成论点建档";
         btn.innerHTML =
           '<div class="m-icon">' + (locked ? "🔒" : m.icon) + '</div>' +
           '<div class="m-txt"><div class="m-label">' + m.navLabel + '</div>' +
-          '<div class="m-desc">' + (locked ? (key === "fill" ? "锁 · 建仓准备未保存" : "锁 · 买入逻辑未建档") : m.navDesc) + '</div></div>' +
+          '<div class="m-desc">' + (locked ? (key === "fill" ? "锁 · 建仓准备未保存" : "锁 · 买入逻辑未建档")
+            : key === "fill" && activeFile && tradeStatus(activeTradeItem()) === ST_FILLING
+              ? "建仓中 · 已建 " + tradeBuildProgress(activeTradeItem()).pct.toFixed(0) + "%"
+              : m.navDesc) + '</div></div>' +
           '<div class="m-mark"></div>';
         nav.appendChild(btn);
       }
@@ -2766,6 +2809,8 @@
       const o = Object.assign({}, item.open || {});
       for (const e of (item.events || [])) {
         if (["prepare", "revise"].indexOf(e.kind) !== -1 && e.metrics) Object.assign(o, e.metrics);
+        // 加仓 / 缩减改的都是「建仓计划总额」，不是持仓事实 —— 实际仓位一律走「确认建仓」录入。
+        if ((e.kind === "add" || e.kind === "trim") && e.metrics && num(e.metrics.amount)) o.amount = num(e.metrics.amount);
         if (e.kind === "adjust" && e.adjust) {
           o.noStop = !!e.adjust.noStop;
           o.stopPct = e.adjust.noStop ? null : num(e.adjust.stopPct);
@@ -2809,17 +2854,82 @@
     function tradeRealizedPnl(item) {
       return (item.events || []).reduce((sum, e) => sum + (e.sell && e.sell.realizedPnl != null ? num(e.sell.realizedPnl) : 0), 0);
     }
+    function tradeStatus(item) { return (item && item.front && item.front["状态"]) || ST_PLAN; }
+    /* 能不能作废：只有「一笔都没成交的计划」可以。
+       有过真实成交的一律走平仓 —— 有仓位就必须有出场记录，这是账要对得上的底线。 */
+    function tradeVoidable(item) {
+      if (!item) return false;
+      if (tradeStatus(item) !== ST_PLAN) return false;
+      return !(item.events || []).some(e => e.kind === "fill");
+    }
+    /* 有真实成交的两种状态：建仓中（建了一部分）与持仓中（建满了）。
+       两者都要算进账户敞口 —— 「还没建满」不等于「没风险」。 */
+    function tradeHasPosition(item) {
+      const st = tradeStatus(item);
+      return st === ST_FILLING || st === ST_HELD;
+    }
+    /* 累计建仓：只看 fill 事件的累加，不因为后来减仓而回退。
+       front matter 里的股数是「当前还剩多少」，这里要的是「一共建了多少」。 */
+    function tradeFilledTotal(item) {
+      let shares = 0, amount = 0, batches = 0, done = false;
+      for (const e of ((item && item.events) || [])) {
+        if (e.kind !== "fill" || !e.fill) continue;
+        if (e.fill.complete) done = true;
+        if (e.fill.finalizeOnly) continue;
+        shares += num(e.fill.shares);
+        amount += num(e.fill.actualAmount) || num(e.fill.shares) * num(e.fill.price);
+        batches++;
+      }
+      if (!batches) {                              // 老文件：没有 fill 事件，用 front matter 兜底
+        const f = (item && item.front) || {};
+        shares = num(f["持仓股数"]);
+        amount = num(f["实际投入"]) || shares * num(f["成本价"]);
+        if (shares || amount) { batches = 1; done = tradeStatus(item) === ST_HELD; }
+      }
+      return { shares, amount, batches, done, avgCost: shares ? amount / shares : 0 };
+    }
+    /* 建仓进度：已建 / 计划。允许超过 100%（实际买超了要看得见，不藏）。 */
+    function tradeBuildProgress(item) {
+      const planned = num(decisionPlan(item).amount);
+      const t = tradeFilledTotal(item);
+      return {
+        planned, filled: t.amount, shares: t.shares, batches: t.batches,
+        pct: planned ? t.amount / planned * 100 : 0,
+        remaining: Math.max(0, planned - t.amount),
+        over: planned ? Math.max(0, t.amount - planned) : 0,
+      };
+    }
+    /* 这笔的已实现盈亏是不是已经结转进资金基数了 —— 结转过就不能再算进净值。 */
+    function tradeSettled(item) {
+      const file = (item && item.file) || "";
+      return !!file && (account.settlements || []).some(s => s.file === file);
+    }
     function accountSnapshot(code) {
-      const held = trades.open.filter(t => (t.front["状态"] || ST_PLAN) === ST_HELD && tradeAcct(t) === code);
-      const planned = trades.open.filter(t => (t.front["状态"] || ST_PLAN) === ST_PLAN && tradeAcct(t) === code);
+      const mine = t => tradeAcct(t) === code;
+      // 持仓 = 建仓中 + 持仓中：只要有真实成交，敞口就已经在市场里了。
+      const held = trades.open.filter(t => tradeHasPosition(t) && mine(t));
+      const filling = trades.open.filter(t => tradeStatus(t) === ST_FILLING && mine(t));
+      const planned = trades.open.filter(t => tradeStatus(t) === ST_PLAN && mine(t));
       const costBasis = held.reduce((s, t) => s + tradeAmount(t), 0);
       const marketValue = held.reduce((s, t) => { const lv = tradeLive(t); return s + (lv ? lv.marketValue : tradeAmount(t)); }, 0);
       const unrealizedPnl = held.reduce((s, t) => { const lv = tradeLive(t); return s + (lv ? lv.pnl : 0); }, 0);
-      const realizedPnl = trades.open.concat(trades.closed).filter(t => tradeAcct(t) === code).reduce((s, t) => s + tradeRealizedPnl(t), 0);
-      const pending = planned.reduce((s, t) => s + tradeAmount(t), 0);
+      // 已结转的那几笔，盈亏已经涨进资金基数里了 —— 再加一遍就是重复计算。
+      const realizedPnl = trades.open.concat(trades.closed)
+        .filter(t => mine(t) && !tradeSettled(t))
+        .reduce((s, t) => s + tradeRealizedPnl(t), 0);
+      const settledPnl = trades.open.concat(trades.closed)
+        .filter(t => mine(t) && tradeSettled(t))
+        .reduce((s, t) => s + tradeRealizedPnl(t), 0);
+      // 待建计划 = 计划中的全额 + 建仓中「还没建满」的那一截
+      const pending = planned.reduce((s, t) => s + tradeAmount(t), 0) +
+        filling.reduce((s, t) => s + tradeBuildProgress(t).remaining, 0);
       const capital = num((account.accounts[code] || {}).capital);
       const nav = capital + realizedPnl + unrealizedPnl;
-      return { code, held, planned, capital, costBasis, marketValue, unrealizedPnl, realizedPnl, pending, nav, available: nav - marketValue - pending };
+      return {
+        code, held, filling, planned, capital, costBasis, marketValue,
+        unrealizedPnl, realizedPnl, settledPnl, pending, nav,
+        available: nav - marketValue - pending,
+      };
     }
 
     /* 账户级快照：单笔 Markdown 仍是持仓事实源，这里只记录「最后一次行情刷新时看到的汇总结果」。
@@ -2835,7 +2945,7 @@
           heldCount: s.held.length, plannedCount: s.planned.length,
         };
       }
-      const held = trades.open.filter(t => (t.front["状态"] || ST_PLAN) === ST_HELD);
+      const held = trades.open.filter(tradeHasPosition);
       const positions = held.map(item => {
         const f = item.front || {}, live = tradeLive(item), code = tradeAcct(item);
         const plan = decisionPlan(item), context = tradeDecisionContext(item);
@@ -2927,8 +3037,8 @@
     }
 
     function portfolioHealth() {
-      const held = trades.open.filter(t => (t.front["状态"] || ST_PLAN) === ST_HELD);
-      const planned = trades.open.filter(t => (t.front["状态"] || ST_PLAN) === ST_PLAN);
+      const held = trades.open.filter(tradeHasPosition);
+      const planned = trades.open.filter(t => tradeStatus(t) === ST_PLAN);
       const alerts = [];
       const add = (severity, type, item, message, prompts) => {
         const f = (item && item.front) || {}, name = f["标的"] || (item && item.file) || "账户级";
@@ -3059,7 +3169,7 @@
 
     function quoteBar() {
       const el = document.createElement("div");
-      const held = trades.open.filter(x => (x.front["状态"] || ST_PLAN) === ST_HELD);
+      const held = trades.open.filter(tradeHasPosition);
       const got = held.filter(x => quotes.prices[tradeTicker(x)]).length;
       if (quotes.loading) {
         el.className = "stance-ctx none";
@@ -3121,8 +3231,9 @@
     }
 
     function renderDash(scroll) {
-      const held = trades.open.filter(t => (t.front["状态"] || ST_PLAN) === ST_HELD);
-      const plan = trades.open.filter(t => (t.front["状态"] || ST_PLAN) === ST_PLAN);
+      const held = trades.open.filter(t => tradeStatus(t) === ST_HELD);
+      const filling = trades.open.filter(t => tradeStatus(t) === ST_FILLING);
+      const plan = trades.open.filter(t => tradeStatus(t) === ST_PLAN);
 
       /* ---- 各账户敞口 ---- */
       const accBox = document.createElement("div");
@@ -3140,15 +3251,17 @@
           (totalPnl ? '<span class="sub ' + (totalPnl > 0 ? "up" : "down") + '"> · ' + (totalPnl > 0 ? "+" : "") + fmtMoney(totalPnl, code) + '</span>' : '') + '</td>' +
           '<td>' + fmtMoney(s.costBasis, code) + '</td>' +
           '<td><b>' + fmtMoney(s.marketValue, code) + '</b></td>' +
-          '<td>' + (s.pending ? fmtMoney(s.pending, code) + '<span class="sub"> · ' + s.planned.length + ' 笔</span>' : '—') + '</td>' +
+          '<td>' + (s.pending ? fmtMoney(s.pending, code) + '<span class="sub"> · ' + (s.planned.length + s.filling.length) + ' 笔</span>' : '—') + '</td>' +
           '<td class="' + (s.available < 0 ? "neg" : "") + '"><b>' + fmtMoney(s.available, code) + '</b></td>' +
-          '<td>' + s.held.length + ' 笔</td></tr>';
+          '<td>' + s.held.length + ' 笔' + (s.filling.length ? '<span class="sub"> · 建仓中 ' + s.filling.length + '</span>' : '') + '</td></tr>';
       }
       accBox.innerHTML = '<div class="section-title"><span class="s-name">账户敞口</span><span class="s-rule all">' +
         (hasQuotes() ? "净值 + 市值口径" : "成本口径（待拉行情）") + '</span></div>' +
         (accRows
           ? '<div class="tbl-scroll"><table class="m-tbl dash"><tr><th>账户</th><th>资金基数</th><th>账户净值</th><th>持仓成本</th><th>持仓市值</th><th>待建计划</th><th>剩余可开</th><th>持仓数</th></tr>' + accRows + '</table></div>' +
-            '<div class="empty-note">账户净值 = 资金基数 + 已实现盈亏 + 浮动盈亏；剩余可开 = 账户净值 − 持仓市值 − 待建计划。未拉行情时，市值暂按剩余成本计。</div>'
+            '<div class="empty-note">账户净值 = 资金基数 + <b>未结转</b>已实现盈亏 + 浮动盈亏；剩余可开 = 账户净值 − 持仓市值 − 待建计划。' +
+            '<br>每笔<b>平仓归档时，该笔盈亏会自动并入资金基数</b>（在「账户参数 · 资金变动记录」里留痕），所以资金基数是滚动的，不是一开始那个数。' +
+            '<br>待建计划 = 计划中的全额 + 建仓中还没建满的那一截。未拉行情时，市值暂按剩余成本计。</div>'
           : '<div class="empty-note">还没启用任何账户 —— 先去「账户参数」设置资金基数。</div>');
       scroll.appendChild(accBox);
 
@@ -3170,9 +3283,29 @@
           : '<div class="empty-note">当前持仓与计划都在结构层之内。这不代表方向对，只代表<b>你还在牌桌上</b>。</div>');
       scroll.appendChild(chk);
 
-      /* ---- 持仓明细 ---- */
-      scroll.appendChild(tradeTable("持仓中（已成交）", held, true));
-      scroll.appendChild(tradeTable("计划中（等待建仓）", plan, false));
+      /* ---- 持仓明细：建仓中单列一张表 —— 「还没建满」是一个需要动作的状态 ---- */
+      scroll.appendChild(tradeTable("持仓中（已建满）", held, "held"));
+      if (filling.length) scroll.appendChild(tradeTable("建仓中（分批未建满）", filling, "filling"));
+      scroll.appendChild(tradeTable("计划中（等待建仓）", plan, "plan"));
+
+      /* ---- 已作废：不参与任何统计，只是留着让你知道自己否掉过什么 ---- */
+      const voided = (trades.voided || []);
+      if (voided.length) {
+        const vb = document.createElement("div");
+        vb.className = "section";
+        vb.innerHTML = '<div class="section-title"><span class="s-name">已作废的计划</span><span class="s-rule all">' + voided.length + ' 笔</span></div>' +
+          '<div class="tbl-scroll"><table class="m-tbl dash"><tr><th>标的</th><th>建档日</th><th>作废日</th><th>原因</th></tr>' +
+          voided.slice(0, 10).map(v => {
+            const f = v.front || {};
+            const ev = (v.events || []).find(e => e.kind === "void" && e.void) || { void: {} };
+            return '<tr><td>' + escapeHTML(f["标的"] || v.file) + '</td>' +
+              '<td>' + escapeHTML(f["建仓决策日"] || "—") + '</td>' +
+              '<td>' + escapeHTML(f["作废日"] || "—") + '</td>' +
+              '<td>' + escapeHTML((ev.void.reason || "—")) + '</td></tr>';
+          }).join("") + '</table></div>' +
+          '<div class="empty-note">这些是<b>一笔都没成交</b>就被否掉的建档，已经不占「待建计划」和「剩余可开」。留着它们，是因为「我否掉过什么」和「我做过什么」一样值得回看。</div>';
+        scroll.appendChild(vb);
+      }
 
       /* ---- 已平仓错因分布 ---- */
       const layers = {};
@@ -3194,7 +3327,12 @@
       if (serverOk) scroll.appendChild(quoteBar());
     }
 
-    function tradeTable(title, list, isHeld) {
+    /* kind: "held" 已建满 · "filling" 建仓中 · "plan" 还没成交 */
+    function tradeTable(title, list, kind) {
+      if (kind === true) kind = "held";
+      if (kind === false) kind = "plan";
+      const isHeld = kind === "held" || kind === "filling";
+      const isFilling = kind === "filling";
       const showLive = isHeld && hasQuotes();
       const box = document.createElement("div");
       box.className = "section";
@@ -3216,30 +3354,48 @@
             '<td class="' + (lv && lv.toStopPct != null && lv.toStopPct < 5 ? "neg" : "") + '">' +
             (lv ? (lv.toStopPct == null ? "无止损" : (lv.toStopPct >= 0 ? "还有 " + lv.toStopPct.toFixed(1) + "%" : "已破 " + Math.abs(lv.toStopPct).toFixed(1) + "%")) : "—") + '</td>'
           : '';
+        const prog = tradeBuildProgress(it);
+        const progCell = isFilling
+          ? '<td><b>' + prog.pct.toFixed(0) + '%</b><span class="sub"> · ' + fmtMoney(prog.filled, code) + ' / ' + fmtMoney(prog.planned, code) +
+            (prog.batches ? ' · ' + prog.batches + ' 笔' : '') + '</span></td>' +
+            '<td class="' + (prog.remaining ? "" : "neg") + '">' + (prog.remaining ? fmtMoney(prog.remaining, code) : (prog.over ? "超 " + fmtMoney(prog.over, code) : "已建满")) + '</td>'
+          : kind === "plan"
+            ? '<td>' + (prog.batches ? fmtMoney(prog.filled, code) : '<span class="sub">未开始</span>') + '</td>'
+            : '';
         rows += '<tr>' +
           '<td><b>' + escapeHTML(f["标的"] || it.file) + '</b><span class="sub"> · ' + escapeHTML(f["策略"] || "") + '</span></td>' +
           '<td>' + CURRENCY[code].sym + '</td>' +
           '<td>' + fmtMoney(lv ? lv.marketValue : amt, code) + '</td>' +
           (isHeld ? '<td>' + fmtMoney(lv ? lv.costAmount : amt, code) + '</td>' : '') +
+          progCell +
           '<td class="' + (over ? "neg" : "") + '">' + (exposureDenom ? (exposureAmount / exposureDenom * 100).toFixed(1) + "%" : "—") + '</td>' +
           (isHeld ? '<td>' + (shares ? shares.toLocaleString("en-US") : "—") + '</td><td>' + (cost || "—") + '</td>' : '') +
           live +
           '<td>' + (o.noStop ? "逻辑证伪" : (o.stopPct ? "-" + num(o.stopPct).toFixed(1) + "%" : "—")) + '</td>' +
           '<td>' + (th ? th.label : "—") + '</td>' +
-          '<td><button class="mini-btn" data-file="' + escapeHTML(it.file) + '">打开</button></td>' +
+          '<td><button class="mini-btn" data-file="' + escapeHTML(it.file) + '">打开</button>' +
+          (kind === "plan" && tradeVoidable(it)
+            ? '<button class="mini-btn void" data-void="' + escapeHTML(it.file) + '" title="这条建档本就不该存在（标的填错 / 重复建档 / 想法已否）">🗑 作废</button>'
+            : '') + '</td>' +
           '</tr>';
       }
-      box.innerHTML = '<div class="section-title"><span class="s-name">' + title + '</span><span class="s-rule all">' + list.length + ' 笔</span></div>' +
+      box.innerHTML = '<div class="section-title"><span class="s-name">' + title + '</span><span class="s-rule ' + (isFilling ? "any" : "all") + '">' + list.length + ' 笔</span></div>' +
         (list.length
           ? '<div class="tbl-scroll"><table class="m-tbl dash"><tr><th>标的</th><th>币</th><th>' +
           (isHeld ? "持仓市值" : "计划投入") + '</th>' +
-          (isHeld ? '<th>持仓成本</th>' : '') + '<th>占账户</th>' +
+          (isHeld ? '<th>持仓成本</th>' : '') +
+          (isFilling ? '<th>建仓进度</th><th>还差</th>' : kind === "plan" ? '<th>已建</th>' : '') +
+          '<th>占账户</th>' +
           (isHeld ? '<th>股数</th><th>成本价</th>' : '') +
           (showLive ? '<th>现价</th><th>浮盈亏</th><th>距止损</th>' : '') +
-          '<th>止损</th><th>论点周期</th><th></th></tr>' + rows + '</table></div>'
+          '<th>止损</th><th>论点周期</th><th></th></tr>' + rows + '</table></div>' +
+          (isFilling ? '<div class="empty-note">这些标的<b>已经有真实仓位</b>，只是计划还没建满 —— 敞口已按实际成交算进账户。要继续加、或者就此收口，都去「③ 确认建仓」。</div>' : '')
           : '<div class="empty-note">' + (isHeld ? "还没有已成交的持仓。走完「② 建仓准备」再到「③ 确认建仓」，这里就有了。" : "没有等待建仓的计划。") + '</div>');
-      box.querySelectorAll(".mini-btn").forEach(b => {
-        b.onclick = async () => { await selectTrade(b.dataset.file); switchMode("prepare"); };
+      box.querySelectorAll(".mini-btn[data-file]").forEach(b => {
+        b.onclick = async () => { await selectTrade(b.dataset.file); switchMode(isFilling ? "fill" : "prepare"); };
+      });
+      box.querySelectorAll(".mini-btn[data-void]").forEach(b => {
+        b.onclick = () => showVoidForm(list.find(x => x.file === b.dataset.void));
       });
       return box;
     }
@@ -3249,11 +3405,17 @@
       const base = Object.assign({}, activeOpen || {});
       const it = trades.open.find(x => x.file === activeFile);
       const evs = (it && it.events) || [];
-      let revisions = 0;
+      let revisions = 0, adds = 0;
       for (const e of evs) {
         if (["prepare", "revise"].indexOf(e.kind) !== -1 && e.metrics) {
           revisions++;
           Object.assign(base, e.metrics);
+        }
+        // 加仓改的是建仓计划总额 —— 确认建仓必须跟「加仓之后」那版计划对账，
+        // 否则加完仓回来录成交，进度还按老计划算，永远显示超买。
+        if ((e.kind === "add" || e.kind === "trim") && e.metrics && num(e.metrics.amount)) {
+          adds++;
+          base.amount = num(e.metrics.amount);
         }
         if (e.kind === "adjust" && e.adjust) {
           base.noStop = !!e.adjust.noStop;
@@ -3262,6 +3424,7 @@
         }
       }
       base._revisions = revisions;
+      base._adds = adds;
       return base;
     }
 
@@ -3269,47 +3432,77 @@
     function fillNotice() {
       const el = document.createElement("div");
       el.className = "stance-ctx none";
+      const it = trades.open.find(x => x.file === activeFile);
       el.innerHTML = '<span class="sc-icon">✅</span><div>' +
         (!activeFile
-          ? '先在顶部选一笔<b>计划中</b>的决策文件 —— 确认建仓是把某一笔的「计划」变成「实际成交」。'
+          ? '先在顶部选一笔<b>计划中</b>或<b>建仓中</b>的决策文件 —— 确认建仓是把某一笔的「计划」分批变成「实际成交」。'
           : !activePrepared()
             ? '这笔只完成了<b>买入逻辑建档</b>。先去「② 建仓准备」复核论点、补齐仓位与退出动作并保存，再来确认成交。'
-          : '这笔已经录过成交（' + escapeHTML(activeStatus()) + ' · ' + escapeHTML((trades.open.find(x=>x.file===activeFile)||{front:{}}).front["持仓股数"] || "") + ' 股）。要加仓走「加仓」，要改止损走「调整止损」。') + '</div>';
+          : '这笔已经<b>建仓完成</b>（' + escapeHTML(activeStatus()) + ' · ' + escapeHTML((it || { front: {} }).front["持仓股数"] || "") + ' 股）。' +
+            '想再买，去「变更建仓计划」先把计划调大 —— 变更的是计划，实际成交仍然回到这里录。') + '</div>';
       return el;
     }
 
     function buildFillForm() {
       const o = effectivePlan();
+      const item = trades.open.find(x => x.file === activeFile);
       const code = o.account || o.currency || "CNY", c = CURRENCY[code] || CURRENCY.CNY;
       const planned = num(o.amount);
-      const actual = num(prep.fillPrice) * num(prep.fillShares);
-      const diff = planned ? (actual - planned) / planned * 100 : 0;
+      const done = tradeFilledTotal(item);                 // 之前累计建了多少
+      const batch = num(prep.fillPrice) * num(prep.fillShares);   // 本次这一笔
+      const after = done.amount + batch;
+      const pctAfter = planned ? after / planned * 100 : 0;
+      const remainAfter = Math.max(0, planned - after);
+      const diff = planned ? (after - planned) / planned * 100 : 0;
+      const isFirst = done.batches === 0;
       const wrap = document.createElement("div");
       wrap.className = "pf-grid";
       wrap.innerHTML =
         '<div class="pf-row wide"><div class="pf-label acct-head"><span>' + escapeHTML(o.symbol || activeFile) + '</span>' +
-        '<span class="pf-unit">计划投入 ' + fmtMoney(planned, code) + '（' + c.sym + ' ' + c.label + '账户' +
+        '<span class="pf-unit">建仓计划 ' + fmtMoney(planned, code) + '（' + c.sym + ' ' + c.label + '账户' +
         (o._revisions ? ' · 已修订 ' + o._revisions + ' 次' : '') + '）</span></div>' +
-        '<div class="pf-hint">填实际成交的价格和股数。两者相乘就是实际投入，会自动跟计划对比。</div></div>' +
+        '<div class="pf-hint">' + (isFirst
+          ? '建仓可以分多笔。这里填<b>本次这一笔</b>的成交价和股数 —— 没建满就先留在「建仓中」，下次回来接着录。'
+          : '这是第 <b>' + (done.batches + 1) + '</b> 笔。已建 <b>' + fmtMoney(done.amount, code) + '</b>（' + fmtShares(done.shares) + ' 股 · 均价 ' + (+done.avgCost.toFixed(4)) + '），' +
+            (planned ? '距计划还差 <b>' + fmtMoney(Math.max(0, planned - done.amount), code) + '</b>。' : '')) + '</div></div>' +
 
-        '<div class="pf-row"><div class="pf-label">实际成交价 <span class="pf-unit">' + c.sym + '</span></div>' +
+        (isFirst ? '' :
+          '<div class="pf-row wide"><div class="pf-label">已建仓进度</div>' +
+          '<div class="fill-sum ' + (done.amount >= planned && planned ? "ok" : "") + '">' +
+          (planned ? (done.amount / planned * 100).toFixed(0) + '%' : '—') +
+          '　<span class="sub">' + fmtMoney(done.amount, code) + ' / ' + fmtMoney(planned, code) + '　·　' + done.batches + ' 笔成交</span></div></div>') +
+
+        '<div class="pf-row"><div class="pf-label">本次成交价 <span class="pf-unit">' + c.sym + '</span></div>' +
         '<input class="pf-input" type="number" step="0.01" id="flPrice" value="' + (prep.fillPrice || "") + '" placeholder="0.00" /></div>' +
 
-        '<div class="pf-row"><div class="pf-label">实际股数 / 份额</div>' +
+        '<div class="pf-row"><div class="pf-label">本次股数 / 份额</div>' +
         '<input class="pf-input" type="number" step="1" id="flShares" value="' + (prep.fillShares || "") + '" placeholder="0" />' +
-        '<div class="pf-hint">只记股数就够 —— 现价由 YMOS 行情源另行拉取，不在这里手抄。</div></div>' +
+        '<div class="pf-hint">只记股数就够 —— 现价由 YMOS 行情源另行拉取，不在这里手抄。多笔建仓的成本价由系统按加权平均自动算。</div></div>' +
 
-        '<div class="pf-row wide"><div class="pf-label">实际投入</div>' +
-        '<div class="fill-sum ' + (Math.abs(diff) > 10 ? "bad" : (actual ? "ok" : "")) + '">' +
-        (actual ? fmtMoney(actual, code) + '　<span class="sub">vs 计划 ' + fmtMoney(planned, code) +
-          (planned ? '　·　偏差 <b>' + (diff >= 0 ? "+" : "") + diff.toFixed(1) + '%</b>' : '') + '</span>' : '填完价格和股数就会算出来') +
+        '<div class="pf-row wide"><div class="pf-label">本次投入 / 累计建仓</div>' +
+        '<div class="fill-sum ' + (Math.abs(diff) > 10 && after ? "bad" : (after ? "ok" : "")) + '">' +
+        (batch || done.amount
+          ? (batch ? fmtMoney(batch, code) + '　' : '') + '<span class="sub">累计 ' + fmtMoney(after, code) +
+            (planned ? ' / ' + fmtMoney(planned, code) + '（<b>' + pctAfter.toFixed(0) + '%</b>）' : '') + '</span>'
+          : '填完价格和股数就会算出来') +
         '</div>' +
-        (Math.abs(diff) > 10 && actual
-          ? '<div class="pf-hint bad">跟计划差了 ' + Math.abs(diff).toFixed(1) + '% —— 这个偏差会写进决策文件。<b>实际比计划买得多</b>是最常见的一种失控，它通常发生在「盘中看着还会涨」的那一刻。</div>'
-          : '<div class="pf-hint">偏差会如实记录。长期看，这个数比任何一次单笔的对错都更能说明问题。</div>') + '</div>' +
+        (planned && after > planned * 1.001
+          ? '<div class="pf-hint bad">累计已经<b>超出建仓计划 ' + fmtMoney(after - planned, code) + '</b>（+' + diff.toFixed(1) + '%）。买超本身不被拦，但会如实写进决策文件 —— <b>实际比计划买得多</b>是最常见的一种失控，它通常发生在「盘中看着还会涨」的那一刻。想正大光明地加，去「变更建仓计划」把计划调大。</div>'
+          : remainAfter
+            ? '<div class="pf-hint">这一笔录完还差 <b>' + fmtMoney(remainAfter, code) + '</b>。不勾下面那个开关，这笔就留在<b>建仓中</b>，首页能看到进度。</div>'
+            : '<div class="pf-hint">偏差会如实记录。长期看，这个数比任何一次单笔的对错都更能说明问题。</div>') + '</div>' +
+
+        '<div class="pf-row wide"><div class="pf-label">本笔建仓是否收口</div>' +
+        '<label class="pf-check"><input type="checkbox" id="flDone"' + (prep.fillComplete ? " checked" : "") + ' />' +
+        '<span><b>这笔建仓已完成</b> —— 转入「持仓中」，不再分批买入</span></label>' +
+        '<div class="pf-hint' + (prep.fillComplete ? "" : " bad") + '">' +
+        (prep.fillComplete
+          ? '收口后状态变成<b>持仓中</b>。之后想再买，要先去「变更建仓计划」把计划调大 —— 那一步有压力测试。'
+          : '不勾 = 保持<b>建仓中</b>。' + (done.batches || batch ? '仓位已经真实存在，账户敞口按实际成交算，不会因为「还没建满」而漏掉风险。' : '') +
+            '<br>没建满就没建满，别为了让状态好看而假装建完了 —— 这一栏的唯一用途，是让你自己知道<b>手里的计划还有多少没执行</b>。') + '</div></div>' +
 
         '<div class="pf-row wide"><div class="pf-label">成交备注 <span class="pf-unit">选填</span></div>' +
-        '<textarea class="i-text" id="flNote" rows="2" placeholder="分几笔买的？有没有追价？跟计划不一样的地方，写一句。">' + escapeHTML(prep.fillNote || "") + '</textarea></div>';
+        '<textarea class="i-text" id="flNote" rows="2" placeholder="这一笔为什么在这个位置买？有没有追价？跟计划不一样的地方，写一句。">' + escapeHTML(prep.fillNote || "") + '</textarea></div>';
 
       const bind = (id, fn) => {
         const el = wrap.querySelector("#" + id);
@@ -3318,6 +3511,7 @@
       };
       bind("flPrice", v => prep.fillPrice = num(v));
       bind("flShares", v => prep.fillShares = num(v));
+      wrap.querySelector("#flDone").addEventListener("change", e => { prep.fillComplete = e.target.checked; persistPrep(); renderMode(); });
       wrap.querySelector("#flNote").addEventListener("input", e => { prep.fillNote = e.target.value; });
       return wrap;
     }
@@ -3396,7 +3590,11 @@
       why.className = "tips";
       why.innerHTML =
         '<div class="tip"><span class="tip-icon">🔒</span><div>建仓档案<em>故意不给改</em>。它记录的是「我当时是怎么想的」—— 事后改它，就等于把过去的自己改成跟现在一致，那这份文件就再也证明不了任何事。<br>' +
-        '要变更止损或失效条件：走 <em>「调整止损」</em>，它会以事件<em>追加</em>，旧的那条留在原处。</div></div>' +
+        '<b>不给改，不等于不能变</b> —— 每一种变更都有自己的入口，走过去就会留下一条事件：<br>' +
+        '· 要改<em>投入金额</em>：走 <em>「变更建仓计划」</em>。调大就是加仓（走压力测试），调小是缩减敞口（要写理由）。下限是已经买进去的钱。<br>' +
+        '· 要改<em>止损或失效条件</em>：走 <em>「调整止损」</em>。<br>' +
+        '· 想<em>就此收手不再买</em>：去 <em>「③ 确认建仓」</em> 勾「这笔建仓已完成」。<br>' +
+        '旧的那条永远留在原处 —— 你能看到的不只是最后的决定，还有你是怎么一步步走到那个决定的。</div></div>' +
         '<div class="tip"><span class="tip-icon">📖</span><div>想看完整的事件流（每次加仓 / 止盈 / 调整的正文与理由），去 Reader 侧栏 <em>YMOS → 买入卖出决策</em> 打开这份 md。</div></div>';
       scroll.appendChild(why);
     }
@@ -3422,7 +3620,7 @@
       el.className = "stance-ctx none";
       el.innerHTML = '<span class="sc-icon">📂</span><div>' +
         (serverOk
-          ? '还没选持仓 —— 上方选一笔<b>持仓中</b>的决策文件，这个动作才知道往哪个文件追加。（没有的话先走「① 买入逻辑 → ② 建仓准备」建一笔。）'
+          ? '还没选持仓 —— 上方选一笔<b>持仓中 / 建仓中</b>的决策文件，这个动作才知道往哪个文件追加。（没有的话先走「① 买入逻辑 → ② 建仓准备」建一笔。）'
           : '未连本地服务：可以照常勾选做判断，但<b>不会写盘</b>。跑 <b>python3 server.py</b> 后刷新即可。') + '</div>';
       return el;
     }
@@ -3464,7 +3662,7 @@
         '<div class="metric ' + (cls || "") + '"><div class="mt-val">' + val + '</div><div class="mt-label">' + label + '</div></div>';
       const ratioCls = !m.cap || !m.total ? "" : (m.ratio > account.maxSingleRatio ? "bad" : "ok");
       wrap.innerHTML =
-        card(m.total ? fmtMoney(m.total) : "—", (currentMode === "buy_add" ? "加仓后总投入" : "计划投入") + "（" + cur().label + "）") +
+        card(m.total ? fmtMoney(m.total) : "—", (currentMode === "buy_add" ? "调整后建仓计划" : "计划投入") + "（" + cur().label + "）") +
         card(m.cap && m.total ? (m.ratio * 100).toFixed(1) + "%" : "—", "占该账户（上限 " + (account.maxSingleRatio * 100).toFixed(0) + "%）", ratioCls) +
         card(prep.noStop ? "不设" : (m.stopPct ? "-" + m.stopPct.toFixed(1) + "%" : "—"), "止损幅度") +
         card(m.maxLoss ? fmtMoney(m.maxLoss) : "—", prep.noStop ? "最大风险（全额）" : "最大亏损额", m.maxLoss ? "bad" : "") +
@@ -3484,20 +3682,23 @@
       const thIdx = horizonIdx(HORIZON_THESIS, prep.horizonThesis);
       const thLabel = thIdx < 0 ? "未选" : HORIZON_THESIS[thIdx].label;
       const clash = fundH && thIdx >= 0 && HORIZON_THESIS[thIdx].months > fundH.months;
-      const amt = isAdd ? num(prep.addAmount) : num(prep.amount);
-      // 新建仓沿用币种金额步长；加仓按账户资金基数切成 1% 一格，并允许拖到 100% 让越线风险可见。
+      // 调整建仓计划：拖的是「调整后的计划总额」，下限锁在已建仓金额。
+      const amt = isAdd ? m.total : num(prep.amount);
       const amtMax = Math.max(m.cap || c.max, amt);
-      const addPct = m.cap ? Math.max(0, Math.min(100, Math.round(amt / m.cap * 100))) : 0;
-      const onePctAmount = m.cap / 100;
+      const floor = isAdd ? Math.max(0, Math.round(m.floor)) : 0;
+      const targetPct = m.cap ? Math.max(0, Math.min(200, Math.round(amt / m.cap * 100))) : 0;
       const amountControl = isAdd
-        ? '<div class="slider-row"><input class="pf-range" type="range" min="0" max="100" step="1" value="' + addPct + '" id="pfAmtRange" />' +
-          '<span class="slider-val' + (!addPct ? ' dim' : '') + '" id="pfAmtVal">' + addPct + '% · ' + fmtMoney(amt) + '</span></div>' +
-          '<div class="slider-ticks"><span>0</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>'
+        ? '<div class="slider-row"><input class="pf-range" type="range" min="' + floor + '" max="' + Math.max(amtMax, floor + 1) + '" step="' + c.step + '" value="' + amt + '" id="pfAmtRange" />' +
+          '<input class="pf-input num" type="number" step="' + c.step + '" id="pfAmt" value="' + (amt || "") + '" placeholder="0" /></div>' +
+          '<div class="slider-ticks"><span>已建 ' + fmtMoney(floor) + '</span><span>原计划 ' + fmtMoney(m.base) + '</span><span>' + fmtMoney(amtMax) + '</span></div>'
         : '<div class="slider-row"><input class="pf-range" type="range" min="0" max="' + amtMax + '" step="' + c.step + '" value="' + amt + '" id="pfAmtRange" />' +
           '<input class="pf-input num" type="number" step="' + c.step + '" id="pfAmt" value="' + (amt || "") + '" placeholder="0" /></div>';
-      const amountHint = isAdd && m.cap
-        ? '每格 = 账户资金基数的 <b>1%</b>（' + fmtMoney(onePctAmount) + '）；本次加仓 <b>' + addPct + '% · ' + fmtMoney(amt) + '</b>。'
-        : '';
+      const amountHint = !isAdd ? ''
+        : (m.add > 0
+          ? '在原计划 <b>' + fmtMoney(m.base) + '</b> 上<b>调大 ' + fmtMoney(m.add) + '</b>（' + targetPct + '% 账户）—— 这是加仓，下面的门要全绿。'
+          : m.add < 0
+            ? '把计划从 <b>' + fmtMoney(m.base) + '</b> <b>缩到 ' + fmtMoney(m.total) + '</b>（' + fmtMoney(m.add) + '）—— 降敞口不设门，但要写清为什么。'
+            : '拖动或直接输入<b>调整后的计划总额</b>。下限 <b>' + fmtMoney(floor) + '</b> = 已经建进去的钱，改计划改不动它。');
 
       wrap.innerHTML =
         '<div class="pf-row wide"><div class="pf-label">用哪个账户 <span class="pf-unit">分市场记账，占比只跟这个账户比</span></div>' +
@@ -3519,12 +3720,23 @@
             : clash ? '⚠️ 期限错配：这个账户的钱只能放 ' + fundH.label + '，论点却要跑 ' + HORIZON_THESIS[thIdx].label + ' —— 方向对不对都不影响它爆。'
               : '✓ 资金可用 ' + fundH.label + ' ≥ 论点要跑 ' + HORIZON_THESIS[thIdx].label) + '</div></div>' +
 
-        '<div class="pf-row wide"><div class="pf-label">' + (isAdd ? "本次加仓金额" : "计划投入金额") + ' <span class="pf-unit">' + c.sym + ' ' + c.label + '</span></div>' +
+        '<div class="pf-row wide"><div class="pf-label">' + (isAdd ? "调整后的建仓计划总额" : "计划投入金额") + ' <span class="pf-unit">' + c.sym + ' ' + c.label + '</span></div>' +
         amountControl +
         '<div class="pf-hint' + (m.cap && m.total && m.ratio > account.maxSingleRatio ? " bad" : "") + '">' +
         (m.cap ? amountHint + (amountHint ? '<br>' : '') + '单笔上限 <b>' + fmtMoney(m.cap * account.maxSingleRatio) + '</b>（该账户 ' + (account.maxSingleRatio * 100).toFixed(0) + '%）' +
           (m.total ? '　·　当前 <b>' + (m.ratio * 100).toFixed(1) + '%</b>' : '')
           : '先去账户参数填这个账户的资金基数') + '</div></div>' +
+
+        (isAdd
+          ? '<div class="pf-row wide"><div class="pf-label">调整理由 <span class="pf-unit">' + (m.trimming ? "必填" : "选填") + '</span></div>' +
+            '<textarea class="i-text" id="pfPlanNote" rows="2" placeholder="' +
+            (m.trimming ? "为什么把计划改小？论点变弱了、仓位不舒服、还是发现了更好的机会？" : "为什么现在要加？赔率哪里变好了？") +
+            '">' + escapeHTML(prep.planNote || "") + '</textarea>' +
+            '<div class="pf-hint' + (m.trimming && !(prep.planNote || "").trim() ? " bad" : "") + '">' +
+            (m.trimming
+              ? '缩减计划不设门，但<b>必须留下理由</b>。以后回看，「主动缩减」和「从没打算买那么多」是两件完全不同的事，只有这句话能把它们分开。'
+              : '加仓的理由会连同压力测试一起写进决策文件。') + '</div></div>'
+          : '') +
 
         '<div class="pf-row wide"><div class="pf-label">止损幅度 <span class="pf-unit">买入价是买的时候才知道的，这里只定幅度</span></div>' +
         '<div class="slider-row"><input class="pf-range" type="range" min="0" max="50" step="0.5" value="' + num(prep.stopPct) + '" id="pfStopPct"' + (prep.noStop ? " disabled" : "") + ' />' +
@@ -3553,24 +3765,20 @@
       });
       th.addEventListener("change", () => renderMode());
 
-      const amtRange = wrap.querySelector("#pfAmtRange"), amtNum = wrap.querySelector("#pfAmt"), amtVal = wrap.querySelector("#pfAmtVal");
-      const setAmt = v => { if (isAdd) prep.addAmount = v; else prep.amount = v; markStarted(); updateProgress(); };
-      amtRange.addEventListener("input", () => {
-        if (isAdd) {
-          const pct = num(amtRange.value);
-          const value = Math.round(m.cap * pct) / 100;
-          setAmt(value);
-          amtVal.textContent = pct.toFixed(0) + "% · " + fmtMoney(value);
-          amtVal.classList.toggle("dim", !pct);
-        } else {
-          setAmt(num(amtRange.value)); amtNum.value = num(amtRange.value) || "";
-        }
-      });
+      const amtRange = wrap.querySelector("#pfAmtRange"), amtNum = wrap.querySelector("#pfAmt");
+      // 调整计划时写的是目标总额（planTarget）；新建仓时写的是计划金额（amount）。
+      const setAmt = v => {
+        if (isAdd) prep.planTarget = Math.max(floor, v); else prep.amount = v;
+        markStarted(); updateProgress();
+      };
+      amtRange.addEventListener("input", () => { setAmt(num(amtRange.value)); if (amtNum) amtNum.value = num(amtRange.value) || ""; });
       amtRange.addEventListener("change", () => renderMode());
       if (amtNum) {
-        amtNum.addEventListener("input", () => { setAmt(num(amtNum.value)); amtRange.value = Math.min(num(amtNum.value), amtMax); });
+        amtNum.addEventListener("input", () => { setAmt(num(amtNum.value)); amtRange.value = Math.min(Math.max(num(amtNum.value), floor), amtMax); });
         amtNum.addEventListener("change", () => renderMode());
       }
+      const planNote = wrap.querySelector("#pfPlanNote");
+      if (planNote) planNote.addEventListener("input", e => { prep.planNote = e.target.value; markStarted(); updateProgress(); });
 
       const sp = wrap.querySelector("#pfStopPct");
       sp.addEventListener("input", () => {
@@ -3668,8 +3876,19 @@
         Object.keys(SELL_PORTION).map(k =>
           '<button class="pf-opt' + (prep.sellPortion === k ? " on" + (k === "all" ? " neg" : "") : "") + '" data-k="' + k + '">' + SELL_PORTION[k].label + '</button>').join("") +
         '</div><div class="pf-hint">本次计划卖 <b>' + fmtShares(pos.sell) + '</b>，卖后剩 <b>' + fmtShares(pos.remain) + '</b>。选「全部清仓」会把决策文件归档；部分卖出会把剩余股数写回文件头。</div></div>' +
-        '<div class="pf-row"><div class="pf-label">成交价 <span class="pf-unit">选填</span></div>' +
-        '<input class="pf-input" type="number" step="0.01" id="spPrice" value="' + (prep.sellPrice || "") + '" placeholder="0.00" /></div>' +
+        '<div class="pf-row"><div class="pf-label">成交价 <span class="pf-unit">必填</span></div>' +
+        '<input class="pf-input" type="number" step="0.01" id="spPrice" value="' + (prep.sellPrice || "") + '" placeholder="0.00" />' +
+        '<div class="pf-hint' + (num(prep.sellPrice) > 0 ? "" : " bad") + '">' +
+        (num(prep.sellPrice) > 0
+          ? (function () {
+            const p = activePosition();
+            if (!p || !p.costPrice) return "已记录成交价。";
+            const pnl = (num(prep.sellPrice) - p.costPrice) * pos.sell;
+            const code = p.plan.account || p.plan.currency || "CNY";
+            return "本次已实现盈亏 <b class=\"" + (pnl >= 0 ? "up" : "down") + "\">" + (pnl >= 0 ? "+" : "") + fmtMoney(pnl, code) +
+              "</b>（成本价 " + p.costPrice + "）。<b>全部清仓时这个数会自动结转进账户资金基数。</b>";
+          })()
+          : "没有成交价就算不出已实现盈亏 —— 账户净值和资金基数都会停在原地，这正是「平仓了钱却没进账」的来源。") + '</div></div>' +
         '<div class="pf-row wide"><div class="pf-label">补充说明 <span class="pf-unit">选填</span></div>' +
         '<textarea class="i-text" id="spNote" rows="2" placeholder="当时的盘面、犹豫、执行偏差 —— 写一句，以后复盘时这句最值钱。">' + escapeHTML(prep.sellNote || "") + '</textarea></div>';
       wrap.querySelectorAll("#spOpts .pf-opt").forEach(b => {
@@ -3802,7 +4021,7 @@
         Object.keys(CURRENCY).map(code => '<button class="pf-opt' + (code === accountEditCode ? ' on' : '') + '" data-v="' + code + '">' + CURRENCY[code].sym + ' ' + CURRENCY[code].label + '<span class="opt-sub">' + (num(account.accounts[code].capital) ? fmtMoney(account.accounts[code].capital, code) : '未启用') + '</span></button>').join("") + '</div></div>' +
 
         '<div class="pf-row wide"><div class="pf-label acct-head"><span>' + c.sym + ' ' + c.label + '账户·当前资金基数</span><span class="pf-unit">单笔上限 ' + fmtMoney(num(a.capital) * account.maxSingleRatio, accountEditCode) + '</span></div>' +
-        '<div class="fill-sum">' + fmtMoney(num(a.capital), accountEditCode) + '</div><div class="pf-hint">这是账户的资金起点，只在增资、减资或你主动重设时改变；不跟着行情涨跌。</div></div>' +
+        '<div class="fill-sum">' + fmtMoney(num(a.capital), accountEditCode) + '</div><div class="pf-hint">这是账户当前的本金口径：<b>增资、减资、你主动重设，以及每一笔平仓结转</b>，都会改它；<b>不跟着行情涨跌</b>（浮盈只体现在「账户净值」里）。</div></div>' +
 
         '<div class="pf-row wide"><div class="pf-label">资金变动 <span class="pf-unit">每次留痕</span></div>' +
         '<div class="slider-row"><input class="pf-input num" type="number" id="acDelta" step="' + c.step + '" placeholder="本次增加 / 减少多少" />' +
@@ -3840,6 +4059,23 @@
 
       const history = document.createElement("div");
       history.className = "section";
+      const settlements = (account.settlements || []).slice().reverse().slice(0, 8);
+      if (settlements.length) {
+        const settleBox = document.createElement("div");
+        settleBox.className = "section";
+        settleBox.innerHTML = '<div class="section-title"><span class="s-name">平仓结转台账</span><span class="s-rule all">' + (account.settlements || []).length + ' 笔</span></div>' +
+          '<div class="tbl-scroll"><table class="m-tbl dash"><tr><th>结转时间</th><th>标的</th><th>账户</th><th>已实现盈亏</th><th>资金基数（前）</th><th>资金基数（后）</th></tr>' +
+          settlements.map(s => {
+            const sc = CURRENCY[s.account] ? s.account : "CNY";
+            const v = num(s.realizedPnl);
+            return '<tr><td>' + escapeHTML(s.ts || "") + '</td><td>' + escapeHTML(s.symbol || s.file) + '</td><td>' + CURRENCY[sc].label + '</td>' +
+              '<td class="' + (v >= 0 ? "up" : "down") + '">' + (v >= 0 ? "+" : "") + fmtMoney(v, sc) + '</td>' +
+              '<td>' + fmtMoney(num(s.capitalBefore), sc) + '</td><td><b>' + fmtMoney(num(s.capitalAfter), sc) + '</b></td></tr>';
+          }).join("") + '</table></div>' +
+          '<div class="empty-note">平仓那一刻，这笔的盈亏就变成了本金 —— 资金基数是所有仓位比例与单笔上限的分母，它必须跟着实际结果滚动。</div>';
+        scroll.appendChild(settleBox);
+      }
+
       const changes = (account.changes || []).slice().reverse().slice(0, 12);
       history.innerHTML = '<div class="section-title"><span class="s-name">资金变动记录</span><span class="s-rule all">' + (account.changes || []).length + ' 条</span></div>' +
         (changes.length ? '<div class="tbl-scroll"><table class="m-tbl dash"><tr><th>时间</th><th>账户</th><th>动作</th><th>变动</th><th>变更前</th><th>变更后</th><th>备注</th></tr>' + changes.map(x => '<tr><td>' + escapeHTML(x.ts) + '</td><td>' + escapeHTML(CURRENCY[x.account] ? CURRENCY[x.account].label : x.account) + '</td><td>' + escapeHTML(x.label || x.type) + '</td><td>' + fmtMoney(num(x.amount), x.account) + '</td><td>' + fmtMoney(num(x.before), x.account) + '</td><td><b>' + fmtMoney(num(x.after), x.account) + '</b></td><td>' + escapeHTML(x.note || '—') + '</td></tr>').join("") + '</table></div>' : '<div class="empty-note">还没有资金变动记录。首次设定金额后，这里会开始留痕。</div>');
@@ -3871,6 +4107,24 @@
         const c = CURRENCY[code], a = account.accounts[code], f = horizonBy(HORIZON_FUND, a.horizonFund);
         L.push("| " + c.sym + " " + c.label + " | " + (num(a.capital) ? fmtMoney(a.capital, code) : "未启用") + " | " +
           (f ? f.label : "—") + " | " + (num(a.capital) ? fmtMoney(num(a.capital) * account.maxSingleRatio, code) : "—") + " |");
+      }
+      L.push("");
+      L.push("## 平仓结转台账");
+      L.push("");
+      L.push("> 每笔平仓归档时，该笔已实现盈亏会自动并入所属账户的资金基数。");
+      L.push("> 已经出现在这张表里的交易，其已实现盈亏**不再**计入「账户净值」的浮动部分 —— 它已经变成本金了。");
+      L.push("");
+      L.push("| 结转时间 | 标的 | 账户 | 已实现盈亏 | 资金基数（前 → 后） | 平仓日 |");
+      L.push("| --- | --- | --- | --- | --- | --- |");
+      if ((account.settlements || []).length) {
+        for (const s of account.settlements) {
+          const sc = CURRENCY[s.account] ? s.account : "CNY";
+          L.push("| " + (s.ts || "—") + " | " + mdCell(s.symbol || s.file) + " | " + CURRENCY[sc].label + " | " +
+            (num(s.realizedPnl) >= 0 ? "+" : "") + fmtMoney(num(s.realizedPnl), sc) + " | " +
+            fmtMoney(num(s.capitalBefore), sc) + " → **" + fmtMoney(num(s.capitalAfter), sc) + "** | " + mdCell(s.closeDate) + " |");
+        }
+      } else {
+        L.push("| — | — | — | 暂无结转 | — | — |");
       }
       L.push("");
       L.push("## 资金变动记录");
@@ -4068,21 +4322,29 @@
       }
 
       if (currentMode === "dash") {
-        const held = trades.open.filter(x => (x.front["状态"] || ST_PLAN) === ST_HELD).length;
+        const held = trades.open.filter(tradeHasPosition).length;
         document.getElementById("progFill").style.width = "100%";
         document.getElementById("progText").textContent = held + " / " + trades.open.length;
-        hint.textContent = "已成交 / 全部在途";
+        hint.textContent = "已有仓位 / 全部在途";
         btn.textContent = quotes.loading ? "拉取中…" : "🔄 刷新 + 拉行情";
         btn.className = "fire-btn ready";
         return;
       }
 
       if (currentMode === "fill") {
-        const ok = num(prep.fillPrice) > 0 && num(prep.fillShares) > 0 && activeFile && needsFill() && activePrepared();
+        const base = !!activeFile && needsFill() && activePrepared();
+        const hasBatch = num(prep.fillPrice) > 0 && num(prep.fillShares) > 0;
+        const filled = tradeFilledTotal(trades.open.find(x => x.file === activeFile));
+        // 两种可提交：录一笔新的成交；或者不再买了、只把状态收口成持仓中。
+        const finalizeOnly = !hasBatch && prep.fillComplete && filled.shares > 0;
+        const ok = base && (hasBatch || finalizeOnly);
         document.getElementById("progFill").style.width = (ok ? 100 : 0) + "%";
-        document.getElementById("progText").textContent = (num(prep.fillPrice) > 0 ? 1 : 0) + (num(prep.fillShares) > 0 ? 1 : 0) + " / 2";
-        hint.textContent = "成交价 · 股数";
-        btn.textContent = ok ? FILL_MODE.fireIdle : "填成交价与股数";
+        document.getElementById("progText").textContent = finalizeOnly ? "收口" : (num(prep.fillPrice) > 0 ? 1 : 0) + (num(prep.fillShares) > 0 ? 1 : 0) + " / 2";
+        hint.textContent = finalizeOnly ? "不再追加 · 转持仓中" : (filled.batches ? "第 " + (filled.batches + 1) + " 笔 · 成交价 · 股数" : "成交价 · 股数");
+        btn.textContent = !ok ? "填成交价与股数"
+          : finalizeOnly ? "✅ 建仓收口 · 转入持仓中"
+            : prep.fillComplete ? "确认建仓 · 收口转持仓中"
+              : "确认这一笔 · 保持建仓中";
         btn.className = "fire-btn " + (ok ? "ready" : "locked");
         return;
       }
@@ -4091,8 +4353,8 @@
       if (currentMode === "prepare" && activeFile && !activeIsPlan()) {
         document.getElementById("progFill").style.width = "100%";
         document.getElementById("progText").textContent = "档案";
-        hint.textContent = "只读回看";
-        btn.textContent = "⚖️ 要改止损 · 去「调整止损」";
+        hint.textContent = "只读回看 · 变更走事件";
+        btn.textContent = "⇅ 要改投入金额 · 去「变更建仓计划」";
         btn.className = "fire-btn ready";
         return;
       }
@@ -4120,8 +4382,37 @@
       document.getElementById("progFill").style.width = (total ? Math.round(done / total * 100) : 0) + "%";
       document.getElementById("progText").textContent = done + " / " + total;
 
+      // 变更建仓计划：按方向换按钮，别让「缩减」页面上写着「确认加仓」。
+      if (currentMode === "buy_add") {
+        const m = metrics();
+        if (Math.abs(m.add) < 0.01) {
+          hint.textContent = "计划未变更";
+          btn.textContent = "拖动或输入新的建仓计划";
+          btn.className = "fire-btn locked";
+          return;
+        }
+        if (m.trimming) {
+          const ready = !!(prep.planNote || "").trim();
+          document.getElementById("progFill").style.width = (ready ? 100 : 0) + "%";
+          document.getElementById("progText").textContent = ready ? "1 / 1" : "0 / 1";
+          hint.textContent = ready ? "缩减理由已写" : "还差理由";
+          btn.textContent = ready
+            ? "➖ 确认缩减 · 计划改为 " + fmtMoney(m.total)
+            : "填一句为什么要改小";
+          btn.className = "fire-btn " + (ready ? "ready" : "locked");
+          return;
+        }
+      }
+
       if (!isGated()) {
-        // 非对称摩擦：降低风险的方向永远可执行，进度条只是留痕的提示
+        // 非对称摩擦：降低风险的方向永远可执行，进度条只是留痕的提示。
+        // 唯一的硬要求是卖出成交价 —— 它不是摩擦，是记账。
+        if (meta.kind === "sell" && !(num(prep.sellPrice) > 0)) {
+          hint.textContent = "还差成交价";
+          btn.textContent = "填成交价（算盈亏用）";
+          btn.className = "fire-btn locked";
+          return;
+        }
         hint.textContent = "理由已记录（可空）";
         btn.textContent = def ? def.fireIdle : "确认";
         btn.className = "fire-btn ready";
@@ -4254,7 +4545,7 @@
           '<tr><td>实际投入</td><td><b>' + fmtMoney(actual, code) + '</b></td></tr>' +
           '<tr' + (Math.abs(diff) > 10 ? ' class="bad"' : '') + '><td>偏差</td><td><b>' + (diff >= 0 ? "+" : "") + diff.toFixed(1) + '%</b></td></tr>' +
           '<tr><td>成交价 × 股数</td><td><b>' + num(prep.fillPrice) + ' × ' + num(prep.fillShares) + '</b></td></tr></table>';
-      } else if (currentMode === "buy_add") {
+      } else if (currentMode === "buy_add" && !metrics().trimming) {
         list.style.display = "block";
         list.innerHTML = '<div class="ml-head">压力测试 · 加完之后如果再跌 ' + (STRESS_DROP * 100) + '%</div>' + stressHTML();
       } else if (currentMode === "prepare") {
@@ -4310,9 +4601,23 @@
 
       const list = document.getElementById("mList");
       list.style.display = "block";
+      // 已实现盈亏由成交价算出来，不再手抄：它要被结转进账户资金基数，必须是个数。
+      const cp = activePosition(), cpos = sellPositionPreview(), cItem = activeTradeItem();
+      const cCode = cItem ? tradeAcct(cItem) : prep.account;
+      const priorPnl = cItem ? tradeRealizedPnl(cItem) : 0;              // 之前减仓已实现的部分
+      const closePnl = cp && cp.costPrice && num(prep.sellPrice)
+        ? +((num(prep.sellPrice) - cp.costPrice) * cpos.sell).toFixed(2) : 0;
+      const totalPnl = +(priorPnl + closePnl).toFixed(2);
+      const pnlPct = cp && cp.costPrice && cpos.sell ? (num(prep.sellPrice) - cp.costPrice) / cp.costPrice * 100 : null;
+      const pnlText = (totalPnl >= 0 ? "+" : "") + fmtMoney(totalPnl, cCode) +
+        (pnlPct == null ? "" : "（本次 " + (pnlPct >= 0 ? "+" : "") + pnlPct.toFixed(2) + "%）");
       list.innerHTML =
         '<div class="m-form">' +
-        '<div><div class="m-field-label">实际盈亏</div><input id="cfPnl" placeholder="例：-8.2%，亏 ' + cur().sym + '12,300" /></div>' +
+        '<div><div class="m-field-label">实际盈亏 · 系统结算</div>' +
+        '<div class="fill-sum ' + (totalPnl >= 0 ? "ok" : "bad") + '">' + pnlText + '</div>' +
+        '<div class="pf-hint">成交价 ' + (num(prep.sellPrice) || "—") + ' × 成本价 ' + (cp && cp.costPrice || "—") + ' × ' + fmtShares(cpos.sell) + ' 股' +
+        (priorPnl ? '，含之前减仓已实现 ' + fmtMoney(priorPnl, cCode) : '') + '。' +
+        '<br><b>归档后这 ' + fmtMoney(totalPnl, cCode) + ' 会自动并入' + (CURRENCY[cCode] ? CURRENCY[cCode].label : cCode) + '账户的资金基数</b>，并在「账户参数 · 资金变动记录」留一条平仓结转。</div></div>' +
         '<div><div class="m-field-label">建仓时的假设 vs 实际发生</div><textarea id="cfDiff" rows="3" placeholder="当时以为会怎样，实际怎样。哪条失效信号被触发了？还是根本没触发、我自己走的？"></textarea></div>' +
         '<div><div class="m-field-label">这笔错在哪一层</div><div class="pf-opts" id="cfLayer">' +
         ["策略内核（看错方向）", "结构约束（仓位·期限·出局权）", "操盘执行（没按纪律走）", "没错（正常概率）"]
@@ -4333,11 +4638,92 @@
         '<button class="m-btn go" id="mArchive">归档这笔交易</button>';
       document.getElementById("mBack2").onclick = closeModal;
       document.getElementById("mArchive").onclick = () => commit({
-        pnl: (list.querySelector("#cfPnl").value || "").trim(),
+        pnl: pnlText,
+        realizedPnl: totalPnl,
+        account: cCode,
         diff: (list.querySelector("#cfDiff").value || "").trim(),
         layer: layer,
         gate: (list.querySelector("#cfGate").value || "").trim(),
       });
+    }
+
+    /* 作废：唯一一个「让记录消失在主流程之外」的出口，所以必须写清为什么。
+       它回答的是「这条记录本就不该存在」，不是「我改主意了」—— 后者应该去改建仓计划。 */
+    function showVoidForm(item) {
+      if (!item) return;
+      if (!tradeVoidable(item)) {
+        toast("这笔已经有真实成交 —— 有仓位就必须有出场记录，请走止损 / 平仓");
+        return;
+      }
+      const f = item.front || {}, plan = decisionPlan(item), code = tradeAcct(item);
+      const modal = document.getElementById("modal");
+      modal.className = "modal warn";
+      document.getElementById("mBadge").textContent = "🗑";
+      document.getElementById("mTitle").textContent = "作废这份建仓计划";
+      document.getElementById("mSub").textContent =
+        (f["标的"] || item.file) + " · 计划投入 " + fmtMoney(num(plan.amount), code) + " · 一笔都没成交";
+      const q = document.getElementById("mQuote");
+      q.style.display = "block";
+      q.innerHTML = "💡 作废是给「这条记录本就不该存在」用的：标的填错、重复建档、想法当天就被自己否了。" +
+        "如果你只是<b>改主意想少买点</b>，那不该作废 —— 去「变更建仓计划」把金额改小，那样这次改变本身也会被记下来。";
+      const list = document.getElementById("mList");
+      list.style.display = "block";
+      list.innerHTML =
+        '<div class="m-form">' +
+        '<div><div class="m-field-label">作废原因 · 必填</div>' +
+        '<textarea id="vfReason" rows="3" placeholder="为什么这条建档不该存在？（标的 / 代码填错、重复建档、当天就否了这个想法…）"></textarea></div>' +
+        '</div>' +
+        '<div class="flag warn"><span>⚠️</span><div>文件会追加一条 <b>作废事件</b> 并移进 <b>已作废/</b>，不会被删除。' +
+        '作废后它不再占用「待建计划」和「剩余可开」。</div></div>';
+      document.getElementById("mActions").innerHTML =
+        '<button class="m-btn" id="mVoidBack">先不作废</button>' +
+        '<button class="m-btn go" id="mVoidGo">确认作废</button>';
+      document.getElementById("mVoidBack").onclick = closeModal;
+      document.getElementById("mVoidGo").onclick = async () => {
+        const reason = (list.querySelector("#vfReason").value || "").trim();
+        if (!reason) { toast("作废必须写原因 —— 否则半年后你只会看到一条凭空消失的记录"); return; }
+        await voidTrade(item, reason);
+      };
+      openOverlay();
+    }
+
+    async function voidTrade(item, reason) {
+      const plan = decisionPlan(item), code = tradeAcct(item);
+      const name = (item.front || {})["标的"] || item.file;
+      const L = [];
+      L.push("### " + nowStamp() + " · 🗑 作废建仓计划");
+      L.push("");
+      L.push("**作废原因：** " + reason);
+      L.push("");
+      L.push("| 项目 | 值 |");
+      L.push("| --- | --- |");
+      L.push("| 作废日 | " + todayStr() + " |");
+      L.push("| 当时的计划投入 | " + fmtMoney(num(plan.amount), code) + " |");
+      L.push("| 实际成交 | 无（零成交计划） |");
+      L.push("");
+      L.push("> 本笔从未成交，作废不产生盈亏，也不影响账户资金基数。");
+      L.push("");
+      L.push("<!-- ymos-trade-event -->");
+      L.push("```json");
+      L.push(JSON.stringify({
+        schemaVersion: 1, ts: nowStamp(), kind: "void",
+        void: { reason: reason, voidDate: todayStr(), plannedAmount: num(plan.amount), account: code, filledAmount: 0 },
+        changesPositionFacts: false,
+      }, null, 2));
+      L.push("```");
+      try {
+        const j = await api("/api/trade/void", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ file: item.file, voidDate: todayStr(), block: L.join("\n") }),
+        });
+        if (activeFile === item.file) activeFile = "";
+        closeModal();
+        await loadTrades();
+        renderAll();
+        toast("已作废 " + name + " · 归档到 " + j.rel);
+      } catch (e) {
+        toast(e.status === 409 ? "只有零成交的计划能作废 —— 有仓位请走平仓" : "作废失败：" + (e.message || "服务未启动？"));
+      }
     }
 
     function openOverlay() {
@@ -4351,13 +4737,13 @@
     /* =====================================================================
        写盘：把当前动作变成决策文件里的一段
        ===================================================================== */
-    const KIND_ICON = { open: "🧠", prepare: "🧱", revise: "✏️", fill: "✅", add: "➕", tp: "🟢", sl: "🔻", adjust: "⚖️", close: "🧾" };
-    const KIND_LABEL = { open: "买入逻辑建档", prepare: "建仓准备", revise: "建仓准备修订", fill: "确认建仓", add: "加仓计划 / 压力测试", tp: "止盈 / 减仓", sl: "止损", adjust: "调整止损", close: "全部平仓" };
+    const KIND_ICON = { open: "🧠", prepare: "🧱", revise: "✏️", fill: "✅", add: "➕", trim: "➖", tp: "🟢", sl: "🔻", adjust: "⚖️", close: "🧾" };
+    const KIND_LABEL = { open: "买入逻辑建档", prepare: "建仓准备", revise: "建仓准备修订", fill: "确认建仓", add: "加仓 · 调大建仓计划", trim: "缩减建仓计划", tp: "止盈 / 减仓", sl: "止损", adjust: "调整止损", close: "全部平仓" };
     function modeKind() {
       if (currentMode === "buy_new") return "open";
       if (currentMode === "prepare") return activePrepared() ? "revise" : "prepare";
       if (currentMode === "fill") return "fill";
-      return currentMode === "buy_add" ? "add"
+      return currentMode === "buy_add" ? (metrics().trimming ? "trim" : "add")
         : currentMode === "sell_tp" ? "tp" : currentMode === "sell_sl" ? "sl" : "adjust";
     }
 
@@ -4408,18 +4794,43 @@
           noStop: !!prep.noStop, stopPct: prep.noStop ? null : +m.stopPct.toFixed(2), maxLoss: Math.round(m.maxLoss),
         },
       };
-      if (kind === "add") {
+      if (kind === "add" || kind === "trim") {
+        // 改的是「建仓计划总额」：持仓股数 / 成本价这些事实仍然只由 fill 事件写。
+        // 服务端收到这个事件会重设 建仓计划 与状态，实际成交回「③ 确认建仓」分批录。
+        const filled = tradeFilledTotal(activeTradeItem());
         j.planOnly = true;
         j.changesPositionFacts = false;
+        j.changesPlanAmount = true;
+        j.plannedTotal = m.total;
+        j.plan = {
+          previousTotal: m.base, newTotal: m.total, delta: +m.add.toFixed(2),
+          direction: kind === "trim" ? "decrease" : "increase",
+          filledAmount: filled.amount, filledShares: filled.shares,
+          // 缩到刚好等于已建仓 = 这笔到此为止，服务端会顺手收口成持仓中
+          settlesBuild: m.total <= filled.amount + 0.01,
+          reason: (prep.planNote || "").trim(),
+        };
       }
       if (kind === "fill") {
-        const o = effectivePlan();
+        const o = effectivePlan(), before = tradeFilledTotal(activeTradeItem());
+        const price = num(prep.fillPrice), shares = num(prep.fillShares);
+        // finalizeOnly = 这一次不再买了，只是把「建仓中」收口成「持仓中」
+        const finalizeOnly = !(price > 0 && shares > 0);
+        const amount = finalizeOnly ? 0 : +(price * shares).toFixed(2);
         j.fill = {
-          price: num(prep.fillPrice), shares: num(prep.fillShares),
-          actualAmount: Math.round(num(prep.fillPrice) * num(prep.fillShares)),
+          batchIndex: before.batches + (finalizeOnly ? 0 : 1),
+          finalizeOnly: finalizeOnly,
+          complete: !!prep.fillComplete,
+          price: finalizeOnly ? null : price,
+          shares: finalizeOnly ? 0 : shares,
+          actualAmount: amount,
+          sharesBefore: before.shares, sharesAfter: before.shares + (finalizeOnly ? 0 : shares),
+          filledBefore: before.amount, filledAfter: +(before.amount + amount).toFixed(2),
           plannedAmount: num(o.amount), note: prep.fillNote || "",
         };
-        j.fill.deviationPct = j.fill.plannedAmount ? +(((j.fill.actualAmount - j.fill.plannedAmount) / j.fill.plannedAmount) * 100).toFixed(2) : null;
+        j.fill.progressPct = j.fill.plannedAmount ? +((j.fill.filledAfter / j.fill.plannedAmount) * 100).toFixed(2) : null;
+        j.fill.deviationPct = j.fill.plannedAmount ? +(((j.fill.filledAfter - j.fill.plannedAmount) / j.fill.plannedAmount) * 100).toFixed(2) : null;
+        j.fill.remaining = j.fill.plannedAmount ? +Math.max(0, j.fill.plannedAmount - j.fill.filledAfter).toFixed(2) : 0;
       }
       if (prep.startedAt) j.deliberationMin = Math.floor((Date.now() - prep.startedAt) / 60000);
       // 冷却期跳没跳过要如实记录 —— 事后能把「跳过的交易」和「等满的交易」分开算胜率
@@ -4484,18 +4895,46 @@
       }
       if (kind === "fill") {
         const o = effectivePlan(), code = o.account || o.currency || "CNY";
-        const planned = num(o.amount), actual = num(prep.fillPrice) * num(prep.fillShares);
-        const diff = planned ? (actual - planned) / planned * 100 : 0;
-        L.push("| 项目 | 计划 | 实际 |");
-        L.push("| --- | --- | --- |");
-        L.push("| 投入金额 | " + fmtMoney(planned, code) + " | **" + fmtMoney(actual, code) + "**" + (planned ? "（偏差 " + (diff >= 0 ? "+" : "") + diff.toFixed(1) + "%）" : "") + " |");
-        L.push("| 成交价 / 股数 | — | " + num(prep.fillPrice) + " × " + num(prep.fillShares) + " |");
+        const before = tradeFilledTotal(activeTradeItem());
+        const price = num(prep.fillPrice), shares = num(prep.fillShares);
+        const finalizeOnly = !(price > 0 && shares > 0);
+        const batch = finalizeOnly ? 0 : price * shares;
+        const planned = num(o.amount), after = before.amount + batch;
+        const sharesAfter = before.shares + (finalizeOnly ? 0 : shares);
+        const diff = planned ? (after - planned) / planned * 100 : 0;
+        L.push("| 项目 | 本次 | 累计 | 计划 |");
+        L.push("| --- | --- | --- | --- |");
+        L.push("| 投入金额 | " + (finalizeOnly ? "—（仅收口）" : fmtMoney(batch, code)) + " | **" + fmtMoney(after, code) + "** | " +
+          fmtMoney(planned, code) + (planned ? "（进度 " + (after / planned * 100).toFixed(1) + "% · 偏差 " + (diff >= 0 ? "+" : "") + diff.toFixed(1) + "%）" : "") + " |");
+        L.push("| 成交价 / 股数 | " + (finalizeOnly ? "— | —" : price + " × " + fmtShares(shares) + " | " + fmtShares(sharesAfter) + " 股（均价 " + (sharesAfter ? +(after / sharesAfter).toFixed(4) : 0) + "）") + " | — |");
+        L.push("| 建仓批次 | 第 " + (before.batches + (finalizeOnly ? 0 : 1)) + " 笔 | " + (prep.fillComplete ? "**建仓收口 · 转持仓中**" : "**未建满 · 保持建仓中**") + " | — |");
         L.push("");
         if ((prep.fillNote || "").trim()) { L.push("> " + prep.fillNote.trim()); L.push(""); }
       }
+      if (kind === "trim") {
+        const m = metrics(), filled = tradeFilledTotal(activeTradeItem());
+        const code = prep.account || "CNY";
+        L.push("**缩减的是建仓计划，不是已经买进去的仓位。** 已建仓的 " + fmtMoney(filled.amount, code) + " 一股没动。");
+        L.push("");
+        L.push("| 项目 | 调整前 | 调整后 |");
+        L.push("| --- | --- | --- |");
+        L.push("| 建仓计划 | " + fmtMoney(m.base, code) + " | **" + fmtMoney(m.total, code) + "**（" + fmtMoney(m.add, code) + "） |");
+        L.push("| 已建仓 | " + fmtMoney(filled.amount, code) + " | " + fmtMoney(filled.amount, code) + "（不变） |");
+        L.push("| 还需建仓 | " + fmtMoney(Math.max(0, m.base - filled.amount), code) + " | **" + fmtMoney(Math.max(0, m.total - filled.amount), code) + "** |");
+        L.push("| 占账户 | " + (m.cap ? (m.base / m.cap * 100).toFixed(1) + "%" : "—") + " | " + (m.cap ? (m.ratio * 100).toFixed(1) + "%" : "—") + " |");
+        L.push("");
+        if ((prep.planNote || "").trim()) { L.push("> " + prep.planNote.trim()); L.push(""); }
+        if (m.total <= filled.amount + 0.01) {
+          L.push("_计划已缩到等于已建仓金额 —— 本笔建仓就此收口，状态转「持仓中」。_");
+          L.push("");
+        }
+      }
       if (kind === "add") {
         const m = metrics();
-        L.push("加仓计划（未成交，不改持仓事实）：若执行，预计总投入 " + fmtMoney(m.total) + "（占账户 " + (m.ratio * 100).toFixed(1) + "%）；" +
+        L.push("**加仓改的是建仓计划，不是持仓事实** —— 实际成交仍然回「③ 确认建仓」分批录入，状态回到「建仓中」。");
+        L.push("");
+        if ((prep.planNote || "").trim()) { L.push("> " + prep.planNote.trim()); L.push(""); }
+        L.push("加仓后计划总投入 " + fmtMoney(m.total) + "（占账户 " + (m.ratio * 100).toFixed(1) + "%）；" +
           "压力测试 —— 再跌 " + (STRESS_DROP * 100) + "% 则浮亏 " + fmtMoney(m.total * STRESS_DROP) +
           "，占账户 " + (m.cap ? (m.total * STRESS_DROP / m.cap * 100).toFixed(2) : "—") + "%。");
         L.push("");
@@ -4567,8 +5006,12 @@
       L.push("");
       L.push("| 项目 | 内容 |");
       L.push("| --- | --- |");
+      const code = result.account || prep.account || "CNY";
       L.push("| 平仓日 | " + todayStr() + " |");
       L.push("| 实际盈亏 | " + (result.pnl || "—") + " |");
+      L.push("| 资金结转 | " + (result.realizedPnl == null ? "—" :
+        (num(result.realizedPnl) >= 0 ? "+" : "") + fmtMoney(num(result.realizedPnl), code) + " 并入 " +
+        (CURRENCY[code] ? CURRENCY[code].label : code) + "账户资金基数") + " |");
       L.push("| 错在哪一层 | " + (result.layer || "—") + " |");
       L.push("");
       if (result.diff) { L.push("**建仓假设 vs 实际发生：** " + result.diff); L.push(""); }
@@ -4591,22 +5034,38 @@
         } else if (!activeFile) {
           toast("没选持仓 —— 先在顶部选一笔决策文件"); return;
         } else if (kind === "fill") {
+          // 分批建仓：这里送的是「本次这一笔」的增量，累加与加权成本由服务端按文件事实算。
+          const price = num(prep.fillPrice), shares = num(prep.fillShares);
+          const finalizeOnly = !(price > 0 && shares > 0);
           const j = await api("/api/trade/fill", {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               file: activeFile, fillDate: todayStr(), block: buildEventBlock("fill"),
-              shares: num(prep.fillShares) || "", costPrice: num(prep.fillPrice) || "",
-              actualAmount: Math.round(num(prep.fillPrice) * num(prep.fillShares)) || "",
+              shares: finalizeOnly ? 0 : shares,
+              costPrice: finalizeOnly ? 0 : price,
+              actualAmount: finalizeOnly ? 0 : +(price * shares).toFixed(2),
+              complete: !!prep.fillComplete,
+              finalizeOnly: finalizeOnly,
             }),
           });
-          toast("建仓已确认 · " + j.rel);
+          toast(finalizeOnly ? "建仓已收口 · 转入持仓中"
+            : prep.fillComplete ? "第 " + j.batch + " 笔已录入 · 建仓完成" : "第 " + j.batch + " 笔已录入 · 仍在建仓中");
         } else if (result) {
+          const closingItem = activeTradeItem();
+          const closingFile = activeFile;
+          const closingName = (closingItem && closingItem.front && closingItem.front["标的"]) || (activeOpen && activeOpen.symbol) || closingFile;
           const j = await api("/api/trade/close", {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ file: activeFile, closeDate: todayStr(), block: buildCloseBlock(result) }),
           });
           activeFile = "";
-          toast("已归档 " + j.rel);
+          // 归档成功之后才结转 —— 文件没落地就动资金基数，会留下一笔对不上账的钱。
+          await settleClosedTrade({
+            file: closingFile, symbol: closingName,
+            account: result.account || (closingItem ? tradeAcct(closingItem) : prep.account),
+            amount: num(result.realizedPnl), closeDate: todayStr(),
+          });
+          toast("已归档 " + j.rel + " · 盈亏已结转进资金基数");
         } else if ((kind === "tp" || kind === "sl") && prep.sellPortion !== "all") {
           const p = activePosition(), pos = sellPositionPreview();
           const j = await api("/api/trade/sell", {
@@ -4657,11 +5116,46 @@
       else renderAll();
     }
 
+    /* 平仓结转：把这一笔的已实现盈亏并进该账户的资金基数。
+       资金基数是所有仓位比例、单笔上限、期限判断的分母 —— 它必须跟着实际盈亏滚动，
+       否则赚了三年，系统还以为你只有起始那点钱（反过来亏了也一样危险）。
+       结转过的文件写进 settlements 台账，账户净值里就不再重复加一次它的已实现盈亏。 */
+    async function settleClosedTrade(info) {
+      const code = CURRENCY[info.account] ? info.account : "CNY";
+      const a = account.accounts[code];
+      if (!a) return;
+      const amount = num(info.amount);
+      const before = num(a.capital);
+      const after = Math.max(0, +(before + amount).toFixed(2));
+      const label = "平仓结转 · " + (info.symbol || info.file);
+      a.capital = after;
+      account.changes.push({
+        ts: nowStamp(), account: code, type: amount >= 0 ? "settle_profit" : "settle_loss",
+        label: label, amount: Math.abs(+(after - before).toFixed(2)), before: before, after: after,
+        note: "平仓归档 " + (info.symbol || info.file) + "，已实现盈亏 " +
+          (amount >= 0 ? "+" : "") + fmtMoney(amount, code) + " 并入资金基数",
+      });
+      account.changes = account.changes.slice(-200);
+      account.settlements = (account.settlements || []).concat([{
+        ts: nowStamp(), file: info.file, symbol: info.symbol || "", account: code,
+        realizedPnl: amount, closeDate: info.closeDate || todayStr(),
+        capitalBefore: before, capitalAfter: after,
+      }]).slice(-500);
+      account.updated = nowStamp();
+      persistAccountLocal();
+      try {
+        await writeAccountState();
+      } catch (e) {
+        toast("交易已归档，但资金基数没写进状态机 —— 去「账户参数」点一次保存");
+      }
+    }
+
     function clearBuckets(mode) {
       for (const pre of ["shared", "generic"]) { delete checks[pre + "/" + mode]; delete texts[pre + "/" + mode]; }
     }
     function resetMode() {
-      if (currentMode === "fill") { prep.fillPrice = 0; prep.fillShares = 0; prep.fillNote = ""; persistPrep(); return; }
+      // 分批建仓：清掉本次那一笔的输入，但不清 activeFile —— 下一笔通常紧接着录。
+      if (currentMode === "fill") { prep.fillPrice = 0; prep.fillShares = 0; prep.fillNote = ""; prep.fillComplete = false; persistPrep(); return; }
       if (currentMode === "prepare" && activeFile) return;   // 改计划：留在原地，接着看
       clearBuckets(currentMode);
       if (currentMode === "prepare") {
@@ -4672,7 +5166,7 @@
         prep.account = keepAccount;
         currentMode = "buy_new";
       }
-      if (currentMode === "buy_add") prep.addAmount = 0;
+      if (currentMode === "buy_add") { prep.addAmount = 0; prep.planTarget = 0; prep.planNote = ""; }
       prep.sellPrice = 0; prep.sellNote = ""; prep.sellPortion = "all";
       persistPrep();
     }
@@ -4689,14 +5183,27 @@
         return;
       }
       if (currentMode === "fill") {
+        const filled = tradeFilledTotal(trades.open.find(x => x.file === activeFile));
         if (!activePrepared()) toast("先完成并保存「② 建仓准备」");
         else if (num(prep.fillPrice) > 0 && num(prep.fillShares) > 0) showPass();
-        else toast("先填实际成交价和股数");
+        else if (prep.fillComplete && filled.shares > 0) showPass();   // 只收口，不再追加
+        else toast("填本次成交价和股数；或者不再买了，就勾「这笔建仓已完成」直接收口");
         return;
       }
-      if (currentMode === "prepare" && activeFile && !activeIsPlan()) { switchMode("adjust"); return; }
+      if (currentMode === "prepare" && activeFile && !activeIsPlan()) { switchMode("buy_add"); return; }
       if (currentMode === "prepare" && !activeFile && !logicPassed()) { switchMode("buy_new"); return; }
       if (viewing() && currentMode === "buy_new") { toast("回看模式 —— 想建新的一笔，点上面「＋ 新建一笔」"); return; }
+      // 卖出是零摩擦的，但成交价例外：没有它就算不出已实现盈亏，平仓时也没法把钱结转回资金基数。
+      if (MODE_META[currentMode].kind === "sell" && !(num(prep.sellPrice) > 0)) {
+        toast("先填成交价 —— 没有它，这笔的盈亏结转不进账户");
+        return;
+      }
+      if (currentMode === "buy_add") {
+        const m = metrics();
+        if (Math.abs(m.add) < 0.01) { toast("计划总额没有变化 —— 拖一下或直接输入新的建仓计划"); return; }
+        if (m.total < m.floor - 0.01) { toast("不能低于已建仓的 " + fmtMoney(m.floor) + " —— 想到此为止，去「③ 确认建仓」勾建仓已完成"); return; }
+        if (m.trimming && !(prep.planNote || "").trim()) { toast("缩减计划必须写理由 —— 这句话决定了以后能不能看懂当时发生了什么"); return; }
+      }
       if (!isGated() || allSatisfied()) showPass();
       else showWarn();
     };

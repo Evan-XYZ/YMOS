@@ -53,6 +53,9 @@ Brain/买入卖出决策/*
 !Brain/买入卖出决策/已平仓/
 Brain/买入卖出决策/已平仓/*
 !Brain/买入卖出决策/已平仓/.gitkeep
+!Brain/买入卖出决策/已作废/
+Brain/买入卖出决策/已作废/*
+!Brain/买入卖出决策/已作废/.gitkeep
 持仓与关注/dashboard/
 
 # Personal stock folders (created during onboarding)

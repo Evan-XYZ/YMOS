@@ -71,6 +71,7 @@ ROOT_AUDIT = (VAULT_ROOT / CONFIG["audit_dir"]).resolve()
 ROOT_TRADE = (VAULT_ROOT / CONFIG["trade_dir"]).resolve()
 DRAFT_FILE = (ROOT_PLAN / "_当前草稿_自动备份.md").resolve()
 TRADE_CLOSED = (ROOT_TRADE / "已平仓").resolve()
+TRADE_VOID = (ROOT_TRADE / "已作废").resolve()
 ACCOUNT_FILE = (ROOT_TRADE / "买卖决策_状态机.md").resolve()
 PORT = int(CONFIG["port"])
 
@@ -85,6 +86,7 @@ def initial_account_markdown() -> str:
         },
         "maxSingleRatio": 0.33,
         "changes": [],
+        "settlements": [],
         "updated": "",
         "portfolioSnapshot": None,
     }
@@ -101,7 +103,7 @@ def initial_account_markdown() -> str:
 
 def ensure_runtime_layout() -> None:
     """启动即补齐 Markdown-first 运行目录，而不是等第一次保存才创建。"""
-    for directory in (ROOT_PLAN, ROOT_AUDIT, ROOT_TRADE, TRADE_CLOSED):
+    for directory in (ROOT_PLAN, ROOT_AUDIT, ROOT_TRADE, TRADE_CLOSED, TRADE_VOID):
         directory.mkdir(parents=True, exist_ok=True)
     if not ACCOUNT_FILE.exists():
         ACCOUNT_FILE.write_text(initial_account_markdown(), encoding="utf-8")
@@ -237,8 +239,12 @@ TRADE_ACCOUNT_MARK = "ymos-trade-account"
 CLOSED_MONTH_SPLIT = 12
 
 TRADE_STATUS_PLAN = "计划中"
+TRADE_STATUS_FILLING = "建仓中"      # 已有真实成交，但这份建仓计划还没建满
 TRADE_STATUS_HELD = "持仓中"
 TRADE_STATUS_CLOSED = "已平仓"
+TRADE_STATUS_VOID = "已作废"        # 零成交的计划被主动放弃：不是交易结果，是这条记录本不该存在
+# 有真实仓位的两种状态。「还没建满」不等于「没风险」——取价、卖出、平仓都要认它。
+TRADE_STATUS_IN_MARKET = (TRADE_STATUS_FILLING, TRADE_STATUS_HELD)
 
 _BAD_NAME_CHARS = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
 
@@ -278,8 +284,10 @@ def find_trade_file(filename: str) -> Path | None:
         return None
     if active.exists():
         return active
-    if TRADE_CLOSED.exists():
-        for path in TRADE_CLOSED.rglob(filename):
+    for archive in (TRADE_CLOSED, TRADE_VOID):
+        if not archive.exists():
+            continue
+        for path in archive.rglob(filename):
             if path.is_file():
                 return path.resolve()
     return None
@@ -369,6 +377,42 @@ def parse_event_block(block: str, allowed_kinds: set[str]) -> dict | None:
     return event
 
 
+def _fmt_num(value: float) -> str:
+    """写回 front matter 的数字：去掉尾零，避免 60.00000000 这种噪音。"""
+    return f"{float(value):.8f}".rstrip("0").rstrip(".") or "0"
+
+
+def filled_amount(events: list) -> float:
+    """累计已建仓金额：所有 fill 事件的实际成交额之和，不因后来减仓而回退。
+    它是「建仓计划能缩到多低」的硬下限 —— 已经买进去的钱，改计划改不动。"""
+    total = 0.0
+    for event in events:
+        if not isinstance(event, dict) or event.get("kind") != "fill":
+            continue
+        fill = event.get("fill")
+        if not isinstance(fill, dict) or fill.get("finalizeOnly"):
+            continue
+        amount = _number(fill.get("actualAmount"))
+        if amount is None:
+            shares, price = _number(fill.get("shares")), _number(fill.get("price"))
+            amount = shares * price if shares is not None and price is not None else 0.0
+        total += amount
+    return total
+
+
+def count_fill_batches(events: list) -> int:
+    """已经录过几笔真实成交（收口事件不算一笔）。"""
+    total = 0
+    for event in events:
+        if not isinstance(event, dict) or event.get("kind") != "fill":
+            continue
+        fill = event.get("fill")
+        if isinstance(fill, dict) and fill.get("finalizeOnly"):
+            continue
+        total += 1
+    return total
+
+
 def _number(value) -> float | None:
     """读取有限数值；交易事实不能接受 NaN / Infinity。"""
     try:
@@ -439,16 +483,19 @@ def _collect_trade(path: Path, bucket: list) -> None:
 
 def list_trades() -> dict:
     """返回活动交易与递归归档交易，两种归档深度均兼容。"""
-    open_items, closed_items = [], []
+    open_items, closed_items, void_items = [], [], []
     if ROOT_TRADE.exists():
         for path in ROOT_TRADE.iterdir():
             _collect_trade(path, open_items)
     if TRADE_CLOSED.exists():
         for path in TRADE_CLOSED.rglob("*.md"):
             _collect_trade(path, closed_items)
-    open_items.sort(key=lambda item: item["mtime"], reverse=True)
-    closed_items.sort(key=lambda item: item["mtime"], reverse=True)
-    return {"open": open_items, "closed": closed_items}
+    if TRADE_VOID.exists():
+        for path in TRADE_VOID.rglob("*.md"):
+            _collect_trade(path, void_items)
+    for bucket in (open_items, closed_items, void_items):
+        bucket.sort(key=lambda item: item["mtime"], reverse=True)
+    return {"open": open_items, "closed": closed_items, "voided": void_items}
 
 
 # ---------------------------------------------------------------------------
@@ -1081,7 +1128,7 @@ class Handler(BaseHTTPRequestHandler):
             wanted, resolved, unresolved = [], {}, []
             for item in list_trades()["open"]:
                 front, open_data = item["front"], (item["open"] or {})
-                if front.get("状态") not in (TRADE_STATUS_HELD, None):
+                if front.get("状态") not in TRADE_STATUS_IN_MARKET + (None,):
                     continue
                 name = front.get("标的", "")
                 ticker = (open_data.get("ticker") or front.get("Ticker") or mapping.get(name) or "").strip().upper()
@@ -1256,7 +1303,7 @@ class Handler(BaseHTTPRequestHandler):
             if target.parent != ROOT_TRADE:
                 self._send_json(409, {"error": "trade is already closed"}); return
             block = payload.get("block", "")
-            event = parse_event_block(block, {"prepare", "revise", "add", "adjust"})
+            event = parse_event_block(block, {"prepare", "revise", "add", "trim", "adjust"})
             if event is None:
                 self._send_json(400, {"error": "invalid event block"}); return
             _, front, events = trade_runtime(target)
@@ -1267,22 +1314,55 @@ class Handler(BaseHTTPRequestHandler):
             allowed = (
                 (kind == "prepare" and status == TRADE_STATUS_PLAN and not prepared and not filled)
                 or (kind == "revise" and status == TRADE_STATUS_PLAN and prepared and not filled)
-                # V4 的 add 只是一份加仓计划 / 压力测试，不改变成交事实。
+                # add 改的是「建仓计划总额」，不改持仓事实：股数 / 成本价只由 fill 事件写。
+                # 执行后状态回到「建仓中」，实际成交回 /api/trade/fill 分批录入。
                 or (
-                    kind == "add" and status == TRADE_STATUS_HELD and filled
+                    kind == "add" and status in TRADE_STATUS_IN_MARKET and filled
                     and event.get("planOnly") is True
                     and event.get("changesPositionFacts") is False
                 )
-                or (kind == "adjust" and status == TRADE_STATUS_HELD and filled)
+                # 缩减建仓计划：只对「还没建满」的文件有意义；持仓中没有未执行的计划可缩。
+                or (
+                    kind == "trim" and status == TRADE_STATUS_FILLING and filled
+                    and event.get("planOnly") is True
+                    and event.get("changesPositionFacts") is False
+                )
+                or (kind == "adjust" and status in TRADE_STATUS_IN_MARKET and filled)
             )
             if not allowed:
                 self._send_json(409, {"error": "illegal trade transition", "status": status, "kind": kind}); return
+            updates = {}
+            if kind in ("add", "trim"):
+                planned_total = _number(event.get("plannedTotal"))
+                if planned_total is None or planned_total <= 0:
+                    self._send_json(400, {"error": "bad plannedTotal"}); return
+                already = filled_amount(events)
+                # 硬下限：计划不能低于已经买进去的钱。想低于，那要说的是「这笔到此为止」，
+                # 对应动作是建仓收口（fill + complete），不是改计划。
+                if planned_total < already - 0.01:
+                    self._send_json(400, {
+                        "error": "plan below filled amount",
+                        "plannedTotal": planned_total, "filledAmount": already,
+                    }); return
+                plan_meta = event.get("plan") if isinstance(event.get("plan"), dict) else {}
+                if kind == "trim" and not str(plan_meta.get("reason", "")).strip():
+                    self._send_json(400, {"error": "trim requires reason"}); return
+                updates["建仓计划"] = _fmt_num(planned_total)
+                # 缩到刚好等于已建仓 = 这笔建仓就此收口
+                if kind == "trim" and planned_total <= already + 0.01:
+                    updates["状态"] = TRADE_STATUS_HELD
+                else:
+                    updates["状态"] = TRADE_STATUS_FILLING
             try:
                 with target.open("a", encoding="utf-8") as handle:
                     handle.write("\n" + block.rstrip() + "\n")
+                if updates:
+                    text = target.read_text(encoding="utf-8", errors="replace")
+                    target.write_text(set_front_matter(text, updates), encoding="utf-8")
             except OSError as exc:
                 self._send_json(500, {"error": f"append failed: {exc}"}); return
-            self._send_json(200, {"ok": True, "file": target.name, "rel": _vault_rel(target)})
+            self._send_json(200, {"ok": True, "file": target.name, "rel": _vault_rel(target),
+                                  "status": updates.get("状态", status)})
             return
 
         # 部分卖出：追加事件，同时更新剩余股数和剩余成本。
@@ -1300,7 +1380,8 @@ class Handler(BaseHTTPRequestHandler):
             if event is None:
                 self._send_json(400, {"error": "invalid sell event"}); return
             _, front, events = trade_runtime(target)
-            if front.get("状态") != TRADE_STATUS_HELD or not has_event(events, "fill"):
+            # 建仓中也能减仓 —— 仓位是真的，止损不该等到建满才允许执行。
+            if front.get("状态") not in TRADE_STATUS_IN_MARKET or not has_event(events, "fill"):
                 self._send_json(409, {"error": "illegal trade transition"}); return
             current_shares = _number(front.get("持仓股数"))
             cost_price = _number(front.get("成本价"))
@@ -1350,7 +1431,8 @@ class Handler(BaseHTTPRequestHandler):
             if not valid_calendar_date(close_date):
                 self._send_json(400, {"error": "bad closeDate"}); return
             _, front, events = trade_runtime(target)
-            if front.get("状态") != TRADE_STATUS_HELD or not has_event(events, "fill"):
+            # 建仓中同样可以整笔平掉 —— 没建满不是继续扛着的理由。
+            if front.get("状态") not in TRADE_STATUS_IN_MARKET or not has_event(events, "fill"):
                 self._send_json(409, {"error": "illegal trade transition"}); return
             current_shares = _number(front.get("持仓股数"))
             sell = event.get("sell") if isinstance(event.get("sell"), dict) else {}
@@ -1386,7 +1468,9 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json(200, {"ok": True, "file": destination.name, "rel": _vault_rel(destination)})
             return
 
-        # 确认建仓：计划中 → 持仓中，同时写入当前成交事实。
+        # 确认建仓：计划中 →（分批）建仓中 → 持仓中，同时累加成交事实。
+        # 建仓允许多笔：每次只送「本次这一笔」的增量，累计股数与加权成本由服务端按
+        # front matter 里的既有事实推进 —— 界面算错了也污染不了账本。
         if path == "/api/trade/fill":
             payload = self._read_json_body()
             if payload is None:
@@ -1404,36 +1488,62 @@ class Handler(BaseHTTPRequestHandler):
             if not valid_calendar_date(fill_date):
                 self._send_json(400, {"error": "bad fillDate"}); return
             _, front, events = trade_runtime(target)
-            if (
-                front.get("状态") != TRADE_STATUS_PLAN
-                or not has_event(events, "prepare", "revise")
-                or has_event(events, "fill")
-            ):
-                self._send_json(409, {"error": "illegal trade transition"}); return
+            status = front.get("状态")
+            # 计划中 = 还没成交过；建仓中 = 建了一部分，继续分批录。
+            if status not in (TRADE_STATUS_PLAN, TRADE_STATUS_FILLING) or not has_event(events, "prepare", "revise"):
+                self._send_json(409, {"error": "illegal trade transition", "status": status}); return
             event_fill = event.get("fill") if isinstance(event.get("fill"), dict) else {}
-            shares = _number(payload.get("shares"))
-            cost_price = _number(payload.get("costPrice"))
-            event_shares = _number(event_fill.get("shares"))
-            event_price = _number(event_fill.get("price"))
-            event_amount = _number(event_fill.get("actualAmount", shares * cost_price if shares is not None and cost_price is not None else None))
-            if shares is None or cost_price is None or shares <= 0 or cost_price <= 0:
-                self._send_json(400, {"error": "bad fill values"}); return
-            if event_shares is None or event_price is None or abs(event_shares - shares) > 1e-8 or abs(event_price - cost_price) > 1e-8:
-                self._send_json(400, {"error": "fill event mismatch"}); return
-            actual_amount = shares * cost_price
-            declared_amount = _number(payload.get("actualAmount", actual_amount))
-            if (
-                declared_amount is None or abs(declared_amount - actual_amount) > 0.01
-                or event_amount is None or abs(event_amount - actual_amount) > 0.01
-            ):
-                self._send_json(400, {"error": "fill amount mismatch"}); return
-            updates = {
-                "状态": TRADE_STATUS_HELD,
-                "建仓完成日": fill_date,
-                "持仓股数": f"{shares:.8f}".rstrip("0").rstrip("."),
-                "成本价": f"{cost_price:.8f}".rstrip("0").rstrip("."),
-                "实际投入": f"{actual_amount:.8f}".rstrip("0").rstrip("."),
-            }
+            complete = bool(payload.get("complete"))
+            finalize_only = bool(payload.get("finalizeOnly"))
+            if bool(event_fill.get("complete")) != complete or bool(event_fill.get("finalizeOnly")) != finalize_only:
+                self._send_json(400, {"error": "fill flag mismatch"}); return
+
+            previous_shares = _number(front.get("持仓股数")) or 0.0
+            previous_cost = _number(front.get("成本价")) or 0.0
+            previous_amount = _number(front.get("实际投入"))
+            if previous_amount is None:
+                previous_amount = previous_shares * previous_cost
+            batches = count_fill_batches(events)
+
+            if finalize_only:
+                # 只收口：不再买了，把「建仓中」结成「持仓中」。必须已经有真实仓位。
+                if status != TRADE_STATUS_FILLING or previous_shares <= 0 or not complete:
+                    self._send_json(400, {"error": "nothing to finalize"}); return
+                new_shares, new_cost, new_amount = previous_shares, previous_cost, previous_amount
+                updates = {"状态": TRADE_STATUS_HELD, "建仓完成日": fill_date}
+            else:
+                shares = _number(payload.get("shares"))
+                cost_price = _number(payload.get("costPrice"))
+                event_shares = _number(event_fill.get("shares"))
+                event_price = _number(event_fill.get("price"))
+                if shares is None or cost_price is None or shares <= 0 or cost_price <= 0:
+                    self._send_json(400, {"error": "bad fill values"}); return
+                if event_shares is None or event_price is None or abs(event_shares - shares) > 1e-8 or abs(event_price - cost_price) > 1e-8:
+                    self._send_json(400, {"error": "fill event mismatch"}); return
+                batch_amount = shares * cost_price
+                declared_amount = _number(payload.get("actualAmount", batch_amount))
+                event_amount = _number(event_fill.get("actualAmount", batch_amount))
+                if (
+                    declared_amount is None or abs(declared_amount - batch_amount) > 0.01
+                    or event_amount is None or abs(event_amount - batch_amount) > 0.01
+                ):
+                    self._send_json(400, {"error": "fill amount mismatch"}); return
+                new_shares = previous_shares + shares
+                new_amount = previous_amount + batch_amount
+                new_cost = new_amount / new_shares if new_shares else 0.0
+                batches += 1
+                updates = {
+                    # 勾了「建仓已完成」才转持仓中；否则一直留在建仓中，首页看得到还差多少。
+                    "状态": TRADE_STATUS_HELD if complete else TRADE_STATUS_FILLING,
+                    "持仓股数": _fmt_num(new_shares),
+                    "成本价": _fmt_num(round(new_cost, 6)),
+                    "实际投入": _fmt_num(round(new_amount, 4)),
+                }
+                updates["建仓完成日" if complete else "建仓更新日"] = fill_date
+
+            planned_amount = _number(event_fill.get("plannedAmount"))
+            if planned_amount is not None and planned_amount > 0:
+                updates["建仓计划"] = _fmt_num(planned_amount)
             try:
                 with target.open("a", encoding="utf-8") as handle:
                     handle.write("\n" + block.rstrip() + "\n")
@@ -1441,7 +1551,57 @@ class Handler(BaseHTTPRequestHandler):
                 target.write_text(set_front_matter(text, updates), encoding="utf-8")
             except OSError as exc:
                 self._send_json(500, {"error": f"fill failed: {exc}"}); return
-            self._send_json(200, {"ok": True, "file": target.name, "rel": _vault_rel(target)})
+            self._send_json(200, {
+                "ok": True, "file": target.name, "rel": _vault_rel(target),
+                "batch": batches, "status": updates["状态"],
+                "shares": new_shares, "costPrice": round(new_cost, 6), "actualAmount": round(new_amount, 4),
+            })
+            return
+
+        # 作废：只对「零成交的计划」开放。
+        # 有过真实成交的一律走平仓 —— 有仓位就必须有出场记录，这是账要对得上的底线。
+        # 作废不是删除：追加一条必须写理由的 void 事件，再移进 已作废/YYYY/。
+        if path == "/api/trade/void":
+            payload = self._read_json_body()
+            if payload is None:
+                self._send_json(400, {"error": "bad body"}); return
+            target = find_trade_file(str(payload.get("file", "")))
+            if target is None:
+                self._send_json(404, {"error": "trade file not found"}); return
+            if target.parent != ROOT_TRADE:
+                self._send_json(409, {"error": "trade is already archived"}); return
+            block = payload.get("block", "")
+            void_date = str(payload.get("voidDate", ""))
+            event = parse_event_block(block, {"void"})
+            if event is None:
+                self._send_json(400, {"error": "invalid void event"}); return
+            if not valid_calendar_date(void_date):
+                self._send_json(400, {"error": "bad voidDate"}); return
+            void_meta = event.get("void") if isinstance(event.get("void"), dict) else {}
+            if not str(void_meta.get("reason", "")).strip():
+                self._send_json(400, {"error": "void requires reason"}); return
+            _, front, events = trade_runtime(target)
+            if front.get("状态") != TRADE_STATUS_PLAN or has_event(events, "fill"):
+                self._send_json(409, {
+                    "error": "only zero-fill plans can be voided",
+                    "status": front.get("状态"),
+                    "hint": "有过成交的交易请走平仓归档",
+                }); return
+            destination_dir = TRADE_VOID / void_date[:4]
+            destination = destination_dir / target.name
+            if destination.exists():
+                self._send_json(409, {"error": "archive target exists"}); return
+            try:
+                with target.open("a", encoding="utf-8") as handle:
+                    handle.write("\n" + block.rstrip() + "\n")
+                text = target.read_text(encoding="utf-8", errors="replace")
+                text = set_front_matter(text, {"状态": TRADE_STATUS_VOID, "作废日": void_date})
+                target.write_text(text, encoding="utf-8")
+                destination_dir.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(target), str(destination))
+            except OSError as exc:
+                self._send_json(500, {"error": f"void failed: {exc}"}); return
+            self._send_json(200, {"ok": True, "file": destination.name, "rel": _vault_rel(destination)})
             return
 
         # 账户参数是固定单文件；写入前必须包含可解析的账户 JSON。
