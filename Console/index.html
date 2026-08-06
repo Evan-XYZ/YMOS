@@ -141,12 +141,19 @@
         <p>上一交易日收盘后或执行日开盘前完成定调、持仓/观察审计与盘中动作；开盘后只按计划应对。</p>
         <span class="tag">盘前定调 · 盘中执行</span>
       </a>
+
+      <a class="card" id="linkSettings" href="/settings">
+        <div class="ico">⚙️</div>
+        <h2>数据源配置</h2>
+        <p>把 Finnhub / Tushare / Market API 的 Key 一次配好，点「测试」看它是不是活的；RSS 源也在这里增删。</p>
+        <span class="tag">首次接入 · 换 Key 时用</span>
+      </a>
     </div>
 
     <footer>
-      <b>这三个页面都是可修改的样板，不是标准答案。</b>
+      <b>这几个页面都是可修改的样板，不是标准答案。</b>
       你可以让自己的 Agent / 编程工具根据目录结构、投资周期、风险偏好和操作习惯继续改造。
-      Reader 的分组在 <code>config.json</code>；决策规则在 <code>rules.json</code>。<br>
+      Reader 的分组在 <code>config.json</code>；决策规则在 <code>rules.json</code>；数据源 Key 写在 <code>.env</code>。<br>
       要接自己的 vault：复制 <code>config.example.json</code> 为 <code>config.json</code>，填上路径，然后
       <code>python3 server.py</code>。
     </footer>
@@ -158,6 +165,7 @@
       document.getElementById("linkReader").href = "reader.html";
       document.getElementById("linkPlan").href = "交易计划台.html";
       document.getElementById("linkSop").href = "买卖决策台.html";
+      document.getElementById("linkSettings").href = "settings.html";
     }
 
     (async function checkVault() {

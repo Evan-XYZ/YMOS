@@ -618,6 +618,314 @@ def fetch_prices(symbols: list[str]) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# 数据源配置：.env 里的 API Key + Eyes/scripts/rss_sources.json
+#
+# 只暴露白名单里的 key。前端拿到的是掩码后的样子（前 4 位 + ****），
+# 服务端读原值仅用于（a）用户主动点「测试连通性」时打一次外部请求，
+# （b）保存时写回 .env。永远不把明文回传前端。
+#
+# RSS 写入目标是 rss_sources.json（fetch_rss.py 默认读取的那份）。
+# 首次编辑后，用户的 clone 会出现该文件的 git 差异 —— 这是用户自己的配置在改，
+# 属于预期行为。想避免这个，可在自己的本地 gitignore 加一行。
+# ---------------------------------------------------------------------------
+ENV_FILE = VAULT_ROOT / ".env"
+RSS_CONFIG_FILE = VAULT_ROOT / "Eyes" / "scripts" / "rss_sources.json"
+
+SETTINGS_KEYS = [
+    {
+        "key": "FINNHUB_API_KEY", "group": "price",
+        "label": "Finnhub API Key",
+        "hint": "美股 / Crypto 实时报价 + 持仓个股英文新闻。",
+        "docUrl": "https://finnhub.io/register",
+        "secret": True, "probe": "finnhub",
+    },
+    {
+        "key": "TUSHARE_TOKEN", "group": "price",
+        "label": "Tushare Pro Token",
+        "hint": "A 股（.SS/.SZ）日线价格，比 Yahoo Finance 更稳。",
+        "docUrl": "https://tushare.pro/register",
+        "secret": True, "probe": "tushare",
+    },
+    {
+        "key": "YMOS_MARKET_API_URL", "group": "market",
+        "label": "Market API URL",
+        "hint": "结构化中英文市场事件数据源；通常保持默认。",
+        "secret": False, "probe": None,
+        "default": "https://yongmai.xyz/wp-json/tib/v1/reports",
+    },
+    {
+        "key": "YMOS_MARKET_API_KEY", "group": "market",
+        "label": "Market API Key",
+        "hint": "Level 2 数据；不填也能用 RSS 免费源。",
+        "secret": True, "probe": "market",
+    },
+    {
+        "key": "IWENCAI_API_KEY", "group": "iwencai",
+        "label": "问财 API Key",
+        "hint": "A 股结构化数据（选股 / 公告 / 研报 / 新闻 / 财务）。",
+        "docUrl": "https://openapi.iwencai.com",
+        "secret": True, "probe": None,
+    },
+    {
+        "key": "IWENCAI_BASE_URL", "group": "iwencai",
+        "label": "问财 Base URL",
+        "hint": "自建 / 代理端点时才改；空 = 官方地址。",
+        "secret": False, "probe": None,
+        "default": "https://openapi.iwencai.com",
+    },
+    {
+        "key": "YMOS_SKILL_ROOT", "group": "iwencai",
+        "label": "问财 Skills 上级目录",
+        "hint": "指向「包含各 Skill 文件夹的上级目录」，不是单个 Skill。",
+        "secret": False, "probe": None,
+    },
+    {
+        "key": "EM_API_KEY", "group": "extra",
+        "label": "东财条件选股 Key",
+        "hint": "实验性备选层，缺失不影响主链路。",
+        "secret": True, "probe": None,
+    },
+]
+SETTINGS_KEY_MAP = {item["key"]: item for item in SETTINGS_KEYS}
+
+_ENV_KEY_RE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
+
+
+def _mask_secret(value: str) -> str:
+    """secret 值的展示形式：前 4 位 + ****；短值直接 ****。"""
+    if not value:
+        return ""
+    if len(value) <= 6:
+        return "****"
+    return value[:4] + "****"
+
+
+def _parse_env_file(path: Path) -> dict[str, str]:
+    """把 .env 解析成 {KEY: value}；不管注释与空行。"""
+    result: dict[str, str] = {}
+    if not path.exists():
+        return result
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, _, value = stripped.partition("=")
+        key = key.strip()
+        if _ENV_KEY_RE.match(key):
+            result[key] = value.strip()
+    return result
+
+
+def _write_env_updates(path: Path, updates: dict[str, str]) -> None:
+    """在 .env 里 upsert 给定 key。保留原文件的注释与顺序；
+    新 key 追加到文件末尾。绝不写入包含换行或等号异常的值。"""
+    for key, value in updates.items():
+        if not _ENV_KEY_RE.match(key):
+            raise ValueError(f"bad key: {key}")
+        if "\n" in value or "\r" in value:
+            raise ValueError(f"value has newline: {key}")
+
+    lines: list[str] = []
+    if path.exists():
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+
+    remaining = dict(updates)
+    output: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#") and "=" in stripped:
+            key = stripped.split("=", 1)[0].strip()
+            if key in remaining:
+                output.append(f"{key}={remaining.pop(key)}")
+                continue
+        output.append(line)
+
+    # 从没出现过的 key：追加到尾部
+    if remaining:
+        if output and output[-1].strip():
+            output.append("")
+        output.append("# ── 由 Console 设置页新增 ──")
+        for key, value in remaining.items():
+            output.append(f"{key}={value}")
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text("\n".join(output) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
+def settings_snapshot() -> dict:
+    """返回给前端的完整快照：schema + 掩码后的当前值 + .env 位置。"""
+    env_map = _parse_env_file(ENV_FILE)
+    process_env = os.environ
+    items = []
+    for schema in SETTINGS_KEYS:
+        key = schema["key"]
+        raw = env_map.get(key, "")
+        env_hit = bool(raw.strip())
+        proc_hit = bool(process_env.get(key, "").strip())
+        display = _mask_secret(raw) if schema["secret"] and env_hit else raw
+        items.append({
+            **schema,
+            "value": display,
+            "hasValue": env_hit,
+            "inProcessEnv": proc_hit and not env_hit,  # 提示：装了系统环境变量但 .env 没写
+        })
+    return {
+        "envPath": str(ENV_FILE),
+        "envExists": ENV_FILE.exists(),
+        "vaultRoot": str(VAULT_ROOT),
+        "items": items,
+    }
+
+
+def _probe_finnhub(token: str) -> dict:
+    import urllib.request
+    if not token:
+        return {"ok": False, "message": "未配置"}
+    url = f"https://finnhub.io/api/v1/quote?symbol=AAPL&token={urllib.parse.quote(token)}"
+    try:
+        with urllib.request.urlopen(url, timeout=6) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+    except Exception as exc:  # noqa: BLE001 —— 探测失败原因原样回传
+        return {"ok": False, "message": f"请求失败：{exc}"}
+    price = body.get("c")
+    if isinstance(price, (int, float)) and price > 0:
+        return {"ok": True, "message": f"AAPL 报价 ${price}"}
+    return {"ok": False, "message": f"响应异常：{body}"}
+
+
+def _probe_tushare(token: str) -> dict:
+    import urllib.request
+    if not token:
+        return {"ok": False, "message": "未配置"}
+    payload = json.dumps({
+        "api_name": "trade_cal",
+        "token": token,
+        "params": {"exchange": "SSE", "limit": 1},
+        "fields": "cal_date",
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        "https://api.tushare.pro",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "message": f"请求失败：{exc}"}
+    code = body.get("code")
+    if code == 0:
+        return {"ok": True, "message": "Token 有效"}
+    return {"ok": False, "message": body.get("msg") or f"code={code}"}
+
+
+def _probe_market(env_map: dict[str, str]) -> dict:
+    import urllib.request
+    url = env_map.get("YMOS_MARKET_API_URL", "").strip() \
+        or SETTINGS_KEY_MAP["YMOS_MARKET_API_URL"].get("default", "")
+    key = env_map.get("YMOS_MARKET_API_KEY", "").strip()
+    if not url:
+        return {"ok": False, "message": "缺少 URL"}
+    headers = {"X-API-Key": key} if key else {}
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            status = resp.status
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "message": f"请求失败：{exc}"}
+    if 200 <= status < 300:
+        return {"ok": True, "message": f"HTTP {status}"}
+    return {"ok": False, "message": f"HTTP {status}"}
+
+
+def probe_source(key: str) -> dict:
+    """按 key 分发到具体探测函数。key 必须是白名单里 probe 非空的项。"""
+    schema = SETTINGS_KEY_MAP.get(key)
+    if not schema or not schema.get("probe"):
+        return {"ok": False, "message": "该项不支持连通性测试"}
+    env_map = _parse_env_file(ENV_FILE)
+    kind = schema["probe"]
+    if kind == "finnhub":
+        return _probe_finnhub(env_map.get("FINNHUB_API_KEY", "").strip())
+    if kind == "tushare":
+        return _probe_tushare(env_map.get("TUSHARE_TOKEN", "").strip())
+    if kind == "market":
+        return _probe_market(env_map)
+    return {"ok": False, "message": f"未知探测类型：{kind}"}
+
+
+def load_rss_config() -> dict:
+    """RSS 源清单：从 rss_sources.json 读；文件不存在则返回空骨架。"""
+    if not RSS_CONFIG_FILE.exists():
+        return {"path": str(RSS_CONFIG_FILE), "exists": False,
+                "categories": [], "sources": []}
+    try:
+        payload = json.loads(RSS_CONFIG_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"path": str(RSS_CONFIG_FILE), "exists": True,
+                "error": f"读取失败：{exc}", "categories": [], "sources": []}
+    if not isinstance(payload, dict):
+        return {"path": str(RSS_CONFIG_FILE), "exists": True,
+                "error": "格式非对象", "categories": [], "sources": []}
+    return {
+        "path": str(RSS_CONFIG_FILE),
+        "exists": True,
+        "version": payload.get("version", ""),
+        "description": payload.get("description", ""),
+        "categories": payload.get("categories", []),
+        "sources": payload.get("sources", []),
+    }
+
+
+def save_rss_config(sources: list, categories: list | None = None) -> None:
+    """整体替换 sources；保留原有 version/description/categories 字段。"""
+    existing = {}
+    if RSS_CONFIG_FILE.exists():
+        try:
+            existing = json.loads(RSS_CONFIG_FILE.read_text(encoding="utf-8"))
+            if not isinstance(existing, dict):
+                existing = {}
+        except (OSError, json.JSONDecodeError):
+            existing = {}
+
+    cleaned: list[dict] = []
+    for item in sources:
+        if not isinstance(item, dict):
+            continue
+        url = str(item.get("url", "")).strip()
+        name = str(item.get("name", "")).strip()
+        if not url or not name:
+            continue
+        if not url.startswith(("http://", "https://")):
+            continue
+        entry = {
+            "name": name[:120],
+            "url": url[:500],
+            "category": str(item.get("category", "") or "").strip()[:40],
+            "priority": str(item.get("priority", "medium") or "medium").strip()[:12],
+        }
+        note = str(item.get("note", "") or "").strip()
+        if note:
+            entry["note"] = note[:200]
+        cleaned.append(entry)
+
+    existing["version"] = datetime.now().strftime("%Y-%m-%d")
+    existing.setdefault("description",
+                        "YMOS RSS 信息源配置。由 Console 设置页维护。")
+    if categories is not None:
+        existing["categories"] = [str(c).strip() for c in categories if str(c).strip()]
+    existing["sources"] = cleaned
+
+    RSS_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = RSS_CONFIG_FILE.with_suffix(RSS_CONFIG_FILE.suffix + ".tmp")
+    tmp.write_text(json.dumps(existing, ensure_ascii=False, indent=2) + "\n",
+                   encoding="utf-8")
+    tmp.replace(RSS_CONFIG_FILE)
+
+
+# ---------------------------------------------------------------------------
 # Reader：只读目录扫描与系统快捷操作
 # ---------------------------------------------------------------------------
 def is_text_file(path: Path, base: Path) -> bool:
@@ -882,6 +1190,8 @@ STATIC_ROUTES = {
     "/decide": "买卖决策台.html",
     "/买卖决策台.html": "买卖决策台.html",
     "/sop": "买卖决策台.html",
+    "/settings": "settings.html",
+    "/settings.html": "settings.html",
 }
 
 
@@ -1018,6 +1328,16 @@ class Handler(BaseHTTPRequestHandler):
                 "tradeDirExists": ROOT_TRADE.exists(),
                 "accountStateExists": ACCOUNT_FILE.exists(),
             })
+            return
+
+        # 设置页：数据源 schema + 掩码后的当前值。永不回传明文。
+        if path == "/api/settings/keys":
+            self._send_json(200, settings_snapshot())
+            return
+
+        # 设置页：RSS 源清单。文件不存在也会返回空骨架，前端可以直接开始加。
+        if path == "/api/settings/rss":
+            self._send_json(200, load_rss_config())
             return
 
         # 读某日计划归档，抽出结构化 JSON 回填前端
@@ -1619,6 +1939,75 @@ class Handler(BaseHTTPRequestHandler):
             except OSError as exc:
                 self._send_json(500, {"error": f"write failed: {exc}"}); return
             self._send_json(200, {"ok": True, "rel": _vault_rel(ACCOUNT_FILE)})
+            return
+
+        # 设置页：批量写入 .env。只接受白名单里的 key；掩码字符串会被忽略。
+        # payload: {"updates": {"FINNHUB_API_KEY": "abc..."}, "unset": ["EM_API_KEY"]}
+        if path == "/api/settings/keys":
+            payload = self._read_json_body()
+            if payload is None:
+                self._send_json(400, {"error": "bad body"}); return
+            raw_updates = payload.get("updates") or {}
+            unset = payload.get("unset") or []
+            if not isinstance(raw_updates, dict) or not isinstance(unset, list):
+                self._send_json(400, {"error": "bad shape"}); return
+
+            cleaned: dict[str, str] = {}
+            for key, value in raw_updates.items():
+                if key not in SETTINGS_KEY_MAP:
+                    self._send_json(400, {"error": f"unknown key: {key}"}); return
+                if not isinstance(value, str):
+                    self._send_json(400, {"error": f"bad value: {key}"}); return
+                stripped = value.strip()
+                # 掩码回传（前 4 位 + ****）表示「用户没改」，跳过
+                if stripped.endswith("****"):
+                    continue
+                cleaned[key] = stripped
+
+            for key in unset:
+                if key not in SETTINGS_KEY_MAP:
+                    self._send_json(400, {"error": f"unknown unset: {key}"}); return
+                cleaned[key] = ""  # 写空串 = 清空
+
+            try:
+                _write_env_updates(ENV_FILE, cleaned)
+            except (ValueError, OSError) as exc:
+                self._send_json(500, {"error": f"write failed: {exc}"}); return
+            self._send_json(200, {"ok": True, "written": sorted(cleaned.keys()),
+                                  "envPath": str(ENV_FILE)})
+            return
+
+        # 设置页：主动打一次外部请求，验证 key 是否有效。
+        # payload: {"key": "FINNHUB_API_KEY"}
+        if path == "/api/settings/probe":
+            payload = self._read_json_body()
+            if payload is None:
+                self._send_json(400, {"error": "bad body"}); return
+            key = str(payload.get("key", "")).strip()
+            if key not in SETTINGS_KEY_MAP:
+                self._send_json(400, {"error": "unknown key"}); return
+            result = probe_source(key)
+            self._send_json(200, {"key": key, **result})
+            return
+
+        # 设置页：整体替换 RSS 源清单。
+        # payload: {"sources": [{name, url, category, priority, note?}, ...],
+        #           "categories": ["美股", ...]?}
+        if path == "/api/settings/rss":
+            payload = self._read_json_body()
+            if payload is None:
+                self._send_json(400, {"error": "bad body"}); return
+            sources = payload.get("sources")
+            if not isinstance(sources, list):
+                self._send_json(400, {"error": "sources must be list"}); return
+            categories = payload.get("categories")
+            if categories is not None and not isinstance(categories, list):
+                self._send_json(400, {"error": "categories must be list"}); return
+            try:
+                save_rss_config(sources, categories)
+            except OSError as exc:
+                self._send_json(500, {"error": f"write failed: {exc}"}); return
+            self._send_json(200, {"ok": True, "count": len(load_rss_config()["sources"])})
             return
 
         self.send_response(404)

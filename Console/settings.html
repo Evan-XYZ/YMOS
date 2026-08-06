@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>YMOS · 数据源配置</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #faf9f5; --bg-elev: #ffffff; --bg-sunk: #f4f2ea;
+    --ink: #1f1e1c; --ink-2: #4a4844; --ink-3: #8a857c;
+    --line: #e7e3d8; --line-strong: #d8d2c2;
+    --accent: #cc785c; --accent-ink: #b56247; --accent-soft: rgba(204, 120, 92, 0.10);
+    --ok: #4a7c3f; --ok-soft: rgba(74, 124, 63, 0.10);
+    --warn: #b56247;
+    --err: #b03a2e; --err-soft: rgba(176, 58, 46, 0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+               font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+               font-size: 14px; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 28px 80px; }
+  .brand { font-family: "Source Serif 4", Georgia, serif; font-size: 22px;
+           font-weight: 600; letter-spacing: -0.01em;
+           display: flex; align-items: baseline; gap: 10px; padding-bottom: 22px;
+           border-bottom: 1px solid var(--line); margin-bottom: 24px; }
+  .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .brand .home { margin-left: auto; font-family: "Inter", sans-serif; font-size: 12px;
+                 color: var(--ink-3); text-decoration: none; }
+  .brand .home:hover { color: var(--accent-ink); }
+
+  h1 { font-family: "Source Serif 4", Georgia, serif; font-size: 26px;
+       margin: 0 0 6px; font-weight: 600; letter-spacing: -0.01em; }
+  .lede { color: var(--ink-2); margin: 0 0 18px; line-height: 1.55; font-size: 14px; }
+
+  .env-status { background: var(--bg-sunk); border: 1px solid var(--line);
+                border-radius: 8px; padding: 10px 14px; margin-bottom: 22px;
+                font-size: 12.5px; color: var(--ink-2); }
+  .env-status code { font-family: ui-monospace, Menlo, monospace; font-size: 12px;
+                     color: var(--ink); background: var(--bg-elev); padding: 1px 6px;
+                     border-radius: 4px; border: 1px solid var(--line); }
+  .env-status.err { background: var(--err-soft); color: var(--err); border-color: rgba(176,58,46,0.2); }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
+  .tab { padding: 9px 14px; font-size: 13px; font-weight: 600; color: var(--ink-3);
+         cursor: pointer; border: none; background: transparent; font-family: inherit;
+         border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab:hover { color: var(--ink-2); }
+  .tab.on { color: var(--ink); border-bottom-color: var(--accent); }
+
+  .group { margin-bottom: 28px; }
+  .group h2 { font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+              text-transform: uppercase; color: var(--ink-3); margin: 0 0 10px; }
+
+  .row { background: var(--bg-elev); border: 1px solid var(--line);
+         border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; }
+  .row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .row-label { font-weight: 600; font-size: 14px; }
+  .row-key { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px;
+             color: var(--ink-3); margin-left: 8px; font-weight: 500; }
+  .row-hint { color: var(--ink-2); font-size: 12.5px; margin-top: 4px; line-height: 1.5; }
+  .row-hint a { color: var(--accent-ink); text-decoration: none; }
+  .row-hint a:hover { text-decoration: underline; }
+
+  .row-input { margin-top: 10px; display: flex; gap: 8px; align-items: stretch; }
+  .row-input input { flex: 1; min-width: 0; padding: 8px 11px; border: 1px solid var(--line-strong);
+                     border-radius: 6px; font-size: 13px; font-family: ui-monospace, Menlo, monospace;
+                     background: var(--bg); color: var(--ink); outline: none; }
+  .row-input input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .row-input input.dirty { border-color: var(--accent); background: var(--accent-soft); }
+  .row-input input.placeholder { color: var(--ink-3); }
+
+  .btn { padding: 7px 12px; font-size: 12.5px; font-weight: 500; font-family: inherit;
+         border-radius: 6px; cursor: pointer; white-space: nowrap; }
+  .btn-ghost { background: var(--bg-elev); color: var(--ink-2); border: 1px solid var(--line-strong); }
+  .btn-ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-ink); }
+  .btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--ink); color: #fff; border: none; padding: 9px 18px;
+                 font-size: 13px; font-weight: 600; }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-ink); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-danger { background: var(--bg-elev); color: var(--err); border: 1px solid rgba(176,58,46,0.3); }
+  .btn-danger:hover { background: var(--err-soft); }
+
+  .probe-result { margin-top: 8px; font-size: 12.5px; padding: 6px 10px; border-radius: 5px;
+                  font-family: ui-monospace, Menlo, monospace; }
+  .probe-result.ok { background: var(--ok-soft); color: var(--ok); }
+  .probe-result.err { background: var(--err-soft); color: var(--err); }
+  .probe-result.wait { color: var(--ink-3); background: var(--bg-sunk); }
+
+  .action-bar { position: sticky; bottom: 0; background: linear-gradient(180deg, transparent, var(--bg) 40%);
+                padding: 24px 0 8px; margin-top: 24px; display: flex; gap: 12px;
+                align-items: center; }
+  .action-bar .msg { flex: 1; font-size: 12.5px; color: var(--ink-3); }
+  .action-bar .msg.ok { color: var(--ok); }
+  .action-bar .msg.err { color: var(--err); }
+
+  /* RSS panel */
+  .rss-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .rss-head .count { font-size: 12px; color: var(--ink-3); }
+  .rss-head .spacer { flex: 1; }
+  .rss-item { background: var(--bg-elev); border: 1px solid var(--line);
+              border-radius: 8px; padding: 12px 14px; margin-bottom: 8px;
+              display: grid; grid-template-columns: 1.4fr 2fr 0.8fr 0.6fr auto;
+              gap: 8px; align-items: center; }
+  .rss-item input, .rss-item select { padding: 6px 9px; border: 1px solid var(--line-strong);
+                                       border-radius: 5px; font-size: 12.5px; font-family: inherit;
+                                       background: var(--bg); color: var(--ink); outline: none;
+                                       min-width: 0; width: 100%; }
+  .rss-item input.url { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+  .rss-item input:focus, .rss-item select:focus { border-color: var(--accent);
+                                                   box-shadow: 0 0 0 3px var(--accent-soft); }
+  .rss-item .del { background: transparent; border: none; color: var(--ink-3);
+                   font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: 4px; }
+  .rss-item .del:hover { color: var(--err); background: var(--err-soft); }
+
+  .hide { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <span class="dot"></span>
+    <span>YMOS Console · 数据源配置</span>
+    <a class="home" href="/">← 返回入口</a>
+  </div>
+
+  <h1>Keys 与 RSS 一次配好</h1>
+  <p class="lede">
+    这些值都写回你自己 vault 根目录的 <code>.env</code> 与 <code>Eyes/scripts/rss_sources.json</code>。
+    Console 只是负责把它们摆好、验证一下、按钮点了就写进去 —— 页面本身不留任何 key。
+  </p>
+
+  <div class="env-status" id="envStatus">正在读取 .env …</div>
+
+  <div class="tabs">
+    <button class="tab on" data-tab="keys">API Keys</button>
+    <button class="tab" data-tab="rss">RSS 源</button>
+  </div>
+
+  <!-- ============ Keys tab ============ -->
+  <div id="tabKeys">
+    <div id="keysContainer"></div>
+    <div class="action-bar">
+      <div class="msg" id="keysMsg"></div>
+      <button class="btn btn-ghost" id="btnReloadKeys">重新读取</button>
+      <button class="btn btn-primary" id="btnSaveKeys" disabled>保存改动</button>
+    </div>
+  </div>
+
+  <!-- ============ RSS tab ============ -->
+  <div id="tabRss" class="hide">
+    <div class="rss-head">
+      <span class="count" id="rssCount">…</span>
+      <span class="spacer"></span>
+      <button class="btn btn-ghost" id="btnAddRss">+ 新增源</button>
+    </div>
+    <div id="rssContainer"></div>
+    <div class="action-bar">
+      <div class="msg" id="rssMsg"></div>
+      <button class="btn btn-ghost" id="btnReloadRss">重新读取</button>
+      <button class="btn btn-primary" id="btnSaveRss" disabled>保存 RSS 清单</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const state = {
+    schema: [],      // full items from /api/settings/keys
+    dirty: {},       // key -> new value (only when user edited)
+    unset: new Set(),// keys the user cleared
+    rss: { sources: [], categories: [] },
+    rssDirty: false,
+  };
+
+  const $ = (sel) => document.querySelector(sel);
+  const el = (tag, attrs = {}, children = []) => {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === "class") node.className = v;
+      else if (k === "html") node.innerHTML = v;
+      else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, v);
+    }
+    for (const c of [].concat(children)) {
+      if (c == null) continue;
+      node.append(typeof c === "string" ? document.createTextNode(c) : c);
+    }
+    return node;
+  };
+
+  // ---------- tabs ----------
+  document.querySelectorAll(".tab").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("on", b === btn));
+      const target = btn.dataset.tab;
+      $("#tabKeys").classList.toggle("hide", target !== "keys");
+      $("#tabRss").classList.toggle("hide", target !== "rss");
+    });
+  });
+
+  // ---------- Keys ----------
+  const GROUP_LABELS = {
+    price: "价格数据",
+    market: "市场事件 API",
+    iwencai: "问财（A 股结构化数据）",
+    extra: "备选层（可选）",
+  };
+
+  async function loadKeys() {
+    state.dirty = {};
+    state.unset = new Set();
+    const r = await fetch("/api/settings/keys");
+    if (!r.ok) { $("#envStatus").className = "env-status err"; $("#envStatus").innerText = "读取失败：HTTP " + r.status; return; }
+    const data = await r.json();
+    state.schema = data.items || [];
+    const envHint = data.envExists
+      ? `写入位置：<code>${data.envPath}</code>`
+      : `<b>.env 还不存在</b>，首次保存会自动创建：<code>${data.envPath}</code>`;
+    $("#envStatus").className = "env-status";
+    $("#envStatus").innerHTML = envHint;
+    renderKeys();
+    setKeysDirtyIndicator();
+  }
+
+  function renderKeys() {
+    const container = $("#keysContainer");
+    container.innerHTML = "";
+    const groups = {};
+    for (const item of state.schema) {
+      (groups[item.group] = groups[item.group] || []).push(item);
+    }
+    for (const [gid, label] of Object.entries(GROUP_LABELS)) {
+      if (!groups[gid]) continue;
+      const wrap = el("div", { class: "group" }, [el("h2", {}, label)]);
+      for (const item of groups[gid]) wrap.append(renderKeyRow(item));
+      container.append(wrap);
+    }
+  }
+
+  function renderKeyRow(item) {
+    const isDirty = item.key in state.dirty;
+    const isUnset = state.unset.has(item.key);
+    const currentValue = isUnset ? "" : (isDirty ? state.dirty[item.key] : item.value);
+    const placeholder = item.hasValue && !isDirty && !isUnset && item.secret
+      ? "已保存 · 点这里输入新值可覆盖"
+      : (item.default || "留空即使用免费兜底");
+
+    const input = el("input", {
+      type: "text",
+      value: currentValue,
+      placeholder,
+      spellcheck: "false",
+      autocomplete: "off",
+    });
+    if (isDirty || isUnset) input.classList.add("dirty");
+
+    input.addEventListener("input", () => {
+      const v = input.value;
+      // 用户手动清空视为「保留」，除非按了「清除」按钮
+      if (v === "" && !state.unset.has(item.key)) {
+        delete state.dirty[item.key];
+      } else if (v === item.value) {
+        delete state.dirty[item.key];
+        state.unset.delete(item.key);
+      } else {
+        state.dirty[item.key] = v;
+        state.unset.delete(item.key);
+      }
+      input.classList.toggle("dirty", (item.key in state.dirty) || state.unset.has(item.key));
+      setKeysDirtyIndicator();
+    });
+
+    const btns = [];
+    if (item.probe) {
+      const testBtn = el("button", { class: "btn btn-ghost" }, "测试");
+      const result = el("div", { class: "probe-result hide" });
+      testBtn.addEventListener("click", async () => {
+        result.className = "probe-result wait";
+        result.innerText = "请求中…";
+        testBtn.disabled = true;
+        try {
+          const r = await fetch("/api/settings/probe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key: item.key }),
+          });
+          const data = await r.json();
+          result.className = "probe-result " + (data.ok ? "ok" : "err");
+          result.innerText = (data.ok ? "✓ " : "✗ ") + (data.message || "");
+        } catch (e) {
+          result.className = "probe-result err";
+          result.innerText = "✗ 请求失败：" + e.message;
+        } finally {
+          testBtn.disabled = false;
+        }
+      });
+      btns.push(testBtn);
+      var probeSlot = result;
+    }
+    if (item.hasValue || isDirty) {
+      const clearBtn = el("button", { class: "btn btn-danger" }, "清除");
+      clearBtn.addEventListener("click", () => {
+        state.unset.add(item.key);
+        delete state.dirty[item.key];
+        input.value = "";
+        input.classList.add("dirty");
+        input.setAttribute("placeholder", "将在保存时清空");
+        setKeysDirtyIndicator();
+      });
+      btns.push(clearBtn);
+    }
+
+    const inputRow = el("div", { class: "row-input" }, [input, ...btns]);
+
+    const head = el("div", { class: "row-head" }, [
+      el("div", {}, [
+        el("span", { class: "row-label" }, item.label),
+        el("span", { class: "row-key" }, item.key),
+      ]),
+      item.hasValue
+        ? el("span", { class: "row-key", html: "🟢 已配置" })
+        : (item.inProcessEnv
+            ? el("span", { class: "row-key", html: "🟡 仅系统 env" })
+            : el("span", { class: "row-key", html: "⚪️ 未配置" })),
+    ]);
+
+    const hintHtml = item.hint + (item.docUrl
+      ? ` <a href="${item.docUrl}" target="_blank" rel="noopener">→ 获取</a>`
+      : "");
+
+    return el("div", { class: "row" }, [
+      head,
+      el("div", { class: "row-hint", html: hintHtml }),
+      inputRow,
+      probeSlot || null,
+    ]);
+  }
+
+  function setKeysDirtyIndicator() {
+    const n = Object.keys(state.dirty).length + state.unset.size;
+    $("#btnSaveKeys").disabled = n === 0;
+    $("#btnSaveKeys").innerText = n === 0 ? "保存改动" : `保存 ${n} 项改动`;
+    $("#keysMsg").className = "msg";
+    $("#keysMsg").innerText = "";
+  }
+
+  $("#btnReloadKeys").addEventListener("click", () => loadKeys());
+  $("#btnSaveKeys").addEventListener("click", async () => {
+    const payload = { updates: state.dirty, unset: [...state.unset] };
+    try {
+      const r = await fetch("/api/settings/keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await r.json();
+      if (!r.ok || !data.ok) throw new Error(data.error || "HTTP " + r.status);
+      $("#keysMsg").className = "msg ok";
+      $("#keysMsg").innerText = `已写入 ${data.written.length} 项。已运行的 SOP 脚本需要重启才能读到新值。`;
+      await loadKeys();
+    } catch (e) {
+      $("#keysMsg").className = "msg err";
+      $("#keysMsg").innerText = "保存失败：" + e.message;
+    }
+  });
+
+  // ---------- RSS ----------
+  async function loadRss() {
+    state.rssDirty = false;
+    const r = await fetch("/api/settings/rss");
+    const data = await r.json();
+    state.rss.sources = (data.sources || []).map((s) => ({ ...s }));
+    state.rss.categories = data.categories || [];
+    if (data.error) {
+      $("#rssMsg").className = "msg err";
+      $("#rssMsg").innerText = data.error;
+    } else {
+      $("#rssMsg").className = "msg";
+      $("#rssMsg").innerText = data.exists ? "" : "文件不存在，保存时会自动创建。";
+    }
+    renderRss();
+    setRssDirtyIndicator();
+  }
+
+  function renderRss() {
+    const container = $("#rssContainer");
+    container.innerHTML = "";
+    $("#rssCount").innerText = `共 ${state.rss.sources.length} 个源`;
+
+    const catOptions = ["", ...state.rss.categories];
+    for (let i = 0; i < state.rss.sources.length; i++) {
+      const src = state.rss.sources[i];
+      const nameInp = el("input", { type: "text", value: src.name || "", placeholder: "名称" });
+      const urlInp = el("input", { type: "text", value: src.url || "", placeholder: "https://…", class: "url" });
+      const catSel = el("select", {},
+        catOptions.map((c) => {
+          const o = el("option", { value: c }, c || "（无分类）");
+          if ((src.category || "") === c) o.setAttribute("selected", "selected");
+          return o;
+        }));
+      const prioSel = el("select", {},
+        ["high", "medium", "low"].map((p) => {
+          const o = el("option", { value: p }, p);
+          if ((src.priority || "medium") === p) o.setAttribute("selected", "selected");
+          return o;
+        }));
+      const del = el("button", { class: "del", title: "删除这条" }, "×");
+
+      for (const [inp, field] of [[nameInp, "name"], [urlInp, "url"]]) {
+        inp.addEventListener("input", () => { src[field] = inp.value; markRssDirty(); });
+      }
+      catSel.addEventListener("change", () => { src.category = catSel.value; markRssDirty(); });
+      prioSel.addEventListener("change", () => { src.priority = prioSel.value; markRssDirty(); });
+      del.addEventListener("click", () => {
+        state.rss.sources.splice(i, 1);
+        markRssDirty();
+        renderRss();
+      });
+
+      container.append(el("div", { class: "rss-item" }, [nameInp, urlInp, catSel, prioSel, del]));
+    }
+  }
+
+  function markRssDirty() {
+    state.rssDirty = true;
+    setRssDirtyIndicator();
+  }
+  function setRssDirtyIndicator() {
+    $("#btnSaveRss").disabled = !state.rssDirty;
+    $("#btnSaveRss").innerText = state.rssDirty ? "保存 RSS 清单（未保存）" : "保存 RSS 清单";
+  }
+
+  $("#btnAddRss").addEventListener("click", () => {
+    state.rss.sources.push({ name: "", url: "", category: "", priority: "medium" });
+    markRssDirty();
+    renderRss();
+    const inputs = document.querySelectorAll("#rssContainer .rss-item:last-child input");
+    if (inputs[0]) inputs[0].focus();
+  });
+  $("#btnReloadRss").addEventListener("click", () => loadRss());
+  $("#btnSaveRss").addEventListener("click", async () => {
+    try {
+      const r = await fetch("/api/settings/rss", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sources: state.rss.sources, categories: state.rss.categories }),
+      });
+      const data = await r.json();
+      if (!r.ok || !data.ok) throw new Error(data.error || "HTTP " + r.status);
+      $("#rssMsg").className = "msg ok";
+      $("#rssMsg").innerText = `已保存 ${data.count} 个源。空名称 / 非 http(s) 的行会被自动丢弃。`;
+      await loadRss();
+    } catch (e) {
+      $("#rssMsg").className = "msg err";
+      $("#rssMsg").innerText = "保存失败：" + e.message;
+    }
+  });
+
+  // ---------- boot ----------
+  loadKeys();
+  loadRss();
+</script>
+</body>
+</html>
