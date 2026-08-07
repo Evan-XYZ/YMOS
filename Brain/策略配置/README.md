@@ -32,6 +32,30 @@ Strategy Profile 是 YMOS 策略内核层的唯一策略接口。它描述“用
 
 允许预置的只有结构不变量：`draft` 状态、Human 最终确认、决策与执行分离，以及“空字段不猜”。作者示例、模型常识和前端样板都不能成为运行默认值。
 
+## 三种成熟度路径
+
+Strategy Profile 是内核入口，不是价值上限。随着用户对自己策略的理解加深，V4 允许你沿三条合法路径逐步深化，不必永远停留在 Profile 层。三条路径共享同一组不变量（论点可复述、失效信号可检查、决策与执行分离、Human 门禁、事实不可事后覆盖、内核变化必须 Human 审批并可回滚），差异只在于**策略特化的表达方式**。
+
+| Tier | 表达方式 | 适合谁 | 出口机制 |
+|:---|:---|:---|:---|
+| **Tier 1：入门** | 只填 Profile，不动 P 模块 | 新用户；跨市场轻度使用者 | 按 `_模板_策略_Profile.md` 完成六组人类问题 |
+| **Tier 2：多策略并行** | Profile 保留通用元数据，策略特化条款拆到 `策略手册/{family}.md` | 同时跑 2+ 种策略、entry / exit / cadence 差异显著的用户 | Profile 里声明 `strategyFamilies`，配套 `Brain/策略配置/策略手册/{family}.md` |
+| **Tier 3：硬编码专精** | 通过 `modules.replacements` 挂私版 P 模块或 SOP | 长期单策略深度用户；策略 know-how 已超出声明式字段能表达的范围 | 在 `Brain/私有/` 写私版模块并加入 `.gitignore`，Profile 里声明 `"replacements": { "P5": "私有/P5_我的版本.md" }` |
+
+### Tier 2 vs Tier 3 的分辨
+
+- 策略之间的差异是**参数**（阈值 / 期限 / 仓位口径不同，判据结构相同）→ 走 Tier 2 的策略手册。
+- 单策略内部的差异是**过程**（if/else、优先级、市场周期切换等无法用 requiredEvidence 数组表达）→ 走 Tier 3 的私版模块。
+
+### Tier 3 的合规边界
+
+- 私版模块必须遵守公版 P 模块的输入 / 输出契约：相同的错误码语义（`kernel_not_ready` / `module_not_configured` / `data_incomplete`）、相同的状态写回规则、相同的失败降级路径。
+- 私版模块放在 `Brain/私有/` 或其他被 `.gitignore` 排除的路径，不进入公开仓库。
+- 私版模块不得绕过 Human 门禁、状态机或本 README 的不变量清单；它只替换"怎么判断"，不替换"谁最终决定"。
+- 公版 P 模块升级时，只需检查私版是否仍满足接口契约；Profile 本身通常不用改。
+
+参考实例见 `examples/author-profile/module-manifest.example.json` —— 作者的模块清单展示了 Tier 3 的一种可能形态，默认 `disabled_by_default`，不会加入新用户的运行链。
+
 ## 状态与路由守卫
 
 - `draft` Profile 可以为市场洞察、投资雷达和初始事实研究提供最小 `scope`，但不得产生买卖、持有、加仓、退出或再平衡结论。
