@@ -5,15 +5,13 @@
 [![Version](https://img.shields.io/badge/version-4.0-blue.svg)](CHANGELOG.md)
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC%20BY--NC%204.0-lightgrey.svg)](LICENSE)
 
-> 👀 **部署前先看看长什么样：** [打开 YMOS Console 浏览器 Demo](https://evan-xyz.github.io/YMOS/)
->
-> Demo 可以体验 Reader、交易计划台和买卖决策台，只使用脱敏合成示例；草稿保存在当前浏览器，不读取持仓、Watchlist 或 API Key，也不会写入服务器或执行交易。完整 Markdown-first 工作流仍需按下方步骤在本地启动 Console。
-
-**简单说，YMOS 是让 AI Agent 进入你日常投资流程的一套本地工作台：**
+**简单说，YMOS 是一套让 AI Agent 进入你日常投资流程的本地 Markdown-first 投资操作系统：**
 
 - 它替你持续看市场、跟踪持仓与关注，把新闻、价格和研究资料压缩成**市场洞察与投资雷达**；
 - 它把你原本散在脑中、笔记和临场反应里的投资逻辑，整理成 Agent 能反复执行的 **Profile、SOP 和判断规则**；
 - 当你真的要行动时，它用 **Reader、交易计划、买卖门禁和复盘留痕**，帮助你按自己事先定下的逻辑走完，而不是盘中重新发明规则。
+
+它的内核不是某一个网页，而是 `Eyes/`、`Brain/`、`持仓与关注/`、`BrainStorm/` 等本地目录中的 Markdown 真相源，以及把它们连接起来的 Agent 协议、SOP、状态机和 Human 最终确认。Console 只是整套系统的阅读与操盘入口之一。
 
 你可以先只把它当作 AI 投研系统使用，之后再逐步装入自己的策略内核和操盘习惯，不需要第一天配置完整套系统。
 
@@ -337,6 +335,10 @@ python3 server.py
 - **Reader** — 把散在目录里的报告按你的使用习惯重新分组；只读、不改文件。
 - **交易计划台** — **盘前定调**、审持仓、审观察、列盘中动作。第二天开盘只执行，不在盘中现想。
 - **买卖决策台** — 开新仓 / 加仓 / 止盈 / 止损各有一组门，**全绿才允许扣扳机**。每一次扣扳机、每一次被拦，都写回你 vault 的 `决策审计/`。
+
+> 👀 **理解到这里，再在部署前看看 Console 长什么样：** [打开 YMOS 浏览器 Demo](https://evan-xyz.github.io/YMOS/)
+>
+> Demo 的 Reader 会先用一棵虚拟目录树展示 YMOS 的完整结构，再提供三份脱敏合成报告正文；交易计划台和买卖决策台用于体验操盘层的界面与基本交互。它不会读取持仓、Watchlist 或 API Key，不会写入服务器，也不会执行交易。投研层与策略内核层的真实能力，需要完整安装项目并让 Agent 执行本地 SOP 后才能看到。
 
 完整交易生命周期：
 

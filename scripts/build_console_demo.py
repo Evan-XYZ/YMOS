@@ -27,6 +27,34 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
     return text.replace(old, new, 1)
 
 
+def inject_demo_nav(text: str, current: str) -> str:
+    """Add always-visible navigation to static subpages, including mobile layouts."""
+    links = [
+        ("home", "Demo 首页", "index.html"),
+        ("reader", "Reader", "reader.html"),
+        ("plan", "交易计划台", "交易计划台.html"),
+        ("decision", "买卖决策台", "买卖决策台.html"),
+    ]
+    nav = '<nav class="demo-global-nav" aria-label="Demo 页面导航">' + "".join(
+        f'<a href="{href}" aria-current="page">{label}</a>'
+        if key == current else f'<a href="{href}">{label}</a>'
+        for key, label, href in links
+    ) + "</nav>"
+    style = """
+  <style>
+    .demo-global-nav { position:fixed; right:14px; bottom:14px; z-index:10000; display:flex;
+      flex-wrap:wrap; justify-content:flex-end; gap:5px; max-width:calc(100vw - 28px); padding:6px;
+      border:1px solid rgba(120,110,95,.28); border-radius:10px; background:rgba(255,255,255,.94);
+      box-shadow:0 8px 28px rgba(30,25,20,.16); backdrop-filter:blur(10px); }
+    .demo-global-nav a { padding:6px 9px; border-radius:6px; color:#56524a; text-decoration:none;
+      font:600 11px/1.2 Inter,-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif; }
+    .demo-global-nav a:hover,.demo-global-nav a[aria-current="page"] { background:#f6e7e1; color:#8f4934; }
+  </style>
+"""
+    text = replace_once(text, "</head>", style + "</head>", f"{current} demo nav style")
+    return replace_once(text, "<body>", "<body>\n  " + nav, f"{current} demo nav")
+
+
 def adapt_index(text: str) -> str:
     text = replace_once(
         text,
@@ -36,6 +64,29 @@ def adapt_index(text: str) -> str:
         "Console index runtime mode",
     )
     text = text.replace('location.protocol === "file:"', "STATIC_DEMO")
+    text = replace_once(
+        text,
+        "    <h1>Reader 与决策台</h1>\n"
+        "    <p class=\"lede\">\n"
+        "      一个本地入口，做三件事：<b>翻报告、定计划、过门禁</b>。\n"
+        "      Reader 负责把产出聚到眼前；两个决策台负责在最容易犯错的时刻，把流程摆在你面前。\n"
+        "    </p>\n"
+        "    <p class=\"lede\">\n"
+        "      填的东西都写回<b>你自己的 Obsidian</b>，是纯 Markdown。没有数据库，没有云端，没有账号。\n"
+        "    </p>",
+        "    <h1>YMOS 的阅读与操盘入口</h1>\n"
+        "    <p class=\"lede\">\n"
+        "      <b>Console 只是 YMOS 的一个模块，不是系统本体。</b>完整 YMOS 由本地 Markdown、Eyes 投研层、Brain 策略内核、持仓状态机、BrainStorm、Agent 协议与 SOP 共同组成。\n"
+        "    </p>\n"
+        "    <p class=\"lede\">\n"
+        "      这里展示三个入口：Reader 用来理解目录并阅读本地文档；两个操盘页面用于定计划、过门禁和留证据。真实投研与策略判断需要完整安装项目后运行。\n"
+        "    </p>",
+        "Console demo positioning",
+    )
+    text = text.replace(
+        "把散在目录里的市场洞察、投资雷达、策略分析和决策记录聚成一个可搜索的阅读页面。",
+        "先看清 YMOS 的完整目录结构，再集中阅读 Eyes、Brain、持仓与 BrainStorm 中的本地 Markdown。",
+    )
     text = replace_once(
         text,
         '      document.getElementById("linkSettings").href = "settings.html";\n',
@@ -127,7 +178,7 @@ def adapt_plan(text: str) -> str:
         "      }\n",
         "plan demo boundary banner",
     )
-    return text
+    return inject_demo_nav(text, "plan")
 
 
 def adapt_decision(text: str) -> str:
@@ -178,7 +229,7 @@ def adapt_decision(text: str) -> str:
         "        '<br>账户参数和草稿只保存在当前浏览器，不会形成可供 Agent 复盘的 Markdown 真相源，也不会执行真实交易。</div>';",
         "decision demo boundary banner",
     )
-    return text
+    return inject_demo_nav(text, "decision")
 
 
 def assert_sample_safe(path: Path) -> None:

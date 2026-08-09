@@ -22,9 +22,9 @@ python3 server.py
 
 ## 部署前浏览器 Demo
 
-不安装、不配置 API Key，也可以先打开 [YMOS Console 浏览器 Demo](https://evan-xyz.github.io/YMOS/) 查看 Reader、交易计划台和买卖决策台的界面与基本交互。
+不安装、不配置 API Key，也可以先打开 [YMOS Console 浏览器 Demo](https://evan-xyz.github.io/YMOS/)。Demo 会先通过 Reader 的虚拟目录树展示 YMOS 的完整系统结构，再提供交易计划台和买卖决策台的界面与基本交互。Console 只是 YMOS 的阅读与操盘入口，不代表完整的投研层与策略内核层。
 
-Demo 是由正式 Console 源文件构建出的隔离静态副本：只包含仓库内三份带 `ymos_sample: true` 的脱敏合成报告；草稿与演示账户参数只保存在当前浏览器的 `localStorage`，不会读取或写入用户 vault，也不执行真实交易。正式 Console 的 Python 后端和 Markdown 真相源不受 Demo 模式影响。
+Demo 是由正式 Console 源文件构建出的隔离静态副本：目录树只是内嵌的公开结构示意，能够打开正文的只有仓库内三份带 `ymos_sample: true` 的脱敏合成报告；草稿与演示账户参数只保存在当前浏览器的 `localStorage`，不会读取或写入用户 vault，也不执行真实交易。正式 Console 的 Python 后端和 Markdown 真相源不受 Demo 模式影响。
 
 本地预览构建产物：
 
