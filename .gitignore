@@ -20,6 +20,9 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 
+# GitHub Pages local build artifact
+_site/
+
 # Obsidian
 .obsidian/
 

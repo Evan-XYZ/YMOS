@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>YMOS Reader · 浏览器 Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+  <style>
+    :root {
+      --bg:#faf9f5; --side:#f4f2ea; --card:#fff; --ink:#1f1e1c;
+      --ink2:#56524a; --muted:#8a857c; --line:#e7e3d8;
+      --accent:#cc785c; --accent-ink:#a9543c; --soft:rgba(204,120,92,.1);
+    }
+    * { box-sizing:border-box; }
+    html,body { margin:0; min-height:100%; background:var(--bg); color:var(--ink); }
+    body { display:grid; grid-template-columns:300px minmax(0,1fr); min-height:100vh;
+      font:14px/1.65 Inter,-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif; }
+    aside { display:flex; flex-direction:column; min-height:100vh; background:var(--side); border-right:1px solid var(--line); }
+    .brand { display:flex; align-items:center; gap:10px; padding:22px; border-bottom:1px solid var(--line);
+      font:600 21px/1.2 Georgia,"Songti SC",serif; }
+    .dot { width:8px; height:8px; border-radius:50%; background:var(--accent); }
+    .demo { margin-left:auto; font:700 10px/1 Inter,sans-serif; letter-spacing:.08em; color:var(--accent-ink); }
+    .back { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:14px; border-bottom:1px solid var(--line); }
+    .back a { padding:8px 10px; border:1px solid var(--line); border-radius:7px; background:var(--card);
+      color:var(--ink2); text-align:center; text-decoration:none; font-size:12px; }
+    nav { padding:14px; }
+    nav button { width:100%; margin-bottom:9px; padding:11px 12px; border:1px solid var(--line);
+      border-radius:8px; background:var(--card); color:var(--ink2); text-align:left; cursor:pointer; font:inherit; }
+    nav button:hover,nav button.on { border-color:var(--accent); color:var(--ink); background:var(--soft); }
+    .boundary { margin:auto 14px 16px; padding:12px; border:1px solid var(--line); border-radius:8px;
+      color:var(--muted); background:rgba(255,255,255,.55); font-size:11.5px; }
+    main { min-width:0; }
+    header { position:sticky; top:0; z-index:2; padding:13px 24px; border-bottom:1px solid var(--line);
+      background:rgba(250,249,245,.94); backdrop-filter:blur(12px); color:var(--ink2); }
+    .notice { max-width:1040px; margin:24px auto 0; padding:12px 15px; border:1px solid #dec78a;
+      border-radius:8px; background:#fff8dd; color:#6a5720; }
+    article { max-width:1040px; margin:0 auto; padding:36px 48px 110px;
+      font:17px/1.75 Georgia,"Songti SC",serif; }
+    article h1 { margin:0 0 14px; padding-bottom:14px; border-bottom:1px solid var(--line); font-size:30px; }
+    article h2 { margin:36px 0 10px; font-size:23px; }
+    article h3 { margin:26px 0 8px; font-size:19px; }
+    article p { margin:12px 0; }
+    article blockquote { margin:16px 0; padding:4px 18px; border-left:3px solid var(--accent);
+      background:rgba(204,120,92,.04); color:var(--ink2); }
+    article table { width:100%; margin:16px 0; border-collapse:collapse; font:13px/1.5 Inter,sans-serif; }
+    article th,article td { padding:8px 11px; border:1px solid var(--line); text-align:left; vertical-align:top; }
+    article th { background:var(--side); }
+    article code { padding:1px 5px; border-radius:4px; background:rgba(0,0,0,.05); font-size:.85em; }
+    article pre { overflow:auto; padding:14px; border:1px solid var(--line); border-radius:8px; background:var(--card); }
+    .raw { white-space:pre-wrap; overflow-wrap:anywhere; }
+    @media (max-width:760px) {
+      body { display:block; } aside { min-height:0; } nav { display:grid; grid-template-columns:1fr; }
+      .boundary { margin:0 14px 14px; } article { padding:28px 20px 80px; } header { position:static; }
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <div class="brand"><span class="dot"></span>YMOS Reader <span class="demo">DEMO</span></div>
+    <div class="back"><a href="index.html">Console 首页</a><a href="交易计划台.html">交易计划台</a></div>
+    <nav id="nav"></nav>
+    <div class="boundary"><b>演示边界</b><br>仅加载公开仓库中的脱敏合成示例；不读取持仓、Watchlist、API Key 或本地文件。</div>
+  </aside>
+  <main>
+    <header id="title">选择一份示例报告</header>
+    <div class="notice">这是合成示例，不对应真实日期、账户或投资建议。完整 Reader 需在本地运行 <code>Console/server.py</code>。</div>
+    <article id="content">载入中…</article>
+  </main>
+  <script>
+    const reports = [
+      ["市场洞察 · 脱敏示例", "samples/market.md"],
+      ["投资雷达 · 脱敏示例", "samples/radar.md"],
+      ["策略分析 · 脱敏示例", "samples/strategy.md"]
+    ];
+    const nav = document.getElementById("nav");
+    const title = document.getElementById("title");
+    const content = document.getElementById("content");
+    function stripFrontMatter(text) { return text.replace(/^---\s*[\r\n]+[\s\S]*?[\r\n]+---\s*[\r\n]+/, ""); }
+    async function openReport(index) {
+      [...nav.children].forEach((button, i) => button.classList.toggle("on", i === index));
+      title.textContent = reports[index][0]; content.textContent = "载入中…";
+      try {
+        const response = await fetch(reports[index][1], { cache:"no-store" });
+        if (!response.ok) throw new Error(response.status);
+        const markdown = stripFrontMatter(await response.text());
+        if (window.marked && window.DOMPurify) {
+          content.classList.remove("raw");
+          content.innerHTML = DOMPurify.sanitize(marked.parse(markdown));
+        } else {
+          content.classList.add("raw"); content.textContent = markdown;
+        }
+      } catch (error) { content.textContent = "示例载入失败，请刷新页面重试。"; }
+    }
+    reports.forEach(([label], index) => {
+      const button = document.createElement("button"); button.textContent = label;
+      button.onclick = () => openReport(index); nav.appendChild(button);
+    });
+    openReport(0);
+  </script>
+</body>
+</html>

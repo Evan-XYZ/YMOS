@@ -1,0 +1,61 @@
+name: Deploy YMOS Console Demo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ymos-console-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Run Console regression tests
+        run: python3 Console/tests/test_trade_api.py
+
+      - name: Build privacy-safe browser demo
+        run: python3 scripts/build_console_demo.py --output _site
+
+      - name: Verify Pages artifact allowlist
+        run: |
+          test ! -e _site/.env
+          test ! -e _site/config.json
+          test ! -e _site/server.py
+          test "$(find _site -type f | wc -l | tr -d ' ')" = "10"
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+          include-hidden-files: true
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

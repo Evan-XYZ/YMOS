@@ -5,6 +5,10 @@
 [![Version](https://img.shields.io/badge/version-4.0-blue.svg)](CHANGELOG.md)
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC%20BY--NC%204.0-lightgrey.svg)](LICENSE)
 
+> 👀 **部署前先看看长什么样：** [打开 YMOS Console 浏览器 Demo](https://evan-xyz.github.io/YMOS/)
+>
+> Demo 可以体验 Reader、交易计划台和买卖决策台，只使用脱敏合成示例；草稿保存在当前浏览器，不读取持仓、Watchlist 或 API Key，也不会写入服务器或执行交易。完整 Markdown-first 工作流仍需按下方步骤在本地启动 Console。
+
 **简单说，YMOS 是让 AI Agent 进入你日常投资流程的一套本地工作台：**
 
 - 它替你持续看市场、跟踪持仓与关注，把新闻、价格和研究资料压缩成**市场洞察与投资雷达**；
