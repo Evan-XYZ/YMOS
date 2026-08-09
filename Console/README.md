@@ -20,6 +20,21 @@ python3 server.py
 
 直接打开 HTML 只用于界面预览，不会写入正式 Markdown。公开仓库不包含公共嵌入版、云端账户或浏览器数据库方案。
 
+## 重启 / 关闭
+
+改了 `config.json`（Reader 分组）、`rules.json`（决策规则）、`.env`（数据源 Key），或 `git pull` 更新了代码后，需要重启 Console 才会生效。三种方式，按方便程度：
+
+1. **首页「🔄 一键重启控制台」按钮** —— 控制台还开着时最省事。点一下，服务原地重启（`os.execv`），几秒后页面自动刷新。
+2. **回到运行它的终端窗口按 `Ctrl-C`，再 `python3 server.py`** —— 按钮点不动、或控制台卡死时用。
+3. **一条命令关掉再重开**：
+
+```bash
+pkill -f "python3 server.py"   # 关闭正在运行的 Console
+python3 server.py              # 在 Console 目录下重新启动
+```
+
+> 不想碰命令行？把「帮我重启 YMOS Console」这句话发给你的 AI 助手 / Agent，让它替你执行。
+
 ## Markdown-first
 
 - `vault_root` 留空时使用仓库根目录，也可指向用户自己的 YMOS vault。

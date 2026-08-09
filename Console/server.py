@@ -24,6 +24,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import urllib.parse
 from datetime import datetime
@@ -1494,6 +1495,24 @@ class Handler(BaseHTTPRequestHandler):
     # -- POST ---------------------------------------------------------------
     def do_POST(self) -> None:
         path = urllib.parse.urlparse(self.path).path
+
+        # 一键重启：本进程用 os.execv 原地重启，改了 config.json / rules.json / .env
+        # 或 git pull 更新代码后，靠它让改动生效，不用回终端敲命令。
+        # 先回 200 让前端知道已受理，再延迟 0.6s 重启，给响应留出送达时间。
+        # 监听 socket 默认 CLOEXEC，execv 时自动关闭，新进程重新 bind 同端口。
+        if path == "/api/restart":
+            self._send_json(200, {"ok": True, "restarting": True})
+            try:
+                self.wfile.flush()
+            except OSError:
+                pass
+
+            def _reexec():
+                time.sleep(0.6)
+                os.execv(sys.executable, [sys.executable, str(Path(__file__).resolve())])
+
+            threading.Thread(target=_reexec, daemon=True).start()
+            return
 
         # 保存某日交易计划 → <plan_dir>/YYYY-MM/YYYY-MM-DD日交易计划.md
         if path == "/api/plan/save":

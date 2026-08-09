@@ -71,6 +71,22 @@
       border-radius: 4px; font-size: 11.5px;
     }
 
+    #ops {
+      margin: 0 0 30px; padding: 14px 16px;
+      border: 1px solid var(--line); border-radius: 12px; background: var(--card);
+    }
+    .ops-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    #restartBtn {
+      padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line);
+      background: var(--bg); color: var(--ink-1); font-size: 13px;
+      font-family: inherit; cursor: pointer;
+    }
+    #restartBtn:hover { border-color: var(--accent); }
+    #restartBtn:disabled { opacity: .5; cursor: default; }
+    .ops-msg { font-size: 12.5px; color: var(--ink-2); }
+    .ops-hint { margin-top: 10px; font-size: 12px; line-height: 1.75; color: var(--ink-3); }
+    #ops code { background: rgba(128, 128, 128, .13); padding: 1px 6px; border-radius: 4px; font-size: 11.5px; }
+
     .cards { display: grid; gap: 16px; grid-template-columns: repeat(3, 1fr); }
     @media (max-width: 680px) { .cards { grid-template-columns: 1fr; } }
 
@@ -118,6 +134,19 @@
 
     <div class="status" id="status">
       <span id="statusText">检查 vault 连接中…</span>
+    </div>
+
+    <div id="ops">
+      <div class="ops-row">
+        <button id="restartBtn">🔄 一键重启控制台</button>
+        <span class="ops-msg">改了 <code>config.json</code> / <code>rules.json</code> / <code>.env</code> 或更新代码后，点它生效（几秒后自动刷新）</span>
+      </div>
+      <div class="ops-hint">
+        按钮点不动、或控制台卡死了？在终端里手动重来：<br>
+        关闭：<code>pkill -f "python3 server.py"</code>（或在运行它的终端窗口按 <code>Ctrl-C</code>）<br>
+        重开：<code>python3 server.py</code>（在 Console 目录下）<br>
+        懒得碰命令行？把这句话发给你的 AI Agent：<i>「帮我重启 YMOS Console」</i>
+      </div>
     </div>
 
     <div class="cards">
@@ -183,6 +212,33 @@
           ? "⚪️ 当前是页面预览，不会写入 Markdown。跑 <code>python3 server.py</code> 后从 <code>http://localhost:5273</code> 进入正式模式。"
           : "⚪️ 未连接 vault。跑 <code>python3 server.py</code> 后从 <code>http://localhost:5273</code> 打开即可写回 Obsidian。";
       }
+    })();
+
+    // 一键重启：POST /api/restart → 服务端 os.execv 原地重启 → 轮询 /api/health → 自动刷新。
+    // file:// 预览态没有后端可重启，隐藏整块。
+    (function setupRestart() {
+      const ops = document.getElementById("ops");
+      const btn = document.getElementById("restartBtn");
+      if (location.protocol === "file:") { if (ops) ops.style.display = "none"; return; }
+      btn.onclick = async () => {
+        if (!confirm("重启控制台？\n\n用于让改动的 config / rules / .env 或更新的代码生效。约几秒，重启后自动刷新。")) return;
+        btn.disabled = true; btn.textContent = "🔄 重启中…";
+        try { await fetch("/api/restart", { method: "POST" }); } catch (e) {}
+        const t0 = Date.now();
+        const poll = async () => {
+          try {
+            const r = await fetch("/api/health", { cache: "no-store" });
+            if (r.ok) { location.reload(); return; }
+          } catch (e) {}
+          if (Date.now() - t0 > 20000) {
+            btn.disabled = false; btn.textContent = "🔄 一键重启控制台";
+            alert('自动重启没能在 20 秒内完成。\n\n请在终端手动重来：\n关闭：pkill -f "python3 server.py"\n重开：python3 server.py（在 Console 目录下）\n\n不想碰命令行？把「帮我重启 YMOS Console」发给你的 AI Agent。');
+            return;
+          }
+          setTimeout(poll, 700);
+        };
+        setTimeout(poll, 1200);
+      };
     })();
   </script>
 </body>
