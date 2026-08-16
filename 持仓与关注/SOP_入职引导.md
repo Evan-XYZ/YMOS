@@ -114,7 +114,7 @@ BrainStorm 与旧日志是梳理策略的重要上下文，但不得自动变成
 完成通用 Profile 后，向用户展示两条分支：
 
 1. 只使用 YMOS 通用主闭环；
-2. 查看作者公开的默认关闭扩展，包括 P17、P18、P9+P17 专项调研、What's Hot、美股热门追踪、Watchlist 自动建档、核心资产动态判定和配套扫描脚本。
+2. 查看作者公开的默认关闭扩展，包括 P17、P18、P9+P17 专项调研、What's Hot、美股热门追踪、两份个人阅读报告和配套扫描脚本。
 
 第二条只是进化方向和配置样本，不是系统推荐。用户需要先阅读 `Brain/策略配置/examples/author-profile/README.md` 与 `module-manifest.example.json`，逐项确认适用市场、证据源、参数、依赖和 Human 门禁。未明确选择的模块保持关闭。
 

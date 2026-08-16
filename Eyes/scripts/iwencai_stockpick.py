@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -140,7 +141,12 @@ def main() -> int:
                 page_result = run_cli(args.query, next_page, limit, env)
                 page_rows = list(page_result.get('datas', []) or [])
                 if not page_rows:
-                    break
+                    # 空页可能是瞬时失败，不代表已经抓完；等待后重试一次。
+                    time.sleep(1.0)
+                    page_result = run_cli(args.query, next_page, limit, env)
+                    page_rows = list(page_result.get('datas', []) or [])
+                    if not page_rows:
+                        break
                 rows.extend(page_rows)
                 pages.append(page_result)
                 fetched_pages += 1

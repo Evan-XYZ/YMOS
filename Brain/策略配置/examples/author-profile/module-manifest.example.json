@@ -31,13 +31,6 @@
       "enabled": false,
       "paths": ["Eyes/SOP_Whats_Hot.md", "Eyes/SOP_美股热门追踪.md"],
       "requires": ["configured market data drivers", "user-defined scan thresholds"]
-    },
-    {
-      "id": "author-watchlist-pipeline",
-      "type": "optional",
-      "enabled": false,
-      "paths": ["Eyes/SOP_Watchlist自动建档.md", "Eyes/SOP_核心资产动态判定表.md", "Eyes/SOP_A股核心资产回踩扫描.md"],
-      "requires": ["P17", "P9", "Human approval before identity changes"]
     }
   ],
   "scheduling": {
