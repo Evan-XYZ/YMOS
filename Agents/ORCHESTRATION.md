@@ -27,7 +27,7 @@
 | 角色 | 角色卡 | 本次任务必须再读 | 前置依赖 | 允许产出 |
 |:---|:---|:---|:---|:---|
 | Market Insight | `market-insight-agent.md` | `Eyes/SOP_市场洞察.md` | 需要的数据源与市场时间已就绪 | `Eyes/市场洞察/` 与其 Raw Data |
-| Investment Radar | `investment-radar-agent.md` | `Eyes/SOP_投资雷达.md` | 一份已完成且在允许时效内的市场洞察 | `Eyes/投资雷达/` 与待分析队列 |
+| Investment Radar | `investment-radar-agent.md` | `Eyes/SOP_投资雷达.md` | 按模式核验：`balanced/event` 优先用有效洞察与热门报告，`price` 需要真实 ticker 与价格路由；Profile 可选 | `Eyes/投资雷达/` 与待分析队列 |
 | Strategy | `strategy-agent.md` | `Brain/SOP_策略分析.md`；专项任务再读对应调研 SOP / 已启用 P 模块 | Human 点名或 Radar 明确列入队列；事实调研允许 draft，动作结论要求 active + Human 批准 | `Brain/策略分析/`、可追溯知识库增量、待 Human 决定事项 |
 | Portfolio State：体检 | `portfolio-state-agent.md` | `持仓与关注/SOP_持仓日常体检.md` | 组合快照存在；过期则标 stale | 默认只输出体检，不改交易事实 |
 | Portfolio State：身份 | `portfolio-state-agent.md` | `持仓与关注/SOP_标的管理.md` | Human 明确指令与必要前置研究 | 持仓 / Watchlist 身份状态和变更日志 |
@@ -61,7 +61,7 @@
 
 - 写回前使用版本号或内容哈希进行乐观校验；发现变化则停止并重算。
 - 数据缺失返回 `data_incomplete`，输入过期返回 `stale_input`。
-- 依赖失败返回 `blocked_by_dependency`，并记录失败的上游与最后有效版本。
+- 只有所选模式的最小必需输入失败时返回 `blocked_by_dependency`，并记录失败输入与最后有效版本；局部上游缺失写明降级模式。
 - “没有触发事项”是成功结果，返回 `no_change`。
 - 冲突不能靠最后写入者覆盖；必须进入 Human 审阅。
 - 禁止把“文件存在”当成功；必须同时检查日期、结构和 SOP 成功条件。

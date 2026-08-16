@@ -23,7 +23,7 @@ Profile 为 `draft` 时允许市场洞察、雷达和事实调研；动作级路
 | 暗号 | SOP | 提示词 | 写回 |
 |:---|:---|:---|:---|
 | `跑一下市场洞察` | `Eyes/SOP_市场洞察.md` | CIO + P13（+ P14 按需） | `Eyes/市场洞察/YYYY-MM/` |
-| `跑一下投资雷达` | `Eyes/SOP_投资雷达.md` | 7天趋势 + 价格扫描 + Finnhub新闻 | `Eyes/投资雷达/YYYY-MM/`；身份变化需 Human/Portfolio State |
+| `跑一下投资雷达` | `Eyes/SOP_投资雷达.md` | balanced：市场/热门/价格/事件；也可切 price 或 event | `Eyes/投资雷达/YYYY-MM/`；身份变化需 Human/Portfolio State |
 | `查一下价格` | `Eyes/scripts/fetch_price_router_v2.py` | Finnhub/Tushare/Yahoo 价格路由（失败回落问财） | `Eyes/投资雷达/YYYY-MM/Raw_Data/` |
 
 ---

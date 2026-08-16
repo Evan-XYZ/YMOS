@@ -25,11 +25,11 @@
 
 ## 依赖规则
 
-1. Market Insight 只在关键驱动数据齐备后运行。
-2. Investment Radar 必须引用一份已完成且时间有效的市场洞察。
+1. Market Insight 至少要有一条可用事件源；无 Market API Key 时自动走 RSS，不把可选增强当硬依赖。
+2. Investment Radar 按模式核验依赖：`balanced/event` 优先引用时间有效的市场洞察与热门报告；`price` 只要求真实 ticker 与可用价格路由。局部上游缺失应降级，不应无差别返回 `blocked_by_dependency`。
 3. Strategy 只处理 Human 点名或 Radar 明确列入审阅队列的对象；不建议无差别每日全量运行。
 4. Portfolio State 只消费已落盘且已确认的事实，并在写回前重新读取最新状态，避免覆盖并发修改。
-5. 任一上游失败时，下游返回 `blocked_by_dependency`，不得拿旧产物冒充今日产物。
+5. 所选模式的最小必需上游失败时，下游返回 `blocked_by_dependency`；局部上游失败则降级并记录，不得拿旧产物冒充今日产物。
 6. 没有触发项返回 `no_change`，不为了让任务“有产出”而制造结论或状态变化。
 
 ## 可直接改路径使用的任务文案
@@ -51,7 +51,8 @@
 先读取 Agents/investment-radar-agent.md，
 再读取 Agents/EXECUTION_PLAYBOOK.md 的 Investment Radar 段落，
 最后执行 Eyes/SOP_投资雷达.md。
-先核验当日市场洞察；无有效上游则返回 blocked_by_dependency。
+未指定模式则用 balanced；也可在任务中固定 price 或 event。
+按模式核验市场洞察、A/美股热门观察、持仓/Watchlist 与价格路由；局部缺失写降级，只有最小输入也不存在才返回 blocked_by_dependency。
 只写 Eyes/投资雷达/，不得迁移标的身份或输出已执行动作。
 ```
 

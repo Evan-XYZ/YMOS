@@ -30,7 +30,7 @@ Human 或定时任务触发
 | 角色 | 服务位置 | 默认入口 | 主要产出 | 是否自动进入下一环 |
 |:---|:---|:---|:---|:---|
 | **Market Insight** | 投研层 | `Eyes/SOP_市场洞察.md` | `Eyes/市场洞察/` | 可触发 Radar，但必须先通过成功判定 |
-| **Investment Radar** | 投研层 → 内核路由 | `Eyes/SOP_投资雷达.md` | `Eyes/投资雷达/`、待分析队列 | 不自动给出买卖动作 |
+| **Investment Radar** | 投研层汇总 → 可选内核路由 | `Eyes/SOP_投资雷达.md` | `Eyes/投资雷达/`、待分析队列 | `balanced / price / event` 均不要求 Profile；不自动给出买卖动作 |
 | **Strategy** | 策略内核层 | `Brain/SOP_策略分析.md`；按需进入初始调研或 P 链 | `Brain/策略分析/`、待 Human 决定事项 | 不自动写真实持仓或成交 |
 | **Portfolio State** | 内核记忆 ↔ 操盘层 | 依据触发选择“持仓日常体检”“标的管理”或买卖决策数据契约 | 已确认的身份状态、组合快照与变更日志 | 不创造新论点，不替 Human 成交 |
 
@@ -54,7 +54,7 @@ Market Insight → Investment Radar → Strategy（仅明确触发项）
                               Portfolio State 写回
 ```
 
-日常不要求每次跑完整链。市场洞察和投资雷达可以独立形成投研主链；没有明确研究队列时 Strategy 返回 `no_change`；没有 Human 确认或状态变化时 Portfolio State 不写任何事实。上游失败时下游返回 `blocked_by_dependency`，不得用旧产物冒充当日产物。
+日常不要求每次跑完整链。市场洞察和投资雷达可以独立形成投研主链；没有明确研究队列时 Strategy 返回 `no_change`；没有 Human 确认或状态变化时 Portfolio State 不写任何事实。只有当前模式的**最小必需输入**失败时才返回 `blocked_by_dependency`；局部事件源或报告缺失应显式降级，不得用旧产物冒充当日产物。
 
 ### 2. Agent 状态写回只有一个出口
 
@@ -77,7 +77,7 @@ Market Insight → Investment Radar → Strategy（仅明确触发项）
 ## 三步验证它是否真的可用
 
 1. **角色加载测试**：让宿主复述当前角色的允许写入与禁止动作；答不出说明角色卡没有被读取。
-2. **依赖失败测试**：临时指定一个不存在的当日上游产物运行 Radar；正确结果应是 `blocked_by_dependency`，而不是拿旧报告继续。
+2. **模式依赖测试**：分别运行 `balanced / price / event`。局部报告缺失应降级；只有所选模式的最小输入也不存在时才返回 `blocked_by_dependency`，而不是拿旧报告继续。
 3. **写回边界测试**：在没有 Human 确认的情况下要求 Strategy 改持仓；正确结果应是拒绝写回，并把事项交给 Human / Portfolio State。
 
 这三步通过，说明角色、依赖和权限协议已经生效；它验证的是运行编排，不代表外部数据源、模型结论或真实交易本身一定正确。

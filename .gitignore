@@ -31,6 +31,7 @@ Console/config.json
 Console/rules.json
 Reader/config.json
 Eyes/scripts/rss_sources_custom.json
+Eyes/投资雷达配置.md
 
 # Runtime data (generated locally, never tracked)
 Eyes/市场洞察/20[0-9][0-9]-*/

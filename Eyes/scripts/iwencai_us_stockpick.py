@@ -83,34 +83,46 @@ def write_csv(rows: list[dict[str, Any]], csv_out: Path) -> None:
             f.write(','.join(vals) + '\n')
 
 
-def validate_us_result(query: str, rows: list[dict[str, Any]]) -> None:
+def validate_us_result(query: str, rows: list[dict[str, Any]], chunks_info: Any = None) -> None:
     if not rows:
         return
 
     sample = rows[:5]
     a_share_codes = []
     a_share_schema_keys = set()
+    a_share_domains = []
     for row in sample:
         if not isinstance(row, dict):
             continue
         code = str(row.get('股票代码', ''))
         if code.endswith(('.SZ', '.SH', '.BJ')):
             a_share_codes.append(code)
+        domain = str(row.get('成分领域', ''))
+        if 'A股' in domain or 'a股' in domain.lower():
+            a_share_domains.append(domain)
         for key in row.keys():
-            if 'a股' in str(key):
-                a_share_schema_keys.add(str(key))
+            key_text = str(key)
+            if 'a股' in key_text.lower():
+                a_share_schema_keys.add(key_text)
 
-    if a_share_codes or a_share_schema_keys:
+    chunks_text = json.dumps(chunks_info, ensure_ascii=False) if chunks_info is not None else ''
+    chunks_look_like_a_share = 'A股指数' in chunks_text or '成分领域等于A股' in chunks_text
+
+    if a_share_codes or a_share_schema_keys or a_share_domains or chunks_look_like_a_share:
         hints = []
         if a_share_codes:
             hints.append(f"sample_a_share_codes={a_share_codes}")
         if a_share_schema_keys:
             hints.append(f"sample_a_share_schema_keys={sorted(a_share_schema_keys)}")
+        if a_share_domains:
+            hints.append(f"sample_a_share_domains={a_share_domains}")
+        if chunks_look_like_a_share:
+            hints.append('chunks_info_contains_a_share_index=true')
         raise RuntimeError(
             'US_RESULT_LOOKS_LIKE_A_SHARE: '
             f"query={query}; {'; '.join(hints)}; "
-            'likely caused by ambiguous English query. Use an explicit 美股-prefixed Chinese query, '
-            'for example: 美股 市值大于100亿美元，近2周股价创60日新高，近1月创1年新高，近5个交易日上涨大于3%。'
+            'the API routed this request to A-share data. Reject this result and use only a '
+            'validated US-stock template from the active SOP; do not retry by freely rewriting the query.'
         )
 
 
@@ -163,7 +175,7 @@ def main() -> int:
         first = run_cli(args.query, start_page, limit, env)
         total = int(first.get('code_count', 0) or 0)
         rows = list(first.get('datas', []) or [])
-        validate_us_result(args.query, rows)
+        validate_us_result(args.query, rows, first.get('chunks_info'))
         pages = [first]
         fetched_pages = 1
         if args.fetch_all and total > len(rows):
