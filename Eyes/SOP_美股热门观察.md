@@ -29,7 +29,7 @@
 
 - 最近 3-7 份 `Eyes/市场洞察/YYYY-MM/`
 - 最近可用的 `Eyes/A股热门观察/YYYY-MM/` 或 `Eyes/Whats_Hot/YYYY-MM/`
-- 用户自己的美股持仓、Watchlist、关注方向和 Strategy Profile
+- 用户自己的美股持仓、Watchlist 和 `当前关注方向与投资偏好.md`；本投研报告不读取 Strategy Profile
 - 上游 Raw、公司 IR/SEC、财报稿与公开检索
 
 必须使用美股交易日命名文件，不能把北京时间日期误作市场日期。上游缺失或日期不是最近完整交易日时，不生成完整版。

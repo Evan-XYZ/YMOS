@@ -180,7 +180,7 @@ YMOS/Brain/策略分析/YYYY-MM/策略分析日志_YYYY-MM-DD.md
 必须读取：
 
 ```text
-YMOS/持仓与关注/当前关注方向与投资偏好.md
+YMOS/Brain/策略配置/当前策略_Profile.md
 YMOS/Brain/references/p9-valuation.md
 YMOS/Brain/references/p17-core-asset.md
 ```
@@ -191,10 +191,13 @@ YMOS/Brain/references/p17-core-asset.md
 YMOS/Brain/references/p1-genesis.md
 YMOS/Brain/references/p2-phase-check.md
 YMOS/Brain/references/p4-radar.md
+YMOS/持仓与关注/当前关注方向与投资偏好.md（只补当前研究背景，不代替 Profile）
 既有个股基础知识库 / 历史报告 / 买入卖出备忘录
 你自己的产业链索引或主题子链材料（可选）
 最新市场洞察 / 美股热门追踪 / What’s Hot 报告
 ```
+
+Profile 缺失或为 `draft` 时，可以完成 P9/P17 的事实整理和缺口清单，但不得套用作者阈值形成个性化资产等级或动作结论；返回 `kernel_not_ready` 或 `data_incomplete` 的对应边界。当前关注文件只说明“为什么最近看”，不能解除这个守卫。
 
 只有执行“移入真实观察”时才必须读取：
 
@@ -462,8 +465,8 @@ YMOS/Brain/策略分析/YYYY-MM/策略分析日志_YYYY-MM-DD.md
 ## 🧭 手动调研 / 潜在观察（P9+P17）
 
 | 时间 | 市场 | 标的 | 触发来源 | 资产等级 | 当前机会 | 潜在收益分级 | Q7股性 | 潜在观察结论 | 报告路径 | Raw | 下一步 |
-|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|
-| HH:MM | A股 | 300751.SZ 迈为股份 | Human手动记录 | A_high_odds/B_tracking | wait_pullback | 72/趋势可交易 | 建议保留潜在观察/建议移入真实观察 | ... | ... | ... |
+|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|
+| HH:MM | A股 | 300751.SZ 迈为股份 | Human手动记录 | A_high_odds/B_tracking | wait_pullback | 72/趋势可交易 | 波动/流动性待评估 | 建议保留潜在观察/建议移入真实观察 | ... | ... | ... |
 ```
 
 日志纪律：

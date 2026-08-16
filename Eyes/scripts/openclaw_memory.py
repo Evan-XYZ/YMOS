@@ -51,7 +51,7 @@ class OpenClawMemory:
         self.radar_archive_dir = self.paths.radar_root
         self.strategy_dir = self.paths.strategy_root
 
-        self.profile_files = {
+        self.research_context_files = {
             "当前关注方向与投资偏好": self.holdings_root / "当前关注方向与投资偏好.md",
             "持仓状态机": self.holdings_root / "持仓_状态机.md",
             "Watchlist状态机": self.holdings_root / "Watchlist_状态机.md",
@@ -72,7 +72,8 @@ class OpenClawMemory:
         组合多个数据源，返回完整系统提示词。
 
         可用数据源（sources 参数值）：
-          "user_profile"        — 当前关注方向与投资偏好 + 两份状态机
+          "research_context"    — 当前关注方向与投资偏好 + 两份状态机
+          "user_profile"        — 旧调用别名；内容同 research_context，不表示 Strategy Profile
           "investment_reports"  — 最近 N 天市场洞察（Eyes/市场洞察/）
           "radar_reports"       — 最近 N 天投资雷达（Eyes/投资雷达/）
           "radar_archive"       — 最近 N 天投资雷达正式归档（Eyes/投资雷达/）
@@ -91,7 +92,7 @@ class OpenClawMemory:
         """
         if sources is None:
             sources = [
-                "user_profile", "investment_reports", "radar_reports",
+                "research_context", "investment_reports", "radar_reports",
             ]
 
         if base_instruction is None:
@@ -103,7 +104,8 @@ class OpenClawMemory:
         parts = [base_instruction, "\n\n---\n"]
 
         loader_map = {
-            "user_profile":        lambda: self._load_user_profile(),
+            "research_context":    lambda: self._load_research_context(),
+            "user_profile":        lambda: self._load_research_context(),
             "investment_reports":  lambda: self._load_recent_files(
                 self.report_dir, days=days, max_chars=max_chars,
                 label="市场洞察报告", date_format="%Y-%m-%d", glob="**/*.md",
@@ -160,10 +162,10 @@ class OpenClawMemory:
     # 各数据源加载函数
     # ═══════════════════════════════════════════════════════════════
 
-    def _load_user_profile(self) -> str:
-        """加载投资工作流核心锚点文件。"""
-        parts = ["## 📋 投资工作流核心锚点\n"]
-        for label, path in self.profile_files.items():
+    def _load_research_context(self) -> str:
+        """加载投研层轻量关注状态与对象身份；不加载 Strategy Profile。"""
+        parts = ["## 📋 投研层当前上下文\n"]
+        for label, path in self.research_context_files.items():
             if path.exists():
                 text = path.read_text(encoding="utf-8").strip()
                 parts.append(f"### {label}\n{text}\n")
@@ -229,11 +231,11 @@ class OpenClawMemory:
     def for_investment_report(self, days: int = 30) -> str:
         """市场洞察 / 投资雷达专用上下文。"""
         return self.build_prompt(
-            sources=["user_profile", "investment_reports", "radar_reports"],
+            sources=["research_context", "investment_reports", "radar_reports"],
             days=days,
             base_instruction=(
-                "你是我的专属投研助手。基于以下市场洞察、投资雷达和当前策略配置，"
-                "帮我分析最新数据，识别确定性信号，并给出符合路由约束的下一步动作。"
+                "你是我的专属投研助手。基于以下市场洞察、投资雷达、当前关注状态与对象身份，"
+                "帮我分析最新数据、识别值得验证的信号并形成研究队列；不要生成买卖动作。"
             ),
         )
 
@@ -297,7 +299,7 @@ if __name__ == "__main__":
     parser.add_argument("--days", type=int, default=14, help="历史追溯天数（默认 14）")
     parser.add_argument(
         "--sources", nargs="*",
-        default=["user_profile", "investment_reports", "radar_reports"],
+        default=["research_context", "investment_reports", "radar_reports"],
         help="数据源列表（空格分隔）",
     )
     parser.add_argument("--diagnose", action="store_true", help="只输出路径诊断")

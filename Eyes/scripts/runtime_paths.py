@@ -70,6 +70,11 @@ class RuntimePaths:
 
     @property
     def strategy_pref(self) -> Path:
+        """旧属性名，向前兼容；返回投研层轻量关注文件，不是 Strategy Profile。"""
+        return self.current_focus
+
+    @property
+    def current_focus(self) -> Path:
         return self.holdings_root / "当前关注方向与投资偏好.md"
 
     # ── 目录布局初始化 ──────────────────────────────

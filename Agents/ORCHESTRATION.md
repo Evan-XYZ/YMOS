@@ -27,7 +27,7 @@
 | 角色 | 角色卡 | 本次任务必须再读 | 前置依赖 | 允许产出 |
 |:---|:---|:---|:---|:---|
 | Market Insight | `market-insight-agent.md` | `Eyes/SOP_市场洞察.md` | 需要的数据源与市场时间已就绪 | `Eyes/市场洞察/` 与其 Raw Data |
-| Investment Radar | `investment-radar-agent.md` | `Eyes/SOP_投资雷达.md` | 按模式核验：`balanced/event` 优先用有效洞察与热门报告，`price` 需要真实 ticker 与价格路由；Profile 可选 | `Eyes/投资雷达/` 与待分析队列 |
+| Investment Radar | `investment-radar-agent.md` | `Eyes/SOP_投资雷达.md` | 按模式核验：`balanced/event` 优先用有效洞察与热门报告，`price` 需要真实 ticker 与价格路由；轻量关注文件可选，Profile 不参与 | `Eyes/投资雷达/` 与待分析队列 |
 | Strategy | `strategy-agent.md` | `Brain/SOP_策略分析.md`；专项任务再读对应调研 SOP / 已启用 P 模块 | Human 点名或 Radar 明确列入队列；事实调研允许 draft，动作结论要求 active + Human 批准 | `Brain/策略分析/`、可追溯知识库增量、待 Human 决定事项 |
 | Portfolio State：体检 | `portfolio-state-agent.md` | `持仓与关注/SOP_持仓日常体检.md` | 组合快照存在；过期则标 stale | 默认只输出体检，不改交易事实 |
 | Portfolio State：身份 | `portfolio-state-agent.md` | `持仓与关注/SOP_标的管理.md` | Human 明确指令与必要前置研究 | 持仓 / Watchlist 身份状态和变更日志 |
@@ -39,8 +39,8 @@
 
 | 角色 | 读取 | 写入 | 禁止 |
 |:---|:---|:---|:---|
-| Market Insight | 驱动数据、历史洞察、只读组合摘要 | 市场洞察与原始数据 | 修改持仓、给出交易指令 |
-| Investment Radar | 有效市场洞察、组合快照、观察状态 | 雷达报告与分析队列 | 迁移身份、改写决策结论 |
+| Market Insight | 驱动数据、历史洞察、轻量关注状态、只读组合摘要 | 市场洞察与原始数据 | 修改关注/持仓、读取 Profile、给出交易指令 |
+| Investment Radar | 有效市场洞察、轻量关注状态、组合快照、观察状态 | 雷达报告与分析队列 | 迁移身份、读取 Profile、改写决策结论 |
 | Strategy | Profile、标的档案、决策状态、雷达触发 | 策略报告与明确的单标的增量 | 静默改 Profile、自动执行交易 |
 | Portfolio State | 已确认动作、决策文件、账户与行情快照 | 明确授权的身份状态、组合快照与变更日志 | 创造新论点、替代 Human 确认、改写历史事件 |
 
@@ -49,11 +49,13 @@
 ## 4. 真相源优先级
 
 1. Human 明确确认并由真实操作产生的事实事件；
-2. 最新、已确认的 Strategy Profile 与单笔买卖决策文件；
-3. 持仓 / Watchlist 身份状态；
+2. 最新、已确认的 Strategy Profile 与单笔买卖决策文件（策略与动作任务）；
+3. 当前关注方向与投资偏好（投研排序与关联）以及持仓 / Watchlist 身份状态；
 4. 带来源和时间戳的组合快照；
 5. 派生报告与可视化；
 6. 未确认的 Agent 建议。
+
+第 2、3 项不是同一字段的竞争真相源：Profile 管“怎样判断”，关注文件管“最近研究什么”。二者范围不同不触发覆盖。
 
 快照与单笔文件冲突时，以单笔文件为事实源并要求刷新快照。Human 的口头修正只有在完成确认和留痕后，才替代旧文件成为持久真相源。
 

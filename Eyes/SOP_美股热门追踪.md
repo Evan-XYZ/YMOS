@@ -21,7 +21,7 @@
 - 最近 3-7 份 `Eyes/市场洞察/YYYY-MM/`
 - 最近 1-3 份 `Eyes/A股热门观察/YYYY-MM/` 或 `Eyes/Whats_Hot/YYYY-MM/`
 - 最近 3-5 份 `Eyes/美股热门观察/YYYY-MM/`
-- 可选：Finnhub、公司 IR/SEC、公开搜索、用户自定义关注配置
+- 可选：`持仓与关注/当前关注方向与投资偏好.md`、Finnhub、公司 IR/SEC、公开搜索；本投研扫描不读取 Strategy Profile
 
 缺少用户配置不影响全市场扫描；缺少问财时允许 best-effort，但不得伪造池数量与行业广度。
 

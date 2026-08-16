@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased — What's Hot 全天候动量发现
+## Unreleased — 投研层向前兼容与 What's Hot 全天候动量发现
+
+- 恢复并正式定义 V3 的 `当前关注方向与投资偏好.md` 使用习惯：它成为投研层可高频修改的轻量状态，保存当前方向、事件窗口、跨市场映射和阅读偏好，不再是 Strategy Profile 的兼容投影。
+- 新增 `持仓与关注/SOP_关注方向维护.md` 与“更新我的关注方向”暗号；Agent 展示差异并获 Human 确认后写入，不联动 Profile、持仓、Watchlist、交易计划或定时任务。
+- 市场洞察、投资雷达和两份热门观察统一改读轻量关注状态，不再读取或依赖 Profile；Profile 仅在策略/动作任务中负责入场、失效、风险、期限和 Human 门禁。
+- 内核入职、Diagnosis Adapter 与 Profile 激活流程停止向关注文件投影；V3 迁移改为原样保留投研状态，只把动作规则拆成独立 Profile 草案。
+- 同步更新总入口、Agent Guide、Agents 角色协议、架构、README、升级指南和进阶指南，并加入“无 Profile / 有关注”“有 Profile / 有关注”“范围冲突”“两者都缺失”四场景验收。
 
 - A 股 What's Hot 从固定异动/新高入口升级为 Market Regime 驱动的六类动量剧本，并增加有限模板选择、条件证明列和 M/A/Q/S 分维裁决。
 - 美股热门追踪升级为异动、新高、启动三条观察线，强调涨跌双向归因和 A 股传导链。

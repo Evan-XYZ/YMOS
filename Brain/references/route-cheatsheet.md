@@ -5,7 +5,9 @@
 
 ---
 
-## 0) 通用前置
+## 0) 先分投研与策略
+
+投研暗号（市场洞察、投资雷达、事实调研）读取 `持仓与关注/当前关注方向与投资偏好.md`（若存在），不要求 Profile。关注文件只影响排序、关联和研究问题。
 
 执行策略前必须确认：
 1. 已读取 `个股基础知识库.md`
@@ -14,7 +16,7 @@
 4. 已检查 `modules.enabled / disabled / replacements`
 5. 只运行 Profile 允许的模块；最终纪律裁判只引用 Profile 红线
 
-Profile 为 `draft` 时允许市场洞察、雷达和事实调研；动作级路由返回 `kernel_not_ready`。
+Profile 为 `draft` 时，市场洞察、雷达和事实调研继续走投研链；动作级路由返回 `kernel_not_ready`。关注文件不能解除该守卫。
 
 ---
 
@@ -24,6 +26,7 @@ Profile 为 `draft` 时允许市场洞察、雷达和事实调研；动作级路
 |:---|:---|:---|:---|
 | `跑一下市场洞察` | `Eyes/SOP_市场洞察.md` | CIO + P13（+ P14 按需） | `Eyes/市场洞察/YYYY-MM/` |
 | `跑一下投资雷达` | `Eyes/SOP_投资雷达.md` | balanced：市场/热门/价格/事件；也可切 price 或 event | `Eyes/投资雷达/YYYY-MM/`；身份变化需 Human/Portfolio State |
+| `更新我的关注方向` | `持仓与关注/SOP_关注方向维护.md` | 当前主题/事件/映射/阅读偏好；Human 确认后写入 | `持仓与关注/当前关注方向与投资偏好.md` |
 | `查一下价格` | `Eyes/scripts/fetch_price_router_v2.py` | Finnhub/Tushare/Yahoo 价格路由（失败回落问财） | `Eyes/投资雷达/YYYY-MM/Raw_Data/` |
 
 ---
@@ -52,10 +55,10 @@ Profile 为 `draft` 时允许市场洞察、雷达和事实调研；动作级路
 
 | 暗号 | SOP | 提示词 | 写回 |
 |:---|:---|:---|:---|
-| `调研一下 [股票]` | `Brain/SOP_初始调研.md` | P1 → P4（P2/P9 仅按 Profile 启用） | 已批准建档则写知识库；否则写 `Eyes/投资雷达/YYYY-MM/` |
+| `调研一下 [股票]` | `Brain/SOP_初始调研.md` | 默认 P1/P4 事实模式；明确要求策略适配时才检查 Profile 并按需进入 P2/P9 | 已批准建档则写知识库；否则写 `Eyes/投资雷达/YYYY-MM/` |
 | `我想买 [股票]` | `Brain/SOP_策略分析.md` | 按 Profile 模块清单解析首次买入链 | `Brain/策略分析/`；Human 决定后进入 Console |
 | `我想卖 [股票]` | `Brain/SOP_策略分析.md` | 复现原规则后按 Profile 路由退出链 | `Brain/策略分析/`；Human 决定后进入 Console |
-| `复盘一下` | `Brain/SOP_策略分析.md` | P11（个股）/ P7（组合） | `Brain/策略分析/` |
+| `复盘一下 [ticker]` / `复盘一下这笔` | `Brain/内核审计/SOP_平仓复盘归档.md` | P11 分析 → 计划 vs 实际归档；Profile 缺失时只做机械对账 | `Brain/内核审计/优化建议/YYYY-MM/` |
 
 ---
 

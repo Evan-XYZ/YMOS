@@ -30,7 +30,7 @@ Human 或定时任务触发
 | 角色 | 服务位置 | 默认入口 | 主要产出 | 是否自动进入下一环 |
 |:---|:---|:---|:---|:---|
 | **Market Insight** | 投研层 | `Eyes/SOP_市场洞察.md` | `Eyes/市场洞察/` | 可触发 Radar，但必须先通过成功判定 |
-| **Investment Radar** | 投研层汇总 → 可选内核路由 | `Eyes/SOP_投资雷达.md` | `Eyes/投资雷达/`、待分析队列 | `balanced / price / event` 均不要求 Profile；不自动给出买卖动作 |
+| **Investment Radar** | 投研层汇总 → 可选内核路由 | `Eyes/SOP_投资雷达.md` | `Eyes/投资雷达/`、待分析队列 | `balanced / price / event` 读取轻量关注状态，不读取 Profile；不自动给出买卖动作 |
 | **Strategy** | 策略内核层 | `Brain/SOP_策略分析.md`；按需进入初始调研或 P 链 | `Brain/策略分析/`、待 Human 决定事项 | 不自动写真实持仓或成交 |
 | **Portfolio State** | 内核记忆 ↔ 操盘层 | 依据触发选择“持仓日常体检”“标的管理”或买卖决策数据契约 | 已确认的身份状态、组合快照与变更日志 | 不创造新论点，不替 Human 成交 |
 
