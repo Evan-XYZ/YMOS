@@ -2,15 +2,15 @@
 
 > 业务上分为投研层、策略内核层、操盘层；技术上由跨层 Agents 协议把它们编排起来。
 
-YMOS 是一套 Human-in-the-loop 的投资操作系统。它不替用户交易；它把外部信息、个人判断、执行门禁和历史证据组织成一条可审计、可复核、可进化的链路。
+YMOS 是一套 **判断主导、系统执行（Discretionary with Systematic Process）** 的 AI 结构化投资系统，Human-in-the-loop 保证判断由人来做，系统负责让判断不走样。它把外部信息、个人判断、执行门禁和历史证据组织成一条可审计、可复核、可进化的链路，不替用户交易。
 
 ## 1. 三层是用户的进阶主线
 
 | 层 | 回答的问题 | 主要资产 | 一句话 |
 |:---|:---|:---|:---|
-| **投研层 Research** | 市场发生了什么？我最近需要研究什么？ | `Eyes/`、轻量关注状态、行情与事实数据源、外部 Skills、Reader | 获取与标准化事实，完成信息压缩、个人关联和初始调研 |
-| **策略内核层 Strategy Kernel** | 面对同一研究事实，我怎么判断？ | `Brain/`、Strategy Profile、状态与记忆、`BrainStorm/` | 决定判断方式、路由、记忆和改进规则 |
-| **操盘层 Trading** | 判断形成后，我如何计划、确认、执行和留痕？ | Console 交易计划台、买卖决策台 + Human | 把计划、门禁与生命周期变成可执行流程；最终执行权属于人 |
+| **投研层 Research**（AI-assisted Structured Research） | 市场发生了什么？我最近需要研究什么？ | `Eyes/`、轻量关注状态、行情与事实数据源、外部 Skills、Reader | 获取与标准化事实，完成信息压缩、个人关联和初始调研 |
+| **策略内核层 Strategy Kernel**（Decision Architecture） | 面对同一研究事实，我怎么判断？ | `Brain/`、Strategy Profile、状态与记忆、`BrainStorm/` | 决定判断方式、路由、记忆和改进规则 |
+| **操盘层 Trading**（Behavioral Enforcement） | 判断形成后，我如何计划、确认、执行和留痕？ | Console 交易计划台、买卖决策台 + Human | 把计划、门禁与生命周期变成可执行流程；最终执行权属于人 |
 
 ### 新能力怎么归层
 
