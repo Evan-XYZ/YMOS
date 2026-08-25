@@ -26,6 +26,9 @@ jobs:
       - name: Run Console regression tests
         run: python3 Console/tests/test_trade_api.py
 
+      - name: Test reusable Tencent quote adapter
+        run: python3 Eyes/scripts/tests/test_fetch_price_tencent.py
+
       - name: Build privacy-safe browser demo
         run: python3 scripts/build_console_demo.py --output _site
 

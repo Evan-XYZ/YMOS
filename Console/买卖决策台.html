@@ -3174,23 +3174,24 @@
       const got = held.filter(x => quotes.prices[tradeTicker(x)]).length;
       if (quotes.loading) {
         el.className = "stance-ctx none";
-        el.innerHTML = '<span class="sc-icon">📡</span><div>正在拉行情…（走 YMOS 自己的价格路由器：美股 Finnhub / A股 Tushare / 港股 Yahoo）</div>';
+        el.innerHTML = '<span class="sc-icon">📡</span><div>正在拉行情…（免 Key 默认走腾讯财经；已配置的 Finnhub / Tushare 仍优先）</div>';
         return el;
       }
       if (!quotes.tried) {
         el.className = "stance-ctx none";
         el.innerHTML = '<span class="sc-icon">📡</span><div>下面是<b>成本口径</b>的数字（不联网，开源版默认就是这样）。' +
           '<br><button class="new-btn" id="qGo">📡 打通动态价格</button>' +
-          '<span class="sc-msg" style="display:block;margin-top:6px">走 YMOS 自己的价格路由器，跟投资雷达同一个源。现价不写进单笔决策文件；成功后会连同总览写入<b>账户状态机快照</b>。</span></div>';
+          '<span class="sc-msg" style="display:block;margin-top:6px">不配 Key 时，A 股 / 港股 / 美股默认走腾讯财经；Crypto 和腾讯失败项由 Yahoo 兜底。已配置 Finnhub / Tushare 时继续优先使用专用源。现价不写进单笔决策文件；成功后会连同总览写入<b>账户状态机快照</b>。</span></div>';
         el.querySelector("#qGo").onclick = () => loadQuotes(true);
         return el;
       }
       const un = (quotes.unresolved || []);
       const s = quotes.sources || {};
       const srcTxt = [
-        "美股/Crypto → " + (s.finnhub ? "Finnhub" : "Yahoo 兜底（未配 FINNHUB_API_KEY）"),
-        "A股 → " + (s.tushare ? "Tushare" : "Yahoo 兜底（未配 TUSHARE_TOKEN）"),
-        "港股 → Yahoo",
+        "美股 → " + (s.finnhub ? "Finnhub" : "腾讯财经（免 Key）"),
+        "A股 → " + (s.tushare ? "Tushare" : "腾讯财经（免 Key）"),
+        "港股 → 腾讯财经（免 Key）",
+        "Crypto → " + (s.finnhub ? "Finnhub" : "Yahoo 兜底"),
       ].join("　·　");
       el.className = "stance-ctx " + (got ? "good" : "warn");
       const statusText = quotes.restored

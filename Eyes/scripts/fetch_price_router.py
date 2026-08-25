@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """
-价格路由器（三源分流版）
+价格路由器（四源分流版）
 
 路由规则（优先级顺序）：
-  美股 / Crypto（无后缀）→ Finnhub（若有 FINNHUB_API_KEY，否则 Yahoo 兜底）
-  A股（.SS / .SZ）       → Tushare（若有 TUSHARE_TOKEN，否则 Yahoo 兜底）
-  港股（.HK）            → Yahoo（固定，无需 Key）
+  美股（无后缀）         → Finnhub（若有 Key），否则腾讯财经（免 Key）
+  Crypto                 → Finnhub（若有 Key），否则 Yahoo
+  A股（.SS / .SZ）       → Tushare（若有 Token），否则腾讯财经（免 Key）
+  港股（.HK）            → 腾讯财经（免 Key）
 
 设计原则：
-  - Yahoo 是零配置开箱即用的兜底，任何市场在 Key 缺失时都回退到 Yahoo
+  - 腾讯财经是 A 股 / 港股 / 美股的零配置默认快照源
+  - Yahoo 保留为 Crypto 与腾讯请求失败时的免 Key 兜底
   - 有对应的 Key/Token 就走专用源，精度和稳定性更高
-  - 三个分支完全独立，互不阻塞
+  - 四个分支完全独立，互不阻塞
 
 2026-03-16 重构：新增 Tushare A股分支，A股不再走 Yahoo（科创板数据质量问题）
 2026-03-17 增强：Crypto 符号归一化（BTC→BINANCE:BTCUSDT / BTC-USD），避免裸符号返回股票语义价格
@@ -19,6 +21,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -101,12 +104,12 @@ def classify(symbol: str) -> str:
     返回该 Ticker 优先走哪个数据源（不考虑 Key 是否存在）。
       'finnhub' → 美股 / Crypto
       'tushare' → A股（上交所 .SS / 深交所 .SZ）
-      'yahoo'   → 港股（.HK），以及所有市场的兜底
+      'tencent' → 港股（.HK）
     """
     if symbol.endswith((".SS", ".SZ")):
         return "tushare"
     if symbol.endswith(".HK"):
-        return "yahoo"
+        return "tencent"
     if is_crypto(symbol):
         return "finnhub"
     # BTC/ETH 等 Crypto 及纯字母美股
@@ -117,10 +120,24 @@ def run(cmd: list[str]) -> int:
     return subprocess.call(cmd, cwd=str(ROOT))
 
 
+def failed_symbols(path: Path, requested: list[str]) -> list[str]:
+    """从统一价格输出中找出失败项，让路由器继续交给 Yahoo 兜底。"""
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return list(requested)
+    succeeded = {
+        str(row.get("symbol", "")).upper()
+        for row in payload.get("data", [])
+        if isinstance(row, dict) and row.get("ok") is not False
+    }
+    return [symbol for symbol in requested if symbol.upper() not in succeeded]
+
+
 def main() -> None:
     load_dotenv()
 
-    p = argparse.ArgumentParser(description="YMOS 价格路由器（三源分流）")
+    p = argparse.ArgumentParser(description="YMOS 价格路由器（腾讯 / Finnhub / Tushare / Yahoo）")
     p.add_argument("--symbols", required=True,
                    help="逗号分隔，如 AAPL,NIO,688008.SS,0700.HK")
     p.add_argument("--output-dir", default="Report/投资雷达/Raw_Data", help="输出目录")
@@ -141,6 +158,7 @@ def main() -> None:
     # ── 分流 ────────────────────────────────────────────────────────────────
     finnhub_syms: list[str] = []
     tushare_syms: list[str] = []
+    tencent_syms: list[str] = []
     yahoo_syms:   list[str] = []
 
     for s in symbols:
@@ -148,15 +166,17 @@ def main() -> None:
         if bucket == "finnhub":
             if finnhub_key:
                 finnhub_syms.append(s)
+            elif is_crypto(s):
+                yahoo_syms.append(s)          # Crypto 无 Key → Yahoo
             else:
-                yahoo_syms.append(s)          # 无 Key → Yahoo 兜底
+                tencent_syms.append(s)        # 美股无 Key → 腾讯财经
         elif bucket == "tushare":
             if tushare_token:
                 tushare_syms.append(s)
             else:
-                yahoo_syms.append(s)          # 无 Token → Yahoo 兜底
-        else:  # "yahoo"
-            yahoo_syms.append(s)
+                tencent_syms.append(s)        # A股无 Token → 腾讯财经
+        else:  # "tencent"
+            tencent_syms.append(s)
 
     out_dir = Path(args.output_dir).resolve()   # 转绝对路径，避免子进程 CWD 不一致
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -165,19 +185,16 @@ def main() -> None:
     print("📡 价格路由分流结果：")
     print(f"   Finnhub  ({len(finnhub_syms)}): {finnhub_syms or '—'}")
     print(f"   Tushare  ({len(tushare_syms)}): {tushare_syms or '—'}")
+    print(f"   Tencent  ({len(tencent_syms)}): {tencent_syms or '—'}")
     print(f"   Yahoo    ({len(yahoo_syms)}): {yahoo_syms or '—'}")
     print()
 
-    # ── Crypto 归一化：裸符号 → 数据源专用格式 ────────────────────────────
+    # ── Crypto 归一化：裸符号 → Finnhub 专用格式 ──────────────────────────
     finnhub_syms_norm = [normalize_for_source(s, "finnhub") for s in finnhub_syms]
-    yahoo_syms_norm   = [normalize_for_source(s, "yahoo")   for s in yahoo_syms]
 
-    if finnhub_syms_norm != finnhub_syms or yahoo_syms_norm != yahoo_syms:
+    if finnhub_syms_norm != finnhub_syms:
         print("🔄 Crypto 归一化：")
-        if finnhub_syms_norm != finnhub_syms:
-            print(f"   Finnhub: {finnhub_syms} → {finnhub_syms_norm}")
-        if yahoo_syms_norm != yahoo_syms:
-            print(f"   Yahoo:   {yahoo_syms} → {yahoo_syms_norm}")
+        print(f"   Finnhub: {finnhub_syms} → {finnhub_syms_norm}")
         print()
 
     # ── Finnhub ─────────────────────────────────────────────────────────────
@@ -209,7 +226,25 @@ def main() -> None:
         if code != 0:
             print(f"⚠️ Tushare 调用失败（exit {code}），对应 ticker 可能无价格数据")
 
-    # ── Yahoo（港股 + 兜底）─────────────────────────────────────────────────
+    # ── Tencent（A股 / 港股 / 美股免 Key 默认源）──────────────────────────
+    if tencent_syms:
+        out = out_dir / f"price_scan_tencent_{date_tag}.json"
+        cmd = [
+            sys.executable,
+            str(SCRIPTS_DIR / "fetch_price_tencent.py"),
+            "--symbols", ",".join(tencent_syms),
+            "--output", str(out),
+        ]
+        code = run(cmd)
+        fallback = failed_symbols(out, tencent_syms)
+        if code != 0 or fallback:
+            yahoo_syms.extend(symbol for symbol in fallback if symbol not in yahoo_syms)
+            print(f"⚠️ 腾讯财经未返回 {fallback or tencent_syms}，转 Yahoo 兜底")
+
+    # ── Yahoo（Crypto + 腾讯失败兜底）──────────────────────────────────────
+    yahoo_syms_norm = [normalize_for_source(s, "yahoo") for s in yahoo_syms]
+    if yahoo_syms_norm != yahoo_syms:
+        print(f"🔄 Yahoo Crypto 归一化：{yahoo_syms} → {yahoo_syms_norm}")
     if yahoo_syms_norm:
         out = out_dir / f"price_scan_yahoo_{date_tag}.json"
         cmd = [

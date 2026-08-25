@@ -237,7 +237,7 @@ Step 7    用复盘和真实结果持续进化      ← BrainStorm + 执行证�
 
 AI 会先启动**最小入职**。默认先验证零配置投研闭环，不把访谈或 Profile 当成开机门槛：
 
-1. **验证 Level 0 数据链** —— 市场事件用 RSS，价格用 Yahoo Finance；可选 Key 缺失不阻塞
+1. **验证 Level 0 数据链** —— 市场事件用 RSS；A 股 / 港股 / 美股价格默认走腾讯财经，Crypto 由 Yahoo Finance 兜底；可选 Key 缺失不阻塞
 2. **跑第一轮投研闭环** —— `跑一下市场洞察` → `跑一下投资雷达`
 3. **建立轻量关注状态** —— 首跑后可用 1-3 个问题写下最近重点方向、事件窗口和阅读偏好，也可随时手动修改
 4. **按需增强数据源** —— 再接 Market API、Finnhub、Tushare 或问财，不推倒基础链
@@ -276,7 +276,7 @@ YMOS 开箱即用，不需要任何 API Key：
 
 ```
 跑一下市场洞察          → RSS 抓取 + P13 分析 → 市场日报
-跑一下投资雷达          → Yahoo Finance 价格 + 趋势回顾 → 桥接报告
+跑一下投资雷达          → 腾讯财经 / Yahoo 免 Key 价格 + 趋势回顾 → 桥接报告
 ```
 
 看到 `Eyes/` 下生成了报告文件？恭喜，最小闭环已跑通。
@@ -313,7 +313,7 @@ python3 server.py
 
 | 级别 | 配置 | 解锁能力 |
 |:---|:---|:---|
-| Level 0（零配置） | 无需 API Key | RSS + Yahoo Finance；A 股可选同花顺强势股题材归因 |
+| Level 0（零配置） | 无需 API Key | RSS + 腾讯财经（A/H/美股快照）+ Yahoo Finance（Crypto / 失败兜底）；A 股可选同花顺强势股题材归因 |
 | Level 1 | `FINNHUB_API_KEY`（免费注册） | +美股/Crypto 实时报价和新闻 |
 | Level 1+ | `TUSHARE_TOKEN`（免费注册） | +A股日线与最近交易日价格 |
 | Level 1++（可选 · Beta） | 外部问财 Skills + `IWENCAI_API_KEY` | 首发适配 A 股 What's Hot / 美股条件选股；公告、研报、新闻、财务为实验性入口 |
@@ -779,15 +779,16 @@ V4 没有推翻 V3 的市场洞察、投资雷达和轻量关注文件。升级�
 
 ### 不配置 API Key 能不能用？
 
-能。Level 0 使用 RSS + Yahoo Finance，就可以先跑市场洞察、价格兜底、投资雷达、Reader 和大部分分析链。
+能。Level 0 使用 RSS + 腾讯财经 / Yahoo Finance 免 Key 价格路由，就可以先跑市场洞察、价格兜底、投资雷达、Reader、Console 持仓总览和大部分分析链。
 
 API Key 是渐进增强：美股用户可以加 Finnhub，A 股用户可以加 Tushare；需要条件选股和结构化事实检索时再装问财 Skills；希望直接消费清洗后的市场事件时再配置 YMOS Market Data API。详见 [进阶指南的数据源分级](进阶指南.md#11-数据源分级先解决问题再加-key)。
 
 ### 支持哪些市场？
 
-- **美股 / Crypto**：Finnhub 增强，Yahoo Finance 兜底；
-- **A 股**：Tushare 提供日线与最近交易日价格，Yahoo Finance 兜底；问财是可选的条件选股与事实数据层；
-- **港股**：Yahoo Finance 提供基础价格路径；问财官方港股 Skill 可由 Agent 单独调用，但 V4 公开版暂未提供港股 What's Hot 自动链；
+- **美股**：Finnhub 增强；未配置 Key 时默认走腾讯财经，腾讯失败时由 Yahoo Finance 兜底；
+- **Crypto**：Finnhub 增强，Yahoo Finance 免 Key 兜底；
+- **A 股**：Tushare 提供日线与最近交易日价格；未配置 Token 时默认走腾讯财经，Yahoo Finance 保留失败兜底；问财是可选的条件选股与事实数据层；
+- **港股**：腾讯财经提供免 Key 基础价格路径，Yahoo Finance 保留失败兜底；问财官方港股 Skill 可由 Agent 单独调用，但 V4 公开版暂未提供港股 What's Hot 自动链；
 - **其他市场**：框架本身不锁市场，可以按 `Eyes/scripts/` 的统一输出契约接入新数据源。
 
 Ticker、接口覆盖和数据时效由外部服务决定。YMOS 负责路由、降级和留痕，不把任一免费数据源包装成交易所级行情。

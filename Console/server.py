@@ -500,7 +500,7 @@ def list_trades() -> dict:
 
 
 # ---------------------------------------------------------------------------
-# 持仓行情：复用 Eyes 的三源价格路由器；失败不阻塞决策流程
+# 持仓行情：复用 Eyes 的四源价格路由器；失败不阻塞决策流程
 # ---------------------------------------------------------------------------
 PRICE_ROUTER = VAULT_ROOT / "Eyes" / "scripts" / "fetch_price_router.py"
 STATE_FILES = [
@@ -578,6 +578,7 @@ def price_sources() -> dict:
         return bool(os.getenv(key, "").strip())
 
     return {
+        "tencent": True,
         "finnhub": configured("FINNHUB_API_KEY"),
         "tushare": configured("TUSHARE_TOKEN"),
         "yahoo": True,
@@ -612,7 +613,7 @@ def fetch_prices(symbols: list[str]) -> dict:
             )
         except (OSError, subprocess.SubprocessError):
             pass
-        for source in ("finnhub", "tushare", "yahoo"):
+        for source in ("finnhub", "tushare", "tencent", "yahoo"):
             for path in Path(tmp_dir).glob(f"price_scan_{source}_*.json"):
                 _parse_price_file(path, output, source)
     return output

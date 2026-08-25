@@ -55,6 +55,9 @@ assert "缩减计划必须写理由" in decision_html
 assert "function tradeVoidable(item)" in decision_html
 assert "async function voidTrade(item, reason)" in decision_html
 assert '"/api/trade/void"' in decision_html
+assert "腾讯财经（免 Key）" in decision_html
+assert "已配置的 Finnhub / Tushare 仍优先" in decision_html
+assert module.price_sources()["tencent"] is True
 
 
 def event(kind, extra=None):
