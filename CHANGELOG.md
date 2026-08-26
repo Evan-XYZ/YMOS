@@ -2,7 +2,8 @@
 
 ## Unreleased — 投研层向前兼容与 What's Hot 全天候动量发现
 
-- **README 与门面文档理念正名**：明确 YMOS 是「**判断主导、系统执行**（Discretionary with Systematic Process）」的 **AI 结构化投资系统**；与 AI 量化的异同以客观分工的方式呈现，不做立场对比。同步更新 ARCHITECTURE.md、AGENT_GUIDE.md、Brain/策略配置/README.md、总入口暗号.md 的关键术语，让 Agent 与外部读者读到的口径一致。
+- **README 与门面文档理念正名**：明确 YMOS 是「**判断主导、流程系统化**（Discretionary with Systematic Process）」的 **AI 结构化投资系统**；与 AI 量化的异同以客观分工的方式呈现，不做立场对比。同步更新 ARCHITECTURE.md、AGENT_GUIDE.md、Brain/策略配置/README.md、总入口暗号.md 的关键术语，让 Agent 与外部读者读到的口径一致。
+- **术语勘误**：Systematic Process 精确翻译应为「流程系统化」而非「流程系统化」——原对冲基金圈用法强调的是纪律与流程锁死，不是"AI 帮我处理数据"；同步修正 README、ARCHITECTURE、AGENT_GUIDE、Brain/策略配置/README、总入口暗号 六处术语和边界句。
 - 恢复并正式定义 V3 的 `当前关注方向与投资偏好.md` 使用习惯：它成为投研层可高频修改的轻量状态，保存当前方向、事件窗口、跨市场映射和阅读偏好，不再是 Strategy Profile 的兼容投影。
 - 新增 `持仓与关注/SOP_关注方向维护.md` 与“更新我的关注方向”暗号；Agent 展示差异并获 Human 确认后写入，不联动 Profile、持仓、Watchlist、交易计划或定时任务。
 - 市场洞察、投资雷达和两份热门观察统一改读轻量关注状态，不再读取或依赖 Profile；Profile 仅在策略/动作任务中负责入场、失效、风险、期限和 Human 门禁。

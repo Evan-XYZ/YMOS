@@ -2,7 +2,7 @@
 
 > 业务上分为投研层、策略内核层、操盘层；技术上由跨层 Agents 协议把它们编排起来。
 
-YMOS 是一套 **判断主导、系统执行（Discretionary with Systematic Process）** 的 AI 结构化投资系统，Human-in-the-loop 保证判断由人来做，系统负责让判断不走样。它把外部信息、个人判断、执行门禁和历史证据组织成一条可审计、可复核、可进化的链路，不替用户交易。
+YMOS 是一套 **判断主导、流程系统化（Discretionary with Systematic Process）** 的 AI 结构化投资系统，Human-in-the-loop 保证判断由人来做，系统负责让判断不走样。它把外部信息、个人判断、执行门禁和历史证据组织成一条可审计、可复核、可进化的链路，不替用户交易。
 
 ## 1. 三层是用户的进阶主线
 

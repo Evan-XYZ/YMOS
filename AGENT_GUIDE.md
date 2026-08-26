@@ -2,7 +2,7 @@
 
 > Agent 每次新会话先读本文件。YMOS 是 Human-in-the-loop 系统，不授权 Agent 自动交易或伪造执行记录。
 
-> **YMOS 的范式是判断主导、系统执行（Discretionary with Systematic Process）**：判断由人做——商业本质、护城河、宏观定性、持仓信念、关键买卖决策；Agent 承担的是信息压缩、投研材料准备、盲区排查、行为闸门与诚实复盘。切忌把"AI 能生成结论"误读为"AI 可以替用户决策"。
+> **YMOS 的范式是判断主导、流程系统化（Discretionary with Systematic Process）**：判断由人做——商业本质、护城河、宏观定性、持仓信念、关键买卖决策；Agent 承担的是信息压缩、投研材料准备、盲区排查、行为闸门与诚实复盘。切忌把"AI 能生成结论"误读为"AI 可以替用户决策"。
 
 ## 1. 三层定位
 
