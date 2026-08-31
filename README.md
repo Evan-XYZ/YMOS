@@ -40,6 +40,29 @@ YMOS 走的是另一条：**判断主导、流程系统化（Discretionary with 
 
 🔄 **V4 的关键变化**：保留 V3 已经跑通的投研主链，把系统进一步抽象为**投研层、策略内核层、操盘层**；新增 Skills 数据触角、Reader 与操盘工作台、Strategy Profile 和证据反馈闭环，并把「共用框架」与「勇麦个人策略」彻底掰开。框架给所有人，策略需要你自己打磨。详见 [CHANGELOG](CHANGELOG.md)。
 
+<table>
+  <tr>
+    <td align="center" width="380">
+      <a href="https://github.com/user-attachments/assets/ea94703d-c271-47c9-ac2b-73b5df51be63" target="_blank">
+        <img src="https://github.com/user-attachments/assets/ea94703d-c271-47c9-ac2b-73b5df51be63" width="380" alt="投研阅读器"/>
+      </a>
+      <br /><sub><b>① 投研阅读器（YMOS Reader）</b></sub>
+    </td>
+    <td align="center" width="380">
+      <a href="https://github.com/user-attachments/assets/c066ff87-4fdb-4587-b17f-9952b9f27c6d" target="_blank">
+        <img src="https://github.com/user-attachments/assets/c066ff87-4fdb-4587-b17f-9952b9f27c6d" width="380" alt="控制台首页"/>
+      </a>
+      <br /><sub><b>② 控制台首页（Reader 与操盘入口）</b></sub>
+    </td>
+    <td align="center" width="380">
+      <a href="https://github.com/user-attachments/assets/1959a4fd-6d55-426e-88c1-eeff12b9777a" target="_blank">
+        <img src="https://github.com/user-attachments/assets/1959a4fd-6d55-426e-88c1-eeff12b9777a" width="380" alt="买卖决策台"/>
+      </a>
+      <br /><sub><b>③ 买卖决策台（账户参数与门禁）</b></sub>
+    </td>
+  </tr>
+</table>
+
 ---
 
 ## 三层：研究清楚 → 按自己的逻辑判断 → 按计划操盘
@@ -109,6 +132,23 @@ YMOS 有一个**桌面客户端**：把上面这套文件夹资产打包成一�
 - **控制台 / 买卖决策台 / 交易计划台**：Console 的操盘入口，本地直接用。
 - **数据能力**：行情自动路由 + RSS 开箱即用，配 Key 再解锁更多源。
 - **使用指南**：接入你的 Agent、BrainStorm、投资诊断、定时任务，每处都给一份可复制、可自定义的指令模板。
+
+<table>
+  <tr>
+    <td align="center" width="380">
+      <a href="https://github.com/user-attachments/assets/357043a2-702f-410b-8f4a-9c703b167542" target="_blank">
+        <img src="https://github.com/user-attachments/assets/357043a2-702f-410b-8f4a-9c703b167542" width="380" alt="数据源配置"/>
+      </a>
+      <br /><sub><b>① 数据源配置（Keys 与 RSS）</b></sub>
+    </td>
+    <td align="center" width="380">
+      <a href="https://github.com/user-attachments/assets/d020d9d5-825c-4213-82fb-79cba24ddc29" target="_blank">
+        <img src="https://github.com/user-attachments/assets/d020d9d5-825c-4213-82fb-79cba24ddc29" width="380" alt="系统设置与偏好"/>
+      </a>
+      <br /><sub><b>② 系统偏好设置（工作区与外观）</b></sub>
+    </td>
+  </tr>
+</table>
 
 **它不含大模型，也不要求你填 API Key。** 桌面版专注做好别人替不了的事——**数据结构与工作台**；"智能"交给你自己惯用的那个最好的 Agent（Claude Code / Codex / Hermes / OpenClaw / 豆包 / Kimi / DeepSeek …）。这就是 YMOS 的 **Bring Your Own Agent** 分工：你带上最强的 Agent，YMOS 提供它要读写的文件夹、数据与 SOP，Agent 越强、系统越强。Agent 真正的"记忆与资产"不在某个对话框里，而在**这个工作区文件夹**。
 
