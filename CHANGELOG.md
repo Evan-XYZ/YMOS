@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased — 投研层向前兼容与 What's Hot 全天候动量发现
+## Unreleased
+
+- **桌面工作站文档对齐（框架侧）**：README 上手指南新增「桌面版 / 框架直用」两条对等入口岔口，FAQ 增补“不碰命令行 / 开源框架 vs 闭源客户端”问答，文档导航加桌面版入口；进阶指南与 AGENT_GUIDE 增补「🖥️ 客户端」便利注记（数据源 Key、问财 Key、发布扩展、运行形态）。明确**开源框架不依赖桌面客户端**——手动 / Agent 直连流程全部保留，客户端只作并列便利入口。
+- **Console 路由兼容**：`Console/server.py` 增加 `/source-settings` → `settings.html` 别名，使数据源配置页在独立运行（server.py）与桌面客户端两种形态下命中同一页，修复首页卡片改指后独立运行 404。
+- **插件约定（plugins/ · Beta）**：新增工作区 `plugins/` 目录约定与 `plugins/README.md` 开发指引（`plugin.json` 规范、纯前端 / 带后端两类、客户端“只识别+列出、不代启动后端”的边界、密钥不入清单）；`.gitignore` 只跟踪该指引，忽略用户本地安装的插件。
+- **移除早期弃用产物**：删除根目录 `Tools/`（`stock_quote.js` / `web_search.js` 两个旧 `@tool` 定义，收敛前 AI tool-calling 的中间产物，全仓库零引用）。
+- **Reader「今日全览」**：`Console/reader.html` 把「今日全家桶」更名为「今日全览」，并支持用 ⚙ 指定默认打开的报告文件夹（记忆在浏览器 `localStorage`），默认优先市场洞察 / 投资雷达。
+
+## V4.2 — 2026-08-26（投研层向前兼容与 What's Hot 全天候动量发现）
 
 - **README 与门面文档理念正名**：明确 YMOS 是「**判断主导、流程系统化**（Discretionary with Systematic Process）」的 **AI 结构化投资系统**；与 AI 量化的异同以客观分工的方式呈现，不做立场对比。同步更新 ARCHITECTURE.md、AGENT_GUIDE.md、Brain/策略配置/README.md、总入口暗号.md 的关键术语，让 Agent 与外部读者读到的口径一致。
 - **术语勘误**：Systematic Process 精确翻译应为「流程系统化」而非「流程系统化」——原对冲基金圈用法强调的是纪律与流程锁死，不是"AI 帮我处理数据"；同步修正 README、ARCHITECTURE、AGENT_GUIDE、Brain/策略配置/README、总入口暗号 六处术语和边界句。

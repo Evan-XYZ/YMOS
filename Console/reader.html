@@ -59,16 +59,25 @@
   .btn-ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-ink); }
   .btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  .sop-launch { padding: 0 14px 12px; border-bottom: 1px solid var(--line);
-                display: flex; flex-direction: column; gap: 7px; }
-  .btn-sop { width: 100%; padding: 9px 12px; background: var(--accent); color: #fff;
-             border: none; border-radius: 6px; font-size: 13px; font-weight: 600;
-             cursor: pointer; font-family: inherit; display: flex; align-items: center;
-             justify-content: center; gap: 7px; }
-  .btn-sop:hover { background: var(--accent-ink); }
-  .btn-sop.alt { background: var(--bg-elev); color: var(--accent-ink);
-                 border: 1px solid var(--accent); }
-  .btn-sop.alt:hover { background: var(--accent-soft); color: var(--accent-ink); }
+  /* 「今日全览」目标文件夹选择菜单 */
+  .overview-menu { display: none; margin: -4px 18px 0; padding: 6px; background: var(--bg-elev);
+                   border: 1px solid var(--line-strong); border-radius: 8px; max-height: 40vh; overflow-y: auto;
+                   box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+  .overview-menu.show { display: block; }
+  .overview-menu .om-title { font-size: 11px; color: var(--ink-3); padding: 4px 8px 6px; }
+  .overview-menu .om-item { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 5px;
+                            font-size: 12px; color: var(--ink); cursor: pointer; }
+  .overview-menu .om-item:hover { background: var(--bg); color: var(--accent-ink); }
+  .overview-menu .om-item .om-check { width: 14px; flex-shrink: 0; color: var(--accent-ink); }
+  .overview-menu .om-item .om-count { margin-left: auto; font-size: 10.5px; color: var(--ink-3); }
+
+  /* 三个 Console 内链移到底部，紧凑一行，不占顶部竖向空间 */
+  .sop-foot { padding: 8px 14px 10px; border-top: 1px solid var(--line);
+              display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+  .side-link { background: none; border: none; padding: 2px; font-size: 12px;
+               color: var(--accent-ink); cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .side-link:hover { text-decoration: underline; }
+  .dot-sep { color: var(--ink-3); font-size: 11px; }
   .custom-note { margin: 10px 14px 12px; padding: 10px 11px; border: 1px solid var(--line);
                  border-radius: 7px; background: rgba(255,255,255,0.55); color: var(--ink-3);
                  font-size: 11.5px; line-height: 1.55; }
@@ -288,19 +297,21 @@
     <span>YMOS Reader</span>
     <span class="sub">V4</span>
   </div>
-  <div class="page-tabs" id="pageTabs"></div>
   <div class="top-actions">
-    <button class="btn-primary" id="todayBtn">📅 今日全家桶</button>
+    <button class="btn-primary" id="todayBtn">📅 今日全览</button>
+    <button class="btn-ghost" id="overviewCfgBtn" title="设置「今日全览」默认打开的报告文件夹">⚙</button>
     <button class="btn-ghost" id="reloadListBtn" title="重新扫描所有文件夹">↻</button>
   </div>
-  <div class="sop-launch">
-    <button class="btn-sop alt" id="homeBtn" title="回到 YMOS Console 首页">⌂ Console 首页</button>
-    <button class="btn-sop" id="planBtn" title="打开交易计划台（盘后动态管理：定调 / 持仓审计 / 观察审计 / 明日动作）">📋 交易计划台</button>
-    <button class="btn-sop alt" id="sopBtn" title="打开买卖决策台（通用策略与交易留痕）">🎯 买卖决策台</button>
-  </div>
-  <div class="custom-note"><b>这是一份可修改的样板。</b><br>目录分组、显示内容和阅读习惯都可以写进 <code>config.json</code>，也可以直接让你的 Agent / 编程工具按偏好调整页面。</div>
+  <div id="overviewMenu" class="overview-menu"></div>
   <div class="search"><input id="search" placeholder="过滤文件名 / 日期…  ⌘K" /></div>
   <div class="nav" id="nav"></div>
+  <div class="sop-foot">
+    <button class="side-link" id="homeBtn" title="回到 YMOS Console 首页">⌂ Console 首页</button>
+    <span class="dot-sep">·</span>
+    <button class="side-link" id="planBtn" title="打开交易计划台（盘后动态管理：定调 / 持仓审计 / 观察审计 / 明日动作）">📋 交易计划台</button>
+    <span class="dot-sep">·</span>
+    <button class="side-link" id="sopBtn" title="打开买卖决策台（通用策略与交易留痕）">🎯 买卖决策台</button>
+  </div>
   <button class="to-top" id="toTopBtn" type="button" title="回到顶部" aria-label="回到顶部">↑</button>
 </aside>
 
@@ -334,7 +345,7 @@
       <div class="doc-content" id="docContent">
         <div class="empty">
           <div class="big">YMOS Reader</div>
-          <div>从左侧任一分类点开始 · 或按 <kbd>📅 今日全家桶</kbd> 一键载入当天日报。</div>
+          <div>从左侧任一分类点开始 · 或按 <kbd>📅 今日全览</kbd> 打开你设定的报告文件夹（默认市场洞察）。</div>
           <div style="margin-top: 14px"><kbd>⌘K</kbd> 聚焦搜索框 &nbsp;·&nbsp; 文件项右键菜单可复制路径 / 在文件管理器中显示 / 在 Obsidian 中打开</div>
           <div style="margin-top: 14px; font-size: 13px;">正文左右边缘可拖拽调整宽度（光标变成 ↔ 时按住拖动）</div>
         </div>
@@ -411,16 +422,19 @@ function switchView(view) {
 }
 
 function renderPageTabs() {
+  // 单一「YMOS 全景资产」页——页签已移除以省出竖向空间
   const tabs = document.getElementById("pageTabs");
-  tabs.innerHTML = "";
-  for (const page of state.pages) {
-    tabs.appendChild(el("button",
-      { class: page.key === state.view ? "on" : "", onclick: () => switchView(page.key) },
-      page.label
-    ));
+  if (tabs) {
+    tabs.innerHTML = "";
+    for (const page of state.pages) {
+      tabs.appendChild(el("button",
+        { class: page.key === state.view ? "on" : "", onclick: () => switchView(page.key) },
+        page.label
+      ));
+    }
   }
   const todayBtn = document.getElementById("todayBtn");
-  todayBtn.disabled = state.view !== "ymos";
+  if (todayBtn) todayBtn.disabled = state.view !== "ymos";
 }
 
 function itemMatches(it) {
@@ -435,7 +449,7 @@ function emptyHtml() {
   return `
     <div class="empty">
       <div class="big">${label}</div>
-      <div>从左侧任一分类点开始 · 或按 <kbd>📅 今日全家桶</kbd> 一键载入今日的每日报告。</div>
+      <div>从左侧任一分类点开始 · 或按 <kbd>📅 今日全览</kbd> 打开你设定的报告文件夹（默认市场洞察）。</div>
       <div style="margin-top: 14px"><kbd>⌘K</kbd> 聚焦搜索框 &nbsp;·&nbsp; 文件项右键菜单可复制路径 / 在文件管理器中显示 / 在 Obsidian 中打开</div>
       <div style="margin-top: 14px; font-size: 13px;">正文左右边缘可拖拽调整宽度（光标变成 ↔ 时按住拖动）</div>
     </div>`;
@@ -628,24 +642,95 @@ document.getElementById("search").addEventListener("input", e => {
   state.filter = e.target.value; renderNav();
 });
 
-document.getElementById("todayBtn").onclick = () => {
-  const today = new Date().toISOString().slice(0, 10);
-  // 取配置里第一个 defaultOpen 的 section 作为「每日产出」区；没有就取第一个
-  const daily = state.sections.find(s => s.defaultOpen) || state.sections[0];
-  if (!daily) return;
-  let firstHit = null; let count = 0;
-  state.expandedSections.add(sectionKey(daily.label));
-  // 自动展开 YMOS 下所有 category，让用户能快速切
-  for (const cat of daily.categories) {
-    state.expanded.add(catKey(daily.label, cat.label));
-    if (!cat.items.length) continue;
-    const target = cat.items.find(it => it.date === today) || cat.items[0];
-    count++;
-    if (!firstHit) firstHit = target;
+// ===== 今日全览：默认打开一个报告文件夹（快捷方式），可由用户手动设定 =====
+const OVERVIEW_KEY = "ymos_reader_overview";
+const OVERVIEW_DEFAULT_KEYWORDS = ["市场洞察", "投资雷达"];
+
+function overviewCatalog() {
+  const out = [];
+  for (const sec of (state.sections || [])) {
+    for (const cat of (sec.categories || [])) {
+      if (cat.items && cat.items.length) out.push({ sec, cat });
+    }
   }
+  return out;
+}
+function resolveOverviewTarget() {
+  const list = overviewCatalog();
+  if (!list.length) return null;
+  let cfg = null;
+  try { cfg = JSON.parse(localStorage.getItem(OVERVIEW_KEY) || "null"); } catch {}
+  if (cfg && cfg.sec && cfg.cat) {
+    const hit = list.find(x => x.sec.label === cfg.sec && x.cat.label === cfg.cat);
+    if (hit) return hit;
+  }
+  for (const kw of OVERVIEW_DEFAULT_KEYWORDS) {
+    const hit = list.find(x => x.cat.label.includes(kw));
+    if (hit) return hit;
+  }
+  const preferred = list.find(x => x.sec.defaultOpen);
+  return preferred || list[0];
+}
+function openOverview() {
+  const t = resolveOverviewTarget();
+  if (!t) { toast("当前工作区还没有可展示的报告"); return; }
+  state.expandedSections.add(sectionKey(t.sec.label));
+  state.expanded.add(catKey(t.sec.label, t.cat.label));
+  // 优先文件名日期最大的真实报告，避免误开示例/模板文件；都不带日期才退回第一条
+  const dated = t.cat.items.filter(it => it.date).sort((a, b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : 0)));
+  const doc = dated[0] || t.cat.items[0];
   renderNav();
-  if (firstHit) { loadDoc(firstHit); toast(`今日全家桶已就绪 · ${count} 份`); }
-};
+  if (doc) { loadDoc(doc); toast(`今日全览 · ${t.cat.label}`); }
+}
+document.getElementById("todayBtn").onclick = openOverview;
+
+// ⚙ 选择「今日全览」默认打开哪个报告文件夹
+const overviewMenuEl = document.getElementById("overviewMenu");
+function renderOverviewMenu() {
+  const list = overviewCatalog();
+  let cfg = null;
+  try { cfg = JSON.parse(localStorage.getItem(OVERVIEW_KEY) || "null"); } catch {}
+  const cur = resolveOverviewTarget();
+  overviewMenuEl.innerHTML = "";
+  const title = document.createElement("div");
+  title.className = "om-title";
+  title.textContent = "「今日全览」默认打开哪个文件夹？";
+  overviewMenuEl.appendChild(title);
+  if (!list.length) {
+    const empty = document.createElement("div");
+    empty.className = "om-item"; empty.textContent = "（暂无含报告的文件夹）";
+    overviewMenuEl.appendChild(empty);
+    return;
+  }
+  const autoRow = document.createElement("div");
+  autoRow.className = "om-item";
+  const autoChosen = !(cfg && cfg.sec && cfg.cat);
+  autoRow.innerHTML = `<span class="om-check">${autoChosen ? "✓" : ""}</span><span>跟随默认（市场洞察 / 投资雷达）</span>`;
+  autoRow.onclick = () => { try { localStorage.removeItem(OVERVIEW_KEY); } catch {} toggleOverviewMenu(false); openOverview(); };
+  overviewMenuEl.appendChild(autoRow);
+  for (const x of list) {
+    const row = document.createElement("div");
+    row.className = "om-item";
+    const chosen = !autoChosen && cur && cur.sec.label === x.sec.label && cur.cat.label === x.cat.label;
+    row.innerHTML = `<span class="om-check">${chosen ? "✓" : ""}</span>` +
+      `<span>${escapeHtml(x.sec.label)} · ${escapeHtml(x.cat.label)}</span>` +
+      `<span class="om-count">${x.cat.items.length}</span>`;
+    row.onclick = () => {
+      try { localStorage.setItem(OVERVIEW_KEY, JSON.stringify({ sec: x.sec.label, cat: x.cat.label })); } catch {}
+      toggleOverviewMenu(false); openOverview();
+    };
+    overviewMenuEl.appendChild(row);
+  }
+}
+function toggleOverviewMenu(force) {
+  const show = typeof force === "boolean" ? force : !overviewMenuEl.classList.contains("show");
+  if (show) renderOverviewMenu();
+  overviewMenuEl.classList.toggle("show", show);
+}
+document.getElementById("overviewCfgBtn").onclick = (e) => { e.stopPropagation(); toggleOverviewMenu(); };
+document.addEventListener("click", (e) => {
+  if (!overviewMenuEl.contains(e.target) && e.target.id !== "overviewCfgBtn") toggleOverviewMenu(false);
+});
 
 const docWrap = document.querySelector(".doc-wrap");
 const toTopBtn = document.getElementById("toTopBtn");

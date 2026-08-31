@@ -1194,6 +1194,10 @@ STATIC_ROUTES = {
     "/sop": "买卖决策台.html",
     "/settings": "settings.html",
     "/settings.html": "settings.html",
+    # 数据源配置页的对齐别名：桌面客户端把这页叫 /source-settings（以区分它自己的「系统设置」），
+    # 首页卡片已统一指向 /source-settings。这里加别名，让独立运行（server.py）与桌面端 iframe 两种模式都能命中同一页。
+    "/source-settings": "settings.html",
+    "/source-settings.html": "settings.html",
 }
 
 
