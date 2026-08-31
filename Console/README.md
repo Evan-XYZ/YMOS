@@ -22,21 +22,6 @@ python3 server.py
 
 直接打开 HTML 只用于界面预览，不会写入正式 Markdown。公开仓库不包含公共嵌入版、云端账户或浏览器数据库方案。
 
-## 部署前浏览器 Demo
-
-不安装、不配置 API Key，也可以先打开 [YMOS Console 浏览器 Demo](https://evan-xyz.github.io/YMOS/)。Demo 会先通过 Reader 的虚拟目录树展示 YMOS 的完整系统结构，再提供交易计划台和买卖决策台的界面与基本交互。Console 只是 YMOS 的阅读与操盘入口，不代表完整的投研层与策略内核层。
-
-Demo 是由正式 Console 源文件构建出的隔离静态副本：目录树只是内嵌的公开结构示意，能够打开正文的只有仓库内三份带 `ymos_sample: true` 的脱敏合成报告；草稿与演示账户参数只保存在当前浏览器的 `localStorage`，不会读取或写入用户 vault，也不执行真实交易。正式 Console 的 Python 后端和 Markdown 真相源不受 Demo 模式影响。
-
-本地预览构建产物：
-
-```bash
-python3 scripts/build_console_demo.py --output _site
-python3 -m http.server 8000 --directory _site
-```
-
-推送到 `main` 后，`.github/workflows/deploy-console-demo.yml` 会先运行 Console 回归测试，再重新构建并发布 GitHub Pages。构建脚本使用文件白名单和示例标记校验，避免把 `.env`、`config.json`、真实持仓或其他运行数据带进公开页面。首次启用时，需要在 GitHub 仓库的 **Settings → Pages → Build and deployment** 中把 Source 设为 **GitHub Actions**。
-
 ## 重启 / 关闭
 
 改了 `config.json`（Reader 分组）、`rules.json`（决策规则）、`.env`（数据源 Key），或 `git pull` 更新了代码后，需要重启 Console 才会生效。三种方式，按方便程度：
