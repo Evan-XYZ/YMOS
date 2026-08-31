@@ -43,21 +43,15 @@ YMOS 走的是另一条：**判断主导、流程系统化（Discretionary with 
 <table>
   <tr>
     <td align="center" width="380">
-      <a href="https://github.com/user-attachments/assets/ea94703d-c271-47c9-ac2b-73b5df51be63" target="_blank">
-        <img src="https://github.com/user-attachments/assets/ea94703d-c271-47c9-ac2b-73b5df51be63" width="380" alt="投研阅读器"/>
-      </a>
+      <img src="https://github.com/user-attachments/assets/de529d7f-5919-40f2-a242-970a3404ff6f" loading="lazy" decoding="async" width="380" alt="投研阅读器"/>
       <br /><sub><b>① 投研阅读器（YMOS Reader）</b></sub>
     </td>
     <td align="center" width="380">
-      <a href="https://github.com/user-attachments/assets/c066ff87-4fdb-4587-b17f-9952b9f27c6d" target="_blank">
-        <img src="https://github.com/user-attachments/assets/c066ff87-4fdb-4587-b17f-9952b9f27c6d" width="380" alt="控制台首页"/>
-      </a>
+      <img src="https://github.com/user-attachments/assets/0475c2a3-b2bd-48e4-b76c-67986100986a" loading="lazy" decoding="async" width="380" alt="控制台首页"/>
       <br /><sub><b>② 控制台首页（Reader 与操盘入口）</b></sub>
     </td>
     <td align="center" width="380">
-      <a href="https://github.com/user-attachments/assets/1959a4fd-6d55-426e-88c1-eeff12b9777a" target="_blank">
-        <img src="https://github.com/user-attachments/assets/1959a4fd-6d55-426e-88c1-eeff12b9777a" width="380" alt="买卖决策台"/>
-      </a>
+      <img src="https://github.com/user-attachments/assets/40824300-b76a-49d5-aa4e-4515fb6ac6a2" loading="lazy" decoding="async" width="380" alt="买卖决策台"/>
       <br /><sub><b>③ 买卖决策台（账户参数与门禁）</b></sub>
     </td>
   </tr>
@@ -136,15 +130,11 @@ YMOS 有一个**桌面客户端**：把上面这套文件夹资产打包成一�
 <table>
   <tr>
     <td align="center" width="380">
-      <a href="https://github.com/user-attachments/assets/357043a2-702f-410b-8f4a-9c703b167542" target="_blank">
-        <img src="https://github.com/user-attachments/assets/357043a2-702f-410b-8f4a-9c703b167542" width="380" alt="数据源配置"/>
-      </a>
+      <img src="https://github.com/user-attachments/assets/6796d72f-4cbf-4164-98a4-1564f3b24c87" loading="lazy" decoding="async" width="380" alt="数据源配置"/>
       <br /><sub><b>① 数据源配置（Keys 与 RSS）</b></sub>
     </td>
     <td align="center" width="380">
-      <a href="https://github.com/user-attachments/assets/d020d9d5-825c-4213-82fb-79cba24ddc29" target="_blank">
-        <img src="https://github.com/user-attachments/assets/d020d9d5-825c-4213-82fb-79cba24ddc29" width="380" alt="系统设置与偏好"/>
-      </a>
+      <img src="https://github.com/user-attachments/assets/b44818b9-97e6-42f3-b6b0-52de51d890e5" loading="lazy" decoding="async" width="380" alt="系统设置与偏好"/>
       <br /><sub><b>② 系统偏好设置（工作区与外观）</b></sub>
     </td>
   </tr>
