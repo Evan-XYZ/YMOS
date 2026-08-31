@@ -8,10 +8,9 @@ skills/
 wordpress-docs/
 # WordPress public demo is maintained outside the YMOS release package.
 Console/wordpress/
-# 内部开发交接文档：含商业渠道 / 定价、自用环境凭据状态、自用版与公开版对比
+# 内部开发 / 交接文档，不进公开仓库。
 PROJECT_STATE.md
-# 桌面客户端（闭源核心竞争力）：不随本框架仓库开源。
-# 安装包(.dmg/.exe)统一在作者网站/文档页分发，不放本仓库 Releases（避免与框架混淆），源码也不进仓库树。
+# 桌面客户端：不在本仓库开源；安装包在作者网站 / 文档页分发，不进仓库树。
 desktop/
 
 # 插件：只跟踪开发指引 plugins/README.md；用户本地安装的插件不进仓库。
