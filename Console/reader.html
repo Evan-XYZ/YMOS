@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <style>
   :root {
     --bg: #faf9f5;
@@ -142,7 +143,9 @@
   .nav-empty { padding: 8px 22px 8px 42px; color: var(--ink-3); font-size: 12px; }
 
   /* ========== Main ========== */
-  main { display: flex; flex-direction: column; min-width: 0; background: var(--bg); position: relative; }
+  /* min-height:0 让 main 收缩到 100vh 网格高度、不被内容撑高——否则整个 window 会滚动，
+     把顶部工具栏 + 左侧目录一起卷走。加了它滚动才落到 .doc-wrap 内部，工具栏与左侧目录各自固定。 */
+  main { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; background: var(--bg); position: relative; }
   .toolbar { padding: 12px 24px; border-bottom: 1px solid var(--line);
              display: flex; align-items: center; gap: 8px; min-height: 56px;
              background: var(--bg); }
@@ -172,7 +175,7 @@
                 user-select: none; }
   .zoom .zval:hover { color: var(--accent-ink); }
 
-  .doc-wrap { flex: 1; overflow-y: auto; }
+  .doc-wrap { flex: 1; min-height: 0; overflow-y: auto; }
   /* 对齐 / 缩放 / 宽度：用 CSS 变量驱动，避免重渲染 */
   :root { --doc-zoom: 1.10; --doc-width: 1100px; }
   .doc { width: var(--doc-width); max-width: 100%;
@@ -234,6 +237,40 @@
              font-family: "SF Mono", Menlo, Consolas, monospace; }
   .doc pre.source { white-space: pre; }
   .doc pre code { background: none; padding: 0; font-size: inherit; }
+  /* 代码块右上角「复制」：悬停出现（与桌面客户端一致） */
+  .code-wrap { position: relative; }
+  .code-copy-btn { position: absolute; top: 8px; right: 10px; opacity: 0; transition: opacity .12s;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink-2); cursor: pointer;
+    font-size: 12px; line-height: 1; border-radius: 5px; padding: 4px 8px; z-index: 2; }
+  .code-wrap:hover .code-copy-btn, .code-copy-btn:focus-visible { opacity: 1; }
+  .code-copy-btn:hover { background: rgba(0,0,0,.06); color: var(--ink); }
+  .code-copy-btn.done { background: var(--accent); color: #fff; border-color: var(--accent); }
+  /* Mermaid 图：悬停出工具条（⛶ 放大 / ↓ 下载 PNG / </> 看代码） */
+  .mermaid-rendered { position: relative; margin: 14px 0; border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px 12px 8px; background: var(--bg); }
+  .mm-svg { overflow-x: auto; text-align: center; }
+  .mermaid-rendered svg { max-width: 100%; height: auto; }
+  .mm-toolbar { position: absolute; top: 6px; right: 8px; display: flex; gap: 4px; opacity: 0; transition: opacity .12s; z-index: 2; }
+  .mermaid-rendered:hover .mm-toolbar { opacity: 1; }
+  .mm-btn { border: 1px solid var(--line); background: var(--bg); color: var(--ink-2); cursor: pointer;
+    font-size: 12px; line-height: 1; border-radius: 5px; padding: 4px 7px; }
+  .mm-btn:hover { background: rgba(0,0,0,.06); color: var(--ink); }
+  .mm-btn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .mm-btn-dl { font-weight: 300; opacity: .6; }
+  .mm-btn-dl:hover { opacity: 1; }
+  .mm-code { margin: 0; overflow-x: auto; border-radius: 6px; padding: 12px 14px; white-space: pre;
+    font: 12px/1.6 "SF Mono", Menlo, Consolas, monospace; color: var(--ink); background: var(--bg-elev); }
+  .mm-zoom-overlay { position: fixed; inset: 0; background: rgba(43,38,34,.55); z-index: 6000;
+    display: flex; align-items: center; justify-content: center; padding: 30px; }
+  .mm-zoom-inner { max-width: 96vw; max-height: 90vh; overflow: auto; background: #fff; border-radius: 10px; padding: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+  .mm-zoom-inner svg { width: 82vw !important; max-width: none !important; height: auto !important; display: block; }
+  .mm-zoom-close { position: fixed; top: 18px; right: 22px; border: none; background: rgba(255,255,255,.9);
+    color: #2b2622; border-radius: 6px; padding: 7px 12px; font-size: 13px; cursor: pointer; }
+  /* Mermaid 语法错：保留原始代码 + 一行提示（不再在页面底部残留「炸弹」错误图） */
+  .doc pre.mermaid-error { border-left: 3px solid #c0392b; }
+  .doc pre.mermaid-error::before { content: "⚠ 图表语法有误，已按原文显示"; display: block;
+    color: #c0392b; font: 12px/1.6 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; margin-bottom: 6px; }
   .doc table { border-collapse: collapse; margin: 14px 0; width: 100%;
                font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; font-size: 13px; }
   .doc th, .doc td { border: 1px solid var(--line); padding: 8px 12px;
@@ -249,7 +286,10 @@
                background: var(--bg-elev); border: 1px solid var(--line-strong);
                padding: 2px 6px; border-radius: 4px; }
 
-  .to-top { position: fixed; left: 268px; bottom: 22px; z-index: 2000;
+  /* 属于正文区（main 的绝对定位子元素，main 已 position:relative）：钉在正文区右下角
+     （通行交互习惯、与官网一致）；正文靠左/居中/靠右都稳在右侧，侧栏隐藏也不消失。 */
+  /* 底部浮动，left 由 JS (positionToTop) 动态设置——贴正文列左缘、随对齐移动。left:22px 只是兜底默认。 */
+  .to-top { position: absolute; left: 22px; bottom: 22px; z-index: 2000;
             width: 40px; height: 40px; border-radius: 20px;
             border: 1px solid var(--line-strong); background: var(--bg-elev);
             color: var(--ink-2); box-shadow: 0 8px 24px rgba(0,0,0,0.10);
@@ -312,10 +352,10 @@
     <span class="dot-sep">·</span>
     <button class="side-link" id="sopBtn" title="打开买卖决策台（通用策略与交易留痕）">🎯 买卖决策台</button>
   </div>
-  <button class="to-top" id="toTopBtn" type="button" title="回到顶部" aria-label="回到顶部">↑</button>
 </aside>
 
 <main>
+  <button class="to-top" id="toTopBtn" type="button" title="回到顶部" aria-label="回到顶部">↑</button>
   <div class="toolbar">
     <div class="actions-left">
       <button class="btn-ghost" id="copyBtn" disabled>📋 复制路径</button>
@@ -355,6 +395,154 @@
 </main>
 
 <script>
+/* Mermaid 图表渲染（CDN；marked 把 ```mermaid 输出成 <pre><code class="language-mermaid">，这里替换成 SVG） */
+let __mmInited = false, __mmSeq = 0;
+// Mermaid 10.x 的坑：render() 语法错时先把「炸弹」错误图画进 body 末尾的临时容器 #d<id>，抛错前不移除
+// （v11 才修）→ 错误图挂在页面最底下、切文件也不消失。所以先 parse 只做语法检查（不碰 DOM），失败再兜底清残留。
+// 多张图是并发渲染的：清残留时绝不能碰「还在画」的那张的临时容器（否则好好的图会报 appendChild of null）。
+const __mmInFlight = new Set();
+function cleanupMermaidOrphans(id) {
+  if (id) ["d" + id, "i" + id, id].forEach(x => {
+    const n = document.getElementById(x);
+    if (n && n.parentElement === document.body) n.remove();
+  });
+  document.querySelectorAll('body > [id^="dmmd-"], body > [id^="immd-"]').forEach(n => {
+    if (!__mmInFlight.has(n.id.slice(1))) n.remove();
+  });
+}
+function renderMermaidInDoc() {
+  if (!window.mermaid) return;
+  if (!__mmInited) {
+    const dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    try { window.mermaid.initialize({ startOnLoad: false, securityLevel: "loose", theme: dark ? "dark" : "default", fontFamily: "inherit" }); __mmInited = true; }
+    catch { return; }
+  }
+  cleanupMermaidOrphans();
+  document.querySelectorAll("#docContent code.language-mermaid").forEach(async (code) => {
+    const pre = code.closest("pre") || code;
+    const src = code.textContent;
+    const id = "mmd-" + (++__mmSeq);
+    __mmInFlight.add(id);
+    try {
+      await window.mermaid.parse(src);   // 语法错在这里就抛，不会画错误图
+      const { svg } = await window.mermaid.render(id, src);
+      const wrap = document.createElement("div"); wrap.className = "mermaid-rendered";
+      const bar = document.createElement("div"); bar.className = "mm-toolbar";
+      const zoomBtn = document.createElement("button"); zoomBtn.className = "mm-btn"; zoomBtn.textContent = "⛶"; zoomBtn.title = "放大查看";
+      const dlBtn = document.createElement("button"); dlBtn.className = "mm-btn mm-btn-dl"; dlBtn.textContent = "↓"; dlBtn.title = "下载为 PNG（省去截图）";
+      const codeBtn = document.createElement("button"); codeBtn.className = "mm-btn"; codeBtn.textContent = "</>"; codeBtn.title = "查看 / 隐藏图表代码";
+      bar.append(zoomBtn, dlBtn, codeBtn);
+      const svgBox = document.createElement("div"); svgBox.className = "mm-svg"; svgBox.innerHTML = svg;
+      const codeBox = document.createElement("pre"); codeBox.className = "mm-code"; codeBox.hidden = true; codeBox.textContent = src;
+      wrap.append(bar, svgBox, codeBox);
+      pre.replaceWith(wrap);
+      codeBtn.onclick = () => { const show = codeBox.hidden; codeBox.hidden = !show; svgBox.hidden = show; codeBtn.classList.toggle("on", show); };
+      zoomBtn.onclick = () => openMermaidZoom(svg);
+      dlBtn.onclick = () => downloadMermaid(svg);
+    } catch (e) {
+      __mmInFlight.delete(id);
+      cleanupMermaidOrphans(id);
+      pre.classList.add("mermaid-error");   // 保留原始代码 + 一行提示
+      pre.title = String(e && e.message || e).slice(0, 300);
+    } finally {
+      __mmInFlight.delete(id);
+    }
+  });
+}
+// 放大查看：把 SVG 放进可滚动的大浮层，Esc / 点空白 / ✕ 关闭
+function openMermaidZoom(svg) {
+  const overlay = document.createElement("div"); overlay.className = "mm-zoom-overlay";
+  const inner = document.createElement("div"); inner.className = "mm-zoom-inner"; inner.innerHTML = svg;
+  const closeBtn = document.createElement("button"); closeBtn.className = "mm-zoom-close"; closeBtn.textContent = "✕ 关闭";
+  const dlBtn = document.createElement("button"); dlBtn.className = "mm-zoom-close"; dlBtn.style.right = "108px"; dlBtn.textContent = "↓ 下载 PNG";
+  dlBtn.onclick = () => downloadMermaid(svg);
+  overlay.append(inner, dlBtn, closeBtn); document.body.appendChild(overlay);
+  const done = () => { overlay.remove(); document.removeEventListener("keydown", onKey); };
+  const onKey = e => { if (e.key === "Escape") done(); };
+  closeBtn.onclick = done;
+  overlay.addEventListener("mousedown", e => { if (e.target === overlay) done(); });
+  document.addEventListener("keydown", onKey);
+}
+/* 下载：浏览器原生 <a download>，存到浏览器的下载位置 */
+function downloadBlob(blob, filename) {
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename; a.style.display = "none";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => { try { URL.revokeObjectURL(url); } catch {} }, 5000);
+    toast("已开始下载：" + filename);
+  } catch (e) { toast("下载失败：" + (e.message || e)); }
+}
+// SVG → 高清 PNG：按 viewBox 放大到宽 ≥1600px（整体不超过 4000px）再栅格化，白底
+function svgToPngBlob(svgString) {
+  return new Promise((resolve, reject) => {
+    let W = 0, H = 0;
+    const vb = (svgString.match(/viewBox\s*=\s*["']([\d.\s,+-]+)["']/i) || [])[1];
+    if (vb) { const p = vb.trim().split(/[\s,]+/).map(Number); if (p.length === 4) { W = p[2]; H = p[3]; } }
+    if (!W || !H) { W = 1200; H = 800; }
+    let scale = Math.max(2, Math.ceil(1600 / W));
+    if (W * scale > 4000 || H * scale > 4000) scale = Math.max(1, Math.floor(4000 / Math.max(W, H)));
+    const tw = Math.max(1, Math.round(W * scale)), th = Math.max(1, Math.round(H * scale));
+    const svg2 = svgString.replace(/<svg\b([^>]*)>/i, (_m, attrs) => {
+      let a = attrs.replace(/\swidth\s*=\s*["'][^"']*["']/i, "").replace(/\sheight\s*=\s*["'][^"']*["']/i, "");
+      a = a.replace(/style\s*=\s*["']([^"']*)["']/i, (_s, css) => `style="${css.replace(/max-width\s*:[^;"]*;?/ig, "")}"`);
+      return `<svg${a} width="${tw}" height="${th}">`;
+    });
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas"); canvas.width = tw; canvas.height = th;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, tw, th);
+        ctx.drawImage(img, 0, 0, tw, th);
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error("toBlob 失败")), "image/png");
+      } catch (e) { reject(e); }
+    };
+    img.onerror = () => reject(new Error("SVG 载入失败"));
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg2);
+  });
+}
+async function downloadMermaid(svg) {
+  const base = ((state.currentItem && state.currentItem.name) || "reader").replace(/\.[a-z0-9]+$/i, "").slice(0, 60) || "reader";
+  try { downloadBlob(await svgToPngBlob(svg), base + "-图.png"); }
+  catch (e) { downloadBlob(new Blob([svg], { type: "image/svg+xml" }), base + "-图.svg"); }   // 兜底：矢量 SVG
+}
+/* 代码块一键复制（Mermaid 源码块除外；它会被替换成图） */
+function addCodeCopyButtons() {
+  for (const pre of document.querySelectorAll("#docContent pre:not(.mm-code):not([data-copy-done])")) {
+    if (pre.querySelector("code.language-mermaid")) continue;
+    pre.setAttribute("data-copy-done", "1");
+    const wrap = document.createElement("div"); wrap.className = "code-wrap";
+    pre.parentNode.insertBefore(wrap, pre); wrap.appendChild(pre);   // 包一层定位容器，按钮不随横向滚动漂走
+    const btn = document.createElement("button"); btn.className = "code-copy-btn"; btn.type = "button";
+    btn.textContent = "📋 复制"; btn.title = "复制这段代码";
+    wrap.appendChild(btn);
+    btn.onclick = async () => {
+      const codeEl = pre.querySelector("code");
+      const text = (codeEl ? codeEl.textContent : pre.textContent) || "";
+      let ok = false;
+      try { await navigator.clipboard.writeText(text); ok = true; }
+      catch {
+        try { const ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+          document.body.appendChild(ta); ta.select(); ok = document.execCommand("copy"); ta.remove(); } catch {}
+      }
+      btn.classList.add("done"); btn.textContent = ok ? "✓ 已复制" : "复制失败";
+      setTimeout(() => { btn.classList.remove("done"); btn.textContent = "📋 复制"; }, 1400);
+    };
+  }
+}
+/* 外链在新标签页打开：原来点正文里的网址会把阅读器本身跳走（看到一半的文档就丢了）。
+   marked 已把裸网址自动成链；这里只给指向别的站点的 http(s) 链接加 target=_blank，本站 / 相对链接不动。 */
+function openExternalLinksInNewTab() {
+  for (const a of document.querySelectorAll("#docContent a[href]")) {
+    let u; try { u = new URL(a.getAttribute("href"), location.href); } catch { continue; }
+    if ((u.protocol === "http:" || u.protocol === "https:") && u.host !== location.host) {
+      a.target = "_blank"; a.rel = "noopener noreferrer";
+    }
+  }
+}
+
 const state = {
   pages: [],
   view: "ymos",
@@ -565,9 +753,12 @@ async function loadDoc(it) {
   const ext = (j.ext || it.ext || "").toLowerCase();
   if (ext === ".md" || ext === ".markdown") {
     contentEl.innerHTML = DOMPurify.sanitize(marked.parse(j.content));
+    renderMermaidInDoc();
   } else {
     contentEl.innerHTML = `<h1>${escapeHtml(it.name)}</h1><pre class="source"><code class="language-${codeLang(ext)}">${escapeHtml(j.content)}</code></pre>`;
   }
+  addCodeCopyButtons();
+  openExternalLinksInNewTab();
   document.querySelector(".doc-wrap").scrollTop = 0;
   updateToTopButton();
   document.getElementById("crumb").innerHTML = `<b>${it.name}</b> &nbsp;·&nbsp; ${it.path}`;
@@ -762,8 +953,10 @@ const prefs = Object.assign(
 );
 function savePrefs() { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); }
 function maxWidth() {
-  // 主区可用宽度（视口减去侧栏 320px 和一点呼吸余量）
-  return Math.max(MIN_WIDTH, window.innerWidth - 320 - 24);
+  // 主区实际可用宽度：用 main 的真实宽度（自适配侧栏宽度变化），而不是写死减 320px（那样拉不满）。留一点呼吸余量。
+  const main = document.querySelector("main");
+  const avail = main && main.clientWidth ? main.clientWidth : (window.innerWidth - 320);
+  return Math.max(MIN_WIDTH, avail - 24);
 }
 function applyAlign() {
   document.body.classList.remove("align-left","align-center","align-right");
@@ -771,6 +964,21 @@ function applyAlign() {
   for (const b of document.querySelectorAll("#alignSeg button")) {
     b.classList.toggle("on", b.dataset.align === prefs.align);
   }
+  positionToTop();
+}
+// 「回到顶部」按钮跟随正文列：贴着正文列左缘外侧一点浮动，随 居左/居中/居右 移动，始终靠近正文。
+function positionToTop() {
+  const btn = document.getElementById("toTopBtn");
+  const main = document.querySelector("main");
+  if (!btn || !main) return;
+  const doc = document.querySelector(".doc");
+  const mrect = main.getBoundingClientRect();
+  if (!doc) { btn.style.left = "22px"; return; }
+  const drect = doc.getBoundingClientRect();
+  const BTN = 40;
+  let left = (drect.left - mrect.left) + 8;
+  left = Math.max(12, Math.min(left, mrect.width - BTN - 12));
+  btn.style.left = left + "px";
 }
 function applyZoom() {
   document.documentElement.style.setProperty("--doc-zoom", prefs.zoom);
@@ -781,6 +989,7 @@ function applyWidth() {
   const preferred = hasSavedWidth ? Number(prefs.width) : Math.round(maxWidth() * DEFAULT_RATIO);
   const w = Math.max(MIN_WIDTH, Math.min(preferred, maxWidth()));
   document.documentElement.style.setProperty("--doc-width", w + "px");
+  positionToTop();
 }
 for (const b of document.querySelectorAll("#alignSeg button")) {
   b.onclick = () => { prefs.align = b.dataset.align; savePrefs(); applyAlign(); };
@@ -818,6 +1027,7 @@ function startDrag(handleEl, side) {
       next = Math.max(MIN_WIDTH, Math.min(maxWidth(), next));
       prefs.width = next;
       document.documentElement.style.setProperty("--doc-width", next + "px");
+      positionToTop();
     }
     function onUp() {
       handleEl.classList.remove("dragging");
