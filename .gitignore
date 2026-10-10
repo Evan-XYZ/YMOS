@@ -89,3 +89,22 @@ BrainStorm/历史投资资料/原始资料/*
 BrainStorm/历史投资资料/索引与梳理/*.md
 !BrainStorm/历史投资资料/索引与梳理/_模板_*.md
 !BrainStorm/历史投资资料/索引与梳理/.gitkeep
+
+# ymskill 写进 YMOS 的个人产物（见 YMSKILL_ADAPTER.md 第二节）
+Eyes/核实记录/
+Eyes/传导推演/
+Eyes/事件登记.md
+Brain/策略分析/ymskill/
+Brain/内核审计/数据/
+Brain/内核审计/持有期复盘_*.md
+Brain/内核审计/纪律体检报告_*.md
+Brain/内核审计/回看台账.md
+Brain/内核审计/回看汇总_*.md
+BrainStorm/动作记录/
+BrainStorm/回看/
+BrainStorm/状态机/快照/
+Agents/交接/
+Agents/回执/
+Agents/心跳日志/
+Agents/机会卡/
+Agents/全局状态.md

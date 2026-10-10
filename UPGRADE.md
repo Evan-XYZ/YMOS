@@ -52,6 +52,14 @@ Agent 天然会读代码、会合并：把官方新增的文件补齐，遇到�
 
 > **核心规范始终以 GitHub 仓库（Evan-XYZ/YMOS）为准。** 客户端快照与文档页快照是为了方便快速上手，可能滞后；要最新、要核对，回 GitHub。
 
+### 可选：装上 ymskill，补上核实和回看
+
+[ymskill](https://github.com/Evan-XYZ/ymskill) 是一套装在 Agent 这一层的 Skills，和 YMOS 版本无关：**老版本的 YMOS 不升级也能装**，它认得 YMOS 的目录。YMOS 已有的流程照旧用 YMOS 的，ymskill 只补没有的几个动作（开原件核实、持有期复盘、回看台账等），产物写回 YMOS 的目录。
+
+两边的分工和路径映射写在根目录的 `YMSKILL_ADAPTER.md`。它是新增文件，上面两条增量补全都会给老工作区补上；没补上也不影响，ymskill 内置了同一份。
+
+你的工作区是 git 仓库的：增量补全不改已有的 `.gitignore`，ymskill 第一次往 YMOS 里写核实记录、交割单这些个人数据前，会把要追加的几行忽略规则给你看，你点头再加。
+
 ---
 
 ## 第一步：备份，别跳过
