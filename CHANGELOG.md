@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **ymskill 兼容老工作区**：`YMSKILL_ADAPTER.md` 路径映射里，`当前策略_Profile.md` 还没写时，ymskill 可以临时借用 `当前关注方向与投资偏好.md` 里写投资目标和尺子的那几节（写明出处、结论只算候选，并提示说「配置一下我的内核」整理成 Profile）；关注文件和 Profile 的分工不变。老工作区没有这一页时，ymskill 会提醒三种补法：桌面端增量补全、拉最新 YMOS、或让它补上这一个文件。
 - **与 ymskill 协同**：新增根目录 `YMSKILL_ADAPTER.md`，写清装了 ymskill 时的分工（YMOS 已有的流程用 YMOS 的，ymskill 只补开原件核实、持有期复盘、回看台账、主控心跳等动作）、路径映射和产物位置；`总入口暗号.md` 增「装了 ymskill 时」一节和一条冲突处理，README FAQ、UPGRADE 增补说明；`.gitignore` 增 ymskill 产物（核实记录、交割单数据、持有期复盘、动作记录、交接等）的忽略规则。YMOS 不依赖 ymskill；老工作区经增量补全拿到这份新文件，没拿到时 ymskill 用内置的同一份映射。
 - **桌面工作站文档对齐（框架侧）**：README 上手指南新增「桌面版 / 框架直用」两条对等入口岔口，FAQ 增补“不碰命令行 / 开源框架 vs 闭源客户端”问答，文档导航加桌面版入口；进阶指南与 AGENT_GUIDE 增补「🖥️ 客户端」便利注记（数据源 Key、问财 Key、发布扩展、运行形态）。明确**开源框架不依赖桌面客户端**——手动 / Agent 直连流程全部保留，客户端只作并列便利入口。
 - **Console 路由兼容**：`Console/server.py` 增加 `/source-settings` → `settings.html` 别名，使数据源配置页在独立运行（server.py）与桌面客户端两种形态下命中同一页，修复首页卡片改指后独立运行 404。
